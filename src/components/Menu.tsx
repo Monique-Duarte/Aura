@@ -47,43 +47,43 @@ const appPages: AppPage[] = [
   },
   {
     title: 'Extrato',
-    url: '/Extrato',
+    url: '/extrato',
     iosIcon: scaleOutline,
     mdIcon: scaleSharp
   },
   {
     title: 'Receita',
-    url: '/Receita',
+    url: '/receita',
     iosIcon: cashOutline,
     mdIcon: cashSharp
   },
   {
-    title: 'Despesas',
-    url: '/Despesa',
+    title: 'Despesa',
+    url: '/despesa',
     iosIcon: createOutline,
     mdIcon: createSharp
   },
   {
     title: 'Fatura',
-    url: '/Fatura',
+    url: '/fatura',
     iosIcon: archiveOutline,
     mdIcon: archiveSharp
   },
   {
-    title: 'Cartões',
-    url: '/Cartoes',
+    title: 'Cartão',
+    url: '/cartao',
     iosIcon: cardOutline,
     mdIcon: cardSharp
   },
   {
-    title: 'Investimentos',
-    url: '/Investimentos',
+    title: 'Investimento',
+    url: '/investimento',
     iosIcon: statsChartOutline,
     mdIcon: statsChartSharp
   },
   {
     title: 'Reserva de emergência',
-    url: '/Reserva',
+    url: '/reserva',
     iosIcon: warningOutline,
     mdIcon: warningSharp
   }

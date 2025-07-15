@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   IonContent,
   IonHeader,
@@ -16,26 +16,47 @@ import {
   IonCardContent,
   IonLoading,
   IonToast,
+  IonCheckbox,
 } from '@ionic/react';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   GoogleAuthProvider,
   signInWithPopup,
+  sendPasswordResetEmail,
 } from 'firebase/auth';
 import { auth } from '../services/firebase';
 import { useHistory } from 'react-router-dom';
+import { FaEnvelope, FaLock } from 'react-icons/fa';
 
 const LoginPage: React.FC = () => {
+  console.log('Renderizando LoginPage');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const [salvarSenha, setSalvarSenha] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
+  const [isDark, setIsDark] = useState(false);
+
+  useEffect(() => {
+    setIsDark(document.body.classList.contains('theme-dark'));
+    const observer = new MutationObserver(() => {
+      setIsDark(document.body.classList.contains('theme-dark'));
+    });
+    observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
 
   const history = useHistory();
 
   const handleRegister = async () => {
+    if (!email || !password) {
+      setToastMessage('Preencha todos os campos para registrar.');
+      setShowToast(true);
+      return;
+    }
     setLoading(true);
     try {
       await createUserWithEmailAndPassword(auth, email, password);
@@ -59,6 +80,11 @@ const LoginPage: React.FC = () => {
   };
 
   const handleLogin = async () => {
+    if (!email || !password) {
+      setToastMessage('Preencha todos os campos para entrar.');
+      setShowToast(true);
+      return;
+    }
     setLoading(true);
     try {
       await signInWithEmailAndPassword(auth, email, password);
@@ -106,11 +132,62 @@ const LoginPage: React.FC = () => {
   return (
     <IonPage>
       <IonHeader>
-        <IonToolbar>
+        <IonToolbar className="login-toolbar">
           <IonTitle>Login / Registro</IonTitle>
         </IonToolbar>
       </IonHeader>
-      <IonContent fullscreen className="ion-padding ion-text-center">
+      <IonContent fullscreen className="login-bg">
+        <div className="login-container">
+          <img src="/logo.png" alt="Logo Aura" className="aura-logo-full" />
+          <div className="app-name">Aura</div>
+          <form className="login-form" onSubmit={e => e.preventDefault()}>
+            <div className="login-title login-title-left">Login</div>
+            <div className="login-input-item">
+              <FaEnvelope className="input-icon" />
+              <IonInput
+                type="email"
+                value={email}
+                onIonChange={(e) => setEmail(e.detail.value!)}
+                placeholder="Email"
+                className="login-input"
+              />
+            </div>
+            <div className="login-input-item">
+              <FaLock className="input-icon" />
+              <IonInput
+                type="password"
+                value={password}
+                onIonChange={(e) => setPassword(e.detail.value!)}
+                placeholder="Senha"
+                className="login-input"
+              />
+            </div>
+            <div className="login-options-row">
+              <label style={{ display: 'flex', alignItems: 'center' }}>
+                <input
+                  type="checkbox"
+                  className="login-checkbox"
+                  checked={salvarSenha}
+                  onChange={e => setSalvarSenha(e.target.checked)}
+                />
+                <span className="login-checkbox-label">Salvar senha</span>
+              </label>
+              <a href="#" className="login-forgot">Esqueceu a senha?</a>
+            </div>
+            <button type="button" onClick={handleLogin} className="login-btn-main" disabled={loading || !email || !password}>
+              Entrar
+            </button>
+            <button type="button" onClick={handleRegister} className="login-btn-google-main" style={{background: 'transparent', color: 'var(--cor-primaria)', border: '1.5px solid var(--cor-primaria)', marginBottom: '18px', marginTop: '0'}} disabled={loading || !email || !password}>
+              Criar conta
+            </button>
+            <div className="login-divider"></div>
+            <div className="login-or">ou</div>
+            <button type="button" onClick={handleGoogleLogin} className="login-btn-google-main" disabled={loading}>
+              <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="google-icon" />
+              Login com Google
+            </button>
+          </form>
+        </div>
         <IonLoading isOpen={loading} message={'Aguarde...'} duration={0} spinner="crescent" />
         <IonToast
           isOpen={showToast}
@@ -119,43 +196,6 @@ const LoginPage: React.FC = () => {
           duration={3000}
           color="dark"
         />
-
-        <IonCard className="ion-margin-top">
-          <IonCardHeader>
-            <IonCardTitle>Autenticação</IonCardTitle>
-          </IonCardHeader>
-          <IonCardContent>
-            <IonList>
-              <IonItem>
-                <IonLabel position="floating">Email</IonLabel>
-                <IonInput
-                  type="email"
-                  value={email}
-                  onIonChange={(e) => setEmail(e.detail.value!)}
-                  placeholder="seuemail@exemplo.com"
-                />
-              </IonItem>
-              <IonItem>
-                <IonLabel position="floating">Senha</IonLabel>
-                <IonInput
-                  type="password"
-                  value={password}
-                  onIonChange={(e) => setPassword(e.detail.value!)}
-                  placeholder="Mínimo 6 caracteres"
-                />
-              </IonItem>
-            </IonList>
-            <IonButton expand="block" onClick={handleLogin} className="ion-margin-top">
-              Entrar
-            </IonButton>
-            <IonButton expand="block" onClick={handleRegister} fill="outline" className="ion-margin-top">
-              Criar Conta
-            </IonButton>
-            <IonButton expand="block" onClick={handleGoogleLogin} color="danger" className="ion-margin-top">
-              Entrar com Google
-            </IonButton>
-          </IonCardContent>
-        </IonCard>
       </IonContent>
     </IonPage>
   );

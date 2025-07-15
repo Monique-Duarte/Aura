@@ -1,2 +1,23 @@
 /* For information on how to create your own theme, please see:
 http://ionicframework.com/docs/theming/ */
+
+:root,
+.theme-light {
+  --cor-fonte: #FFC300;
+  --cor-fundo: #181828;
+  --cor-borda: #FFC300;
+  --cor-borda-escura: #b38600;
+  --cor-primaria: #FFC300;
+  --cor-texto: #fff;
+  --logo-image: url('/logo.png');
+}
+
+.theme-dark {
+  --cor-fonte: #A259FF;
+  --cor-fundo: #181828;
+  --cor-borda: #A259FF;
+  --cor-borda-escura: #6c1aff;
+  --cor-primaria: #A259FF;
+  --cor-texto: #fff;
+  --logo-image: url('/logoD.png');
+}

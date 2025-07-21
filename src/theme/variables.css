@@ -1,2 +1,230 @@
-/* For information on how to create your own theme, please see:
-http://ionicframework.com/docs/theming/ */
+/* =========================
+   TELA DE LOGIN
+   ========================= */
+:root {
+  --ion-background-color: #202023;
+  --ion-text-color: #FFD600;
+  --ion-color-primary: #FFD600;
+  --ion-color-primary-contrast: #202023;
+  --aura-accent: #FFD600;
+  --aura-bg: #202023;
+}
+
+body {
+  background: var(--aura-bg);
+  color: var(--ion-text-color);
+  font-family: 'Inter', 'Roboto', Arial, sans-serif;
+}
+
+.aura-login-content {
+  --background: #202023;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+}
+.aura-login-center {
+  width: 100%;
+  max-width: 350px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.logo-aura {
+  width: 64px;
+  height: 64px;
+}
+.aura-title {
+  color: #FFD600;
+  font-size: 2.2rem;
+  font-weight: 800;
+  margin-bottom: 8px;
+  text-align: center;
+}
+.aura-subtitle {
+  color: #fff;
+  font-size: 1.1rem;
+  margin-bottom: 32px;
+  text-align: center;
+}
+.aura-form-clean {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.aura-separator {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  margin: 18px 0 16px 0;
+  color: #888;
+  font-size: 0.98rem;
+  font-weight: 500;
+}
+.aura-separator span {
+  margin: 0 12px;
+  white-space: nowrap;
+}
+.aura-separator:before, .aura-separator:after {
+  content: '';
+  flex: 1;
+  border-bottom: 1.5px solid #eee;
+  margin: 0 4px;
+}
+.aura-links-clean {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 0;
+  width: 100%;
+}
+.aura-link-clean {
+  color: #888 !important;
+  font-size: 0.98rem;
+  margin: 0 8px;
+  text-align: center;
+  text-decoration: none !important;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+.aura-link-clean:hover {
+  color: #FFD600 !important;
+  text-decoration: underline !important;
+}
+@media (max-width: 500px) {
+  .aura-login-center {
+    max-width: 95vw;
+  }
+  .aura-title {
+    font-size: 1.5rem;
+  }
+  .logo-aura {
+    width: 48px;
+    height: 48px;
+  }
+}
+
+/* =========================
+   INPUTS
+   ========================= */
+.aura-input-clean {
+  background: #fff;
+  color: #202023;
+  border-radius: 12px;
+  border: 1.5px solid #eee;
+  font-size: 1.08rem;
+  padding-left: 16px;
+  padding-right: 16px;
+  height: 44px;
+  box-shadow: none;
+  margin-bottom: 0;
+  width: 100%;
+  outline: none;
+  transition: border 0.2s;
+}
+.aura-input-clean input {
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  background: transparent !important;
+  line-height: 44px;
+}
+.aura-input-clean:focus {
+  border: 1.5px solid #FFD600;
+}
+
+/* =========================
+   WRAPPER DOS INPUTS
+   ========================= */
+.aura-input-wrapper {
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+/* =========================
+   BTN PRINCIPAL (ENTRAR)
+   ========================= */
+.aura-btn-main-clean {
+  background: #FFD600;
+  color: #202023;
+  border-radius: 12px;
+  font-size: 1.12rem;
+  font-weight: 700;
+  height: 44px;
+  width: 100%;
+  box-shadow: none;
+  text-transform: none;
+  letter-spacing: 0.01em;
+  margin-top: 4px;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: filter 0.2s;
+}
+.aura-btn-main-clean:hover {
+  filter: brightness(1.05);
+}
+ion-button.aura-btn-main-clean {
+  --background: #FFD600;
+  --color: #202023;
+  --border-radius: 12px;
+  --box-shadow: none;
+  --border-width: 0;
+  --padding-start: 0;
+  --padding-end: 0;
+  font-weight: 700;
+  font-size: 1.12rem;
+}
+ion-button.aura-btn-main-clean::part(native) {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: #202023 !important;
+  font-size: 1.12rem !important;
+  min-width: 100% !important;
+  min-height: 44px !important;
+  height: 44px !important;
+  width: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* =========================
+   BTN GOOGLE
+   ========================= */
+.aura-btn-google-clean {
+  background: #fff;
+  color: #202023;
+  border: 1.5px solid #eee;
+  border-radius: 12px;
+  font-size: 1.08rem;
+  font-weight: 600;
+  height: 44px;
+  width: 100%;
+  box-shadow: none;
+  text-transform: none;
+  letter-spacing: 0.01em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 18px;
+  cursor: pointer;
+  transition: background 0.2s, border 0.2s;
+}
+.aura-btn-google-clean:hover {
+  background: #f7f7f7;
+  border-color: #FFD600;
+}
+.aura-btn-google-clean img {
+  margin-right: 8px;
+  vertical-align: middle;
+}

@@ -283,7 +283,7 @@ const Renda: React.FC = () => {
             message={'Tem certeza que deseja excluir este lançamento? Esta ação não pode ser desfeita.'}
             buttons={[
                 { text: 'Cancelar', role: 'cancel' },
-                { text: 'Excluir', handler: confirmDelete },
+                { text: 'Excluir', cssClass: 'alert-button-danger', handler: confirmDelete },
             ]}
         />
       </IonContent>

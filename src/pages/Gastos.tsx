@@ -22,26 +22,23 @@ import {
   IonSpinner,
   IonDatetimeButton,
   IonAlert,
-  IonItemSliding,
-  IonItemOptions,
-  IonItemOption,
   IonSegment,
   IonSegmentButton,
-  IonSelect,
-  IonSelectOption,
+  IonActionSheet,
 } from '@ionic/react';
-import { add, close, pencil, trash } from 'ionicons/icons';
-import { useDate } from '../hooks/DateContext';
+import { add, close, pencil, trash, walletOutline } from 'ionicons/icons';
 import { useAuth } from '../hooks/AuthContext';
 import { getFirestore, collection, addDoc, query, where, getDocs, Timestamp, doc, deleteDoc, updateDoc, writeBatch } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
 import app from '../firebaseConfig';
 import './Lancamentos.css';
+import CategorySelector from '../components/CategorySelector';
+import PeriodSelector from '../components/PeriodSelector'; // Importa o seletor de período
 
 // --- Interfaces ---
-interface Category {
-  id: string;
-  name: string;
+interface Period {
+  startDate: Date;
+  endDate: Date;
 }
 
 interface ExpenseTransaction {
@@ -58,14 +55,8 @@ interface ExpenseTransaction {
   installmentGroupId?: string;
 }
 
-// --- Constantes ---
-const DEFAULT_CATEGORIES = [
-  "Casa", "Mercado", "Restaurantes", "Saúde", "Transporte", "Assinaturas", "Outros"
-];
-
 const Gastos: React.FC = () => {
   const { user } = useAuth();
-  const { currentPeriod } = useDate();
   const [showModal, setShowModal] = useState(false);
   const [expenses, setExpenses] = useState<ExpenseTransaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -82,33 +73,13 @@ const Gastos: React.FC = () => {
   // Estados de controle
   const [editingExpense, setEditingExpense] = useState<ExpenseTransaction | null>(null);
   const [showDeleteAlert, setShowDeleteAlert] = useState(false);
-  const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null);
-  const [availableCategories, setAvailableCategories] = useState<Category[]>([]);
-  const [showNewCategoryAlert, setShowNewCategoryAlert] = useState(false);
-  // O estado newCategoryName foi removido pois não é mais necessário
-
-  // --- Funções de busca de dados ---
-  const fetchCategories = useCallback(async () => {
-    if (!user) return;
-    const db = getFirestore(app);
-    
-    // Mapeia as categorias padrão
-    const defaultCats: Category[] = DEFAULT_CATEGORIES.map(name => ({ id: name.toLowerCase(), name }));
-
-    // Busca categorias customizadas do usuário
-    const customCatsRef = collection(db, 'users', user.uid, 'categories');
-    const querySnapshot = await getDocs(customCatsRef);
-    const customCats = querySnapshot.docs.map(doc => ({ id: doc.id, name: doc.data().name })) as Category[];
-
-    // Combina e remove duplicatas
-    const allCats = [...defaultCats, ...customCats];
-    const uniqueCats = Array.from(new Map(allCats.map(cat => [cat.name, cat])).values());
-    
-    setAvailableCategories(uniqueCats.sort((a, b) => a.name.localeCompare(b.name)));
-  }, [user]);
+  const [expenseToAction, setExpenseToAction] = useState<ExpenseTransaction | null>(null);
+  const [showActionSheet, setShowActionSheet] = useState(false);
+  const [selectedPeriod, setSelectedPeriod] = useState<Period | null>(null); // Estado para o período selecionado
 
   const fetchExpenses = useCallback(async () => {
-    if (!user || !currentPeriod) { setLoading(false); return; }
+    // ALTERAÇÃO: Usa o 'selectedPeriod' do estado em vez do 'currentPeriod' do hook
+    if (!user || !selectedPeriod) { setLoading(false); return; }
     setLoading(true);
     try {
         const db = getFirestore(app);
@@ -116,29 +87,27 @@ const Gastos: React.FC = () => {
         const q = query(
           transactionsRef,
           where('type', '==', 'expense'),
-          where('date', '>=', currentPeriod.startDate),
-          where('date', '<=', currentPeriod.endDate)
+          where('date', '>=', selectedPeriod.startDate),
+          where('date', '<=', selectedPeriod.endDate)
         );
         const querySnapshot = await getDocs(q);
         const fetchedExpenses = querySnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data(),
           date: (doc.data().date as Timestamp).toDate(),
-        })) as ExpenseTransaction[];
+        })).sort((a, b) => b.date.getTime() - a.date.getTime()) as ExpenseTransaction[];
         setExpenses(fetchedExpenses);
     } catch (error) {
         console.error("Erro ao buscar gastos:", error);
     } finally {
         setLoading(false);
     }
-  }, [user, currentPeriod]);
+  }, [user, selectedPeriod]); // ALTERAÇÃO: Depende do 'selectedPeriod'
 
   useEffect(() => {
     fetchExpenses();
-    fetchCategories();
-  }, [fetchExpenses, fetchCategories]);
+  }, [fetchExpenses]);
 
-  // --- Funções de manipulação de dados ---
   const handleSaveExpense = async () => {
     if (!user || !amount || !description) return;
     const db = getFirestore(app);
@@ -183,50 +152,46 @@ const Gastos: React.FC = () => {
     }
   };
 
-  // CORREÇÃO: A função agora aceita o nome da categoria como argumento
-  const handleCreateCategory = async (categoryName: string) => {
-    if (!user || !categoryName.trim()) return;
-    const db = getFirestore(app);
-    const customCatsRef = collection(db, 'users', user.uid, 'categories');
-    try {
-        await addDoc(customCatsRef, { name: categoryName.trim() });
-        fetchCategories(); // Atualiza a lista de categorias
-    } catch (error) {
-        console.error("Erro ao criar categoria:", error);
-    }
+  const handleItemClick = (expense: ExpenseTransaction) => {
+    setExpenseToAction(expense);
+    setShowActionSheet(true);
   };
 
-  const handleCategoryChange = (e: CustomEvent) => {
-    const selected: string[] = e.detail.value;
-    if (selected.includes('__CREATE_NEW__')) {
-        setShowNewCategoryAlert(true);
-        // Remove a opção "criar" da seleção atual
-        setSelectedCategories(selected.filter(cat => cat !== '__CREATE_NEW__'));
-    } else {
-        setSelectedCategories(selected);
-    }
-  };
-
-  const handleEditClick = (expense: ExpenseTransaction) => {
-    setEditingExpense(expense);
-    setDescription(expense.description);
-    setAmount(expense.amount);
-    setDate(expense.date.toISOString());
-    setIsRecurring(expense.isRecurring);
-    setPaymentMethod(expense.paymentMethod || 'debit');
-    setSelectedCategories(expense.categories || []);
+  const handleEditClick = () => {
+    if (!expenseToAction) return;
+    setEditingExpense(expenseToAction);
+    setDescription(expenseToAction.description);
+    setAmount(expenseToAction.amount);
+    setDate(expenseToAction.date.toISOString());
+    setIsRecurring(expenseToAction.isRecurring);
+    setPaymentMethod(expenseToAction.paymentMethod || 'debit');
+    setSelectedCategories(expenseToAction.categories || []);
     setShowModal(true);
   };
 
-  const handleDeleteClick = (id: string) => {
-    setExpenseToDelete(id);
+  const handleDeleteClick = () => {
+    if (!expenseToAction) return;
     setShowDeleteAlert(true);
   };
 
-  const confirmDelete = async () => {
-    if (!user || !expenseToDelete) return;
+  const handleAnticipateClick = async () => {
+    if (!user || !expenseToAction) return;
     const db = getFirestore(app);
-    const docRef = doc(db, 'users', user.uid, 'transactions', expenseToDelete);
+    const docRef = doc(db, 'users', user.uid, 'transactions', expenseToAction.id);
+    try {
+        await updateDoc(docRef, {
+            date: Timestamp.fromDate(new Date()),
+        });
+        fetchExpenses();
+    } catch (error) {
+        console.error("Erro ao antecipar parcela:", error);
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!user || !expenseToAction) return;
+    const db = getFirestore(app);
+    const docRef = doc(db, 'users', user.uid, 'transactions', expenseToAction.id);
     try {
         await deleteDoc(docRef);
         fetchExpenses();
@@ -234,7 +199,7 @@ const Gastos: React.FC = () => {
         console.error("Erro ao excluir gasto:", error);
     }
     setShowDeleteAlert(false);
-    setExpenseToDelete(null);
+    setExpenseToAction(null);
   };
 
   const closeModalAndReset = () => {
@@ -250,6 +215,8 @@ const Gastos: React.FC = () => {
   };
 
   const totalExpense = expenses.reduce((sum, item) => sum + item.amount, 0);
+
+  const isFutureInstallment = expenseToAction?.isInstallment && expenseToAction.date > new Date();
 
   return (
     <IonPage>
@@ -267,32 +234,25 @@ const Gastos: React.FC = () => {
           </IonText>
         </div>
 
+        {/* ALTERAÇÃO: Seletor de período movido para fora do card */}
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+          <PeriodSelector onPeriodChange={setSelectedPeriod} />
+        </div>
+
         {loading ? (
           <div style={{ textAlign: 'center', marginTop: '20px' }}><IonSpinner /></div>
         ) : (
           <IonList>
             {expenses.map(expense => (
-              <IonItemSliding key={expense.id}>
-                <IonItemOptions side="start">
-                  <IonItemOption color="primary" onClick={() => handleEditClick(expense)}>
-                    <IonIcon slot="icon-only" icon={pencil} />
-                  </IonItemOption>
-                </IonItemOptions>
-                <IonItem lines="inset">
-                  <IonLabel>
-                    <h2>{expense.description}</h2>
-                    <p>{expense.date.toLocaleDateString('pt-BR')}</p>
-                  </IonLabel>
-                  <IonText color="danger" slot="end">
-                    <p>{expense.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
-                  </IonText>
-                </IonItem>
-                <IonItemOptions side="end">
-                  <IonItemOption color="danger" onClick={() => handleDeleteClick(expense.id)}>
-                    <IonIcon slot="icon-only" icon={trash} />
-                  </IonItemOption>
-                </IonItemOptions>
-              </IonItemSliding>
+              <IonItem key={expense.id} lines="inset" button onClick={() => handleItemClick(expense)}>
+                <IonLabel>
+                  <h2>{expense.description}</h2>
+                  <p>{expense.date.toLocaleDateString('pt-BR')}</p>
+                </IonLabel>
+                <IonText color="danger" slot="end">
+                  <p>{expense.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+                </IonText>
+              </IonItem>
             ))}
           </IonList>
         )}
@@ -320,22 +280,10 @@ const Gastos: React.FC = () => {
                   </IonItem>
                 </div>
                 <div className="form-field-group">
-                  <IonItem>
-                    <IonLabel position="floating">Categorias</IonLabel>
-                    <IonSelect
-                        value={selectedCategories}
-                        multiple={true}
-                        cancelText="Cancelar"
-                        okText="Ok"
-                        onIonChange={handleCategoryChange}
-                        placeholder="Selecione uma ou mais"
-                    >
-                        {availableCategories.map(cat => (
-                            <IonSelectOption key={cat.id} value={cat.name}>{cat.name}</IonSelectOption>
-                        ))}
-                        <IonSelectOption value="__CREATE_NEW__">➕ Criar nova categoria...</IonSelectOption>
-                    </IonSelect>
-                  </IonItem>
+                  <CategorySelector 
+                    selectedCategories={selectedCategories} 
+                    onCategoryChange={setSelectedCategories} 
+                  />
                 </div>
                 <div className="form-field-group">
                   <IonItem>
@@ -392,17 +340,44 @@ const Gastos: React.FC = () => {
             onDidDismiss={() => setShowDeleteAlert(false)}
             header={'Confirmar Exclusão'}
             message={'Tem certeza que deseja excluir este lançamento?'}
-            buttons={[ { text: 'Cancelar', role: 'cancel' }, { text: 'Excluir', handler: confirmDelete } ]}
-        />
-        <IonAlert
-            isOpen={showNewCategoryAlert}
-            onDidDismiss={() => setShowNewCategoryAlert(false)}
-            header={'Nova Categoria'}
-            message={'Digite o nome da nova categoria que deseja criar.'}
-            inputs={[{ name: 'categoryName', type: 'text', placeholder: 'Ex: Lazer' }]}
             buttons={[
                 { text: 'Cancelar', role: 'cancel' },
-                { text: 'Criar', handler: (data) => handleCreateCategory(data.categoryName) },
+                { 
+                  text: 'Excluir', 
+                  cssClass: 'alert-button-danger', 
+                  handler: confirmDelete 
+                }
+            ]}
+        />
+        
+        <IonActionSheet
+            isOpen={showActionSheet}
+            onDidDismiss={() => setShowActionSheet(false)}
+            header={expenseToAction?.description}
+            buttons={[
+                {
+                    text: 'Editar',
+                    icon: pencil,
+                    handler: handleEditClick,
+                    cssClass: 'action-sheet-edit',
+                },
+                ...(isFutureInstallment ? [{
+                    text: 'Antecipar Parcela',
+                    icon: walletOutline,
+                    handler: handleAnticipateClick,
+                    cssClass: 'action-sheet-anticipate',
+                }] : []),
+                {
+                    text: 'Excluir',
+                    role: 'destructive',
+                    icon: trash,
+                    handler: handleDeleteClick
+                },
+                {
+                    text: 'Cancelar',
+                    icon: close,
+                    role: 'cancel'
+                }
             ]}
         />
       </IonContent>

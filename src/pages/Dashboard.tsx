@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { IonSelect, IonSelectOption, IonPage, IonHeader, IonToolbar, IonButtons, IonMenuButton, IonTitle, IonContent } from '@ionic/react';
-import { useDate } from '../hooks/DateContext';
-import { generateFinancialPeriods } from '../logic/dateLogic';
+import { IonPage, IonHeader, IonToolbar, IonButtons, IonMenuButton, IonTitle, IonContent } from '@ionic/react';
+import PeriodSelector from '../components/PeriodSelector'; // Importa o novo componente
 import './Dashboard.css';
 
 // --- Componentes de Gráfico (placeholders) ---
@@ -21,33 +20,19 @@ const chartOptions = [
   { key: 'family', label: 'Gráfico Conjunto' },
 ] as const;
 
+// Define a estrutura de um objeto de período
+interface Period {
+  startDate: Date;
+  endDate: Date;
+}
+
 // --- Componente Principal do Dashboard ---
 const Dashboard: React.FC = () => {
-  const { startDay, currentPeriod } = useDate();
   const [activeChart, setActiveChart] = useState<'balance' | 'category' | 'family'>('balance');
+  // Estado para armazenar o período selecionado, recebido do componente filho
+  const [selectedPeriod, setSelectedPeriod] = useState<Period | null>(null);
 
-  // Estado para as opções do seletor
-  const [periodOptions, setPeriodOptions] = useState<ReturnType<typeof generateFinancialPeriods>>([]);
-  // Estado para o valor do período selecionado (usamos a string ISO da data de início)
-  const [selectedPeriodValue, setSelectedPeriodValue] = useState<string>('');
-
-  // Gera as opções do seletor e define o valor inicial quando o componente carrega
-  useEffect(() => {
-    const options = generateFinancialPeriods(startDay);
-    setPeriodOptions(options);
-    // Encontra o período atual na lista de opções para definir como padrão
-    const currentOption = options.find(
-      p => p.startDate.getTime() === currentPeriod.startDate.getTime()
-    );
-    if (currentOption) {
-      setSelectedPeriodValue(currentOption.value);
-    }
-  }, [startDay, currentPeriod]);
-
-  // Encontra o objeto do período completo com base no valor selecionado
-  const selectedPeriod = periodOptions.find(p => p.value === selectedPeriodValue);
-  
-  // Efeito para buscar dados quando o período selecionado mudar
+  // Efeito para buscar dados sempre que o período selecionado mudar
   useEffect(() => {
     if (selectedPeriod) {
       console.log('NOVO PERÍODO SELECIONADO! Buscar dados para:', selectedPeriod.startDate, 'até', selectedPeriod.endDate);
@@ -58,9 +43,7 @@ const Dashboard: React.FC = () => {
     }
   }, [selectedPeriod]);
 
-
   return (
-    // A página agora define seu próprio layout completo
     <IonPage>
       <IonHeader>
         <IonToolbar color="primary">
@@ -73,21 +56,7 @@ const Dashboard: React.FC = () => {
       <IonContent className="ion-padding">
         <div className="dashboard-header-row">
           <h2 className="dashboard-title">Resumo Mensal</h2>
-          
-          {/* Seletor de Período */}
-          <IonSelect
-            value={selectedPeriodValue}
-            placeholder="Selecione o Mês"
-            onIonChange={e => setSelectedPeriodValue(e.detail.value)}
-            interface="popover"
-            className="month-selector"
-          >
-            {periodOptions.map(opt => (
-              <IonSelectOption key={opt.value} value={opt.value}>
-                {opt.label}
-              </IonSelectOption>
-            ))}
-          </IonSelect>
+          <PeriodSelector onPeriodChange={setSelectedPeriod} />
         </div>
 
         <div className="dashboard-chart-legend">

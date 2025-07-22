@@ -1,9 +1,11 @@
 import React from 'react';
-import { Redirect, Route, Switch } from 'react-router-dom';
+import { Redirect, Switch } from 'react-router-dom';
 import { IonRouterOutlet } from '@ionic/react';
 import SideMenu from '../components/SideMenu';
+import PrivateRoute from '../components/PrivateRoute';
 import Dashboard from '../pages/Dashboard';
-
+import Renda from '../pages/Renda';
+import Gastos from '../pages/Gastos';
 
 const MainLayout: React.FC = () => {
   return (
@@ -11,10 +13,11 @@ const MainLayout: React.FC = () => {
       <SideMenu contentId="main-app-content" />
       <IonRouterOutlet id="main-app-content">
         <Switch>
-          <Route path="/app/dashboard" component={Dashboard} exact />
+          <PrivateRoute path="/app/dashboard" component={Dashboard} exact />
+          <PrivateRoute path="/app/renda" component={Renda} exact />
+                    <PrivateRoute path="/app/gastos" component={Gastos} exact />
+          {/* Adicione outras rotas privadas aqui */}
           <Redirect exact from="/app" to="/app/dashboard" />
-          {/* Adicione outras rotas do seu app aqui, sempre com /app na frente */}
-          {/* <Route path="/app/renda" component={Renda} exact /> */}
         </Switch>
       </IonRouterOutlet>
     </>

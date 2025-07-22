@@ -1,5 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { calculateFinancialPeriod } from '../logic/dateLogic';
+import { getAuth, onAuthStateChanged, User } from 'firebase/auth';
+import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
+import app from '../firebaseConfig';
 
 interface IDatePeriod {
   startDate: Date;
@@ -12,36 +15,59 @@ interface IDateContext {
   setStartDay: (day: number) => void;
 }
 
-// Cria o contexto com um valor padrão inicial
 const DateContext = createContext<IDateContext | undefined>(undefined);
 
-// O componente Provedor
 export const DateProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  // O padrão é o dia 1, mas buscaremos do Firestore/localStorage
   const [startDay, setStartDayState] = useState<number>(1);
   const [currentPeriod, setCurrentPeriod] = useState<IDatePeriod>(calculateFinancialPeriod(1));
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
 
-  // Simulação: buscar a configuração do usuário ao carregar o app
   useEffect(() => {
-    // EM PRODUÇÃO: Aqui você faria uma chamada ao Firestore para buscar a preferência do usuário.
-    // Ex: const userPref = await getUserPreferences(auth.currentUser.uid);
-    // Por enquanto, vamos usar localStorage como exemplo.
-    const savedDay = localStorage.getItem('financialStartDay');
-    const day = savedDay ? parseInt(savedDay, 10) : 1;
-    setStartDayState(day);
+    const auth = getAuth();
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user);
+    });
+    return () => unsubscribe();
   }, []);
 
-  // Recalcula o período sempre que o startDay mudar
+  useEffect(() => {
+    if (currentUser) {
+      const fetchSettings = async () => {
+        const db = getFirestore(app);
+        const settingsDocRef = doc(db, 'users', currentUser.uid, 'settings', 'preferences');
+        const docSnap = await getDoc(settingsDocRef);
+
+        if (docSnap.exists() && docSnap.data().financialStartDay) {
+          setStartDayState(docSnap.data().financialStartDay);
+        } else {
+          setStartDayState(1);
+        }
+      };
+      fetchSettings();
+    } else {
+      setStartDayState(1);
+    }
+  }, [currentUser]);
+
   useEffect(() => {
     setCurrentPeriod(calculateFinancialPeriod(startDay));
   }, [startDay]);
 
-  // Função para o usuário atualizar sua preferência
-  const setStartDay = (day: number) => {
-    // EM PRODUÇÃO: Salvar no Firestore
-    // Ex: await saveUserPreference(auth.currentUser.uid, { startDay: day });
-    localStorage.setItem('financialStartDay', day.toString());
-    setStartDayState(day);
+  const setStartDay = async (day: number) => {
+    if (!currentUser) {
+      console.error("Não é possível salvar as configurações: usuário não está logado.");
+      return;
+    }
+    
+    const db = getFirestore(app);
+    const settingsDocRef = doc(db, 'users', currentUser.uid, 'settings', 'preferences');
+    
+    try {
+      await setDoc(settingsDocRef, { financialStartDay: day }, { merge: true });
+       setStartDayState(day);
+    } catch (error) {
+      console.error("Erro ao salvar a preferência de data:", error);
+    }
   };
 
   const value = { currentPeriod, startDay, setStartDay };
@@ -49,7 +75,8 @@ export const DateProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   return <DateContext.Provider value={value}>{children}</DateContext.Provider>;
 };
 
-// O Hook customizado para facilitar o uso
+// Hook customizado (sem alteração)
+// eslint-disable-next-line react-refresh/only-export-components
 export const useDate = (): IDateContext => {
   const context = useContext(DateContext);
   if (context === undefined) {

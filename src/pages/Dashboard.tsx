@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { IonSelect, IonSelectOption } from '@ionic/react';
-import ProtectedLayout from '../components/ProtectedLayout';
+import { IonSelect, IonSelectOption, IonPage, IonHeader, IonToolbar, IonButtons, IonMenuButton, IonTitle, IonContent } from '@ionic/react';
 import { useDate } from '../hooks/DateContext';
 import { generateFinancialPeriods } from '../logic/dateLogic';
 import './Dashboard.css';
@@ -22,6 +21,7 @@ const chartOptions = [
   { key: 'family', label: 'Gráfico Conjunto' },
 ] as const;
 
+// --- Componente Principal do Dashboard ---
 const Dashboard: React.FC = () => {
   const { startDay, currentPeriod } = useDate();
   const [activeChart, setActiveChart] = useState<'balance' | 'category' | 'family'>('balance');
@@ -60,45 +60,56 @@ const Dashboard: React.FC = () => {
 
 
   return (
-    <ProtectedLayout title="Dashboard">
-      <div className="dashboard-header-row">
-        <h2 className="dashboard-title">Resumo Mensal</h2>
-        
-        {/* Seletor de Período */}
-        <IonSelect
-          value={selectedPeriodValue}
-          placeholder="Selecione o Mês"
-          onIonChange={e => setSelectedPeriodValue(e.detail.value)}
-          interface="popover"
-          className="month-selector"
-        >
-          {periodOptions.map(opt => (
-            <IonSelectOption key={opt.value} value={opt.value}>
-              {opt.label}
-            </IonSelectOption>
-          ))}
-        </IonSelect>
-      </div>
-
-      <div className="dashboard-chart-legend">
-        {chartOptions.map(opt => (
-          <button
-            key={opt.key}
-            className={`dashboard-legend-btn${activeChart === opt.key ? ' active' : ''}`}
-            onClick={() => setActiveChart(opt.key)}
-            type="button"
+    // A página agora define seu próprio layout completo
+    <IonPage>
+      <IonHeader>
+        <IonToolbar color="primary">
+          <IonButtons slot="start">
+            <IonMenuButton />
+          </IonButtons>
+          <IonTitle>Dashboard</IonTitle>
+        </IonToolbar>
+      </IonHeader>
+      <IonContent className="ion-padding">
+        <div className="dashboard-header-row">
+          <h2 className="dashboard-title">Resumo Mensal</h2>
+          
+          {/* Seletor de Período */}
+          <IonSelect
+            value={selectedPeriodValue}
+            placeholder="Selecione o Mês"
+            onIonChange={e => setSelectedPeriodValue(e.detail.value)}
+            interface="popover"
+            className="month-selector"
           >
-            {opt.label}
-          </button>
-        ))}
-      </div>
+            {periodOptions.map(opt => (
+              <IonSelectOption key={opt.value} value={opt.value}>
+                {opt.label}
+              </IonSelectOption>
+            ))}
+          </IonSelect>
+        </div>
 
-      <div className="dashboard-chart-area">
-        {activeChart === 'balance' && <DashboardBalanceChart />}
-        {activeChart === 'category' && <DashboardCategoryChart />}
-        {activeChart === 'family' && <DashboardFamilyChart />}
-      </div>
-    </ProtectedLayout>
+        <div className="dashboard-chart-legend">
+          {chartOptions.map(opt => (
+            <button
+              key={opt.key}
+              className={`dashboard-legend-btn${activeChart === opt.key ? ' active' : ''}`}
+              onClick={() => setActiveChart(opt.key)}
+              type="button"
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="dashboard-chart-area">
+          {activeChart === 'balance' && <DashboardBalanceChart />}
+          {activeChart === 'category' && <DashboardCategoryChart />}
+          {activeChart === 'family' && <DashboardFamilyChart />}
+        </div>
+      </IonContent>
+    </IonPage>
   );
 };
 

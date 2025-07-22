@@ -1,0 +1,183 @@
+/* Estilos para a página de Renda */
+
+.summary-card {
+  background: var(--ion-color-step-150, #f0f0f0);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+.summary-card p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--ion-color-medium-shade);
+}
+.summary-card h2 {
+  margin: 4px 0 0 0;
+  font-weight: 700;
+}
+
+/* --- Estilos para o Modal de Nova Renda --- */
+
+.income-modal-form {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.form-fields-container {
+  flex-grow: 1;
+  padding-top: 16px;
+}
+
+.form-field-group {
+  margin-bottom: 20px;
+}
+
+/*
+  CORREÇÃO DEFINITIVA: Espaçamento entre Label Flutuante e Placeholder/Input
+*/
+.form-field-group ion-item {
+  --background: rgba(255, 255, 255, 0.08);
+  --border-radius: 12px;
+  --padding-start: 16px;
+  --inner-padding-end: 16px;
+  --border-width: 0px;
+  --highlight-height: 0;
+  /* 1. Aumenta o espaçamento interno do item como um todo */
+  --inner-padding-top: 12px;
+  --inner-padding-bottom: 12px;
+  min-height: 65px;
+}
+
+/* 2. Força o input a ter um padding-top, empurrando o placeholder para baixo */
+.form-field-group ion-input.sc-ion-input-md-h {
+    --padding-top: 16px;
+}
+
+/* Remove o fundo do item do toggle para um visual mais limpo */
+.form-field-group ion-item.toggle-item {
+  --background: transparent;
+  --inner-padding-start: 0;
+}
+
+/* CORREÇÃO: Estiliza o botão de data para melhor contraste e legibilidade */
+.form-field-group ion-item.date-item {
+  --background: transparent;
+  --inner-padding-end: 0;
+  --padding-start: 0;
+  /* Alinha o label "Data" e o botão verticalmente */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.form-field-group ion-datetime-button {
+  --background: var(--ion-color-primary); /* Fundo amarelo */
+  --background-hover: var(--ion-color-primary-shade);
+
+  /* Cor do texto será a cor de fundo do app (escura) */
+  color: #121212;
+  font-weight: 600;
+
+  border-radius: 12px;
+  /* O botão não ocupará a largura toda, para ficar ao lado do label "Data" */
+  width: auto;
+  min-width: 150px;
+  height: 48px;
+  font-size: 1rem;
+  /* Remove margens extras para alinhar com o IonItem */
+  margin: 0;
+}
+
+/* Alinha o texto do botão de data no centro */
+.form-field-group ion-datetime-button::part(native) {
+    background: #FFD600;
+    color: #202023;
+    justify-content: center;
+    padding-left: 16px;
+    padding-right: 16px;
+}
+
+
+/* Estiliza o botão de salvar para dar mais destaque */
+.save-button {
+  --border-radius: 12px;
+  --box-shadow: 0 4px 15px -5px rgba(var(--ion-color-primary-rgb), 0.5);
+  font-weight: bold;
+  height: 48px;
+  margin-top: auto;
+  margin-bottom: 16px;
+}
+
+ion-datetime {
+  background-color: #202023;
+  color: #fff;
+  border-color: #fff;
+  border: 1px solid #fff;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+}
+
+ion-datetime::part(title) {
+  color: #fff;
+  font-weight: 600;
+}
+
+ion-datetime::part(next-month-button),
+ion-datetime::part(previous-month-button) {
+  color: var(--ion-color-primary);
+}
+
+ion-datetime .calendar-day-of-week {
+    color: #fff;
+}
+
+ion-datetime .datetime-day-active {
+  background: var(--ion-color-primary);
+  color: #202023 !important;
+  font-weight: bold;
+  border-radius: 8px;
+}
+
+ion-datetime .datetime-day-today {
+    border: 1px solid var(--ion-color-primary);
+    border-radius: 8px;
+}
+
+/* Diferença Estilos para a página de Gasto */
+
+.form-field-group ion-segment {
+  --background: rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  margin-top: 8px;
+}
+
+.form-field-group ion-segment-button {
+  --indicator-color: var(--ion-color-primary);
+  --color: var(--ion-color-medium-shade);
+  --color-checked: var(--ion-color-primary);
+  text-transform: none;
+  font-weight: 600;
+}
+
+.alert-checkbox-label {
+  color: var(--ion-color-primary) !important;
+}
+
+/* Cor dos botões OK/Cancelar para garantir consistência */
+.alert-button {
+    color: var(--ion-color-primary) !important;
+}
+
+/* Estilo do checkbox para combinar */
+.alert-checkbox-icon {
+    border-color: var(--ion-color-primary) !important;
+}
+
+/* Cor da marca de seleção quando o checkbox está marcado */
+.alert-checkbox-icon.alert-checkbox-checked .alert-checkbox-inner {
+    border-color: var(--ion-color-primary) !important;
+}

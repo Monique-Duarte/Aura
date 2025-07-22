@@ -22,22 +22,25 @@ import Register from './pages/Register';
 import ResetPassword from './pages/ResetPassword';
 import MainLayout from './layouts/MainLayout';
 import { DateProvider } from './hooks/DateContext';
+import { AuthProvider } from './hooks/AuthContext';
 
 setupIonicReact();
 
 const App: React.FC = () => (
   <IonApp>
     <IonReactRouter>
-       <DateProvider>
-        <Switch>
-          <Route path="/login" component={Login} exact />
-          <Route path="/register" component={Register} exact />
-          <Route path="/reset-password" component={ResetPassword} exact />
+      <AuthProvider>
+        <DateProvider>
+          <Switch>
+            <Route path="/login" component={Login} exact />
+            <Route path="/register" component={Register} exact />
+            <Route path="/reset-password" component={ResetPassword} exact />
 
-          <Route path="/app" component={MainLayout} />
-          <Redirect exact from="/" to="/login" />
-        </Switch>
-      </DateProvider>
+            <Route path="/app" component={MainLayout} />
+            <Redirect exact from="/" to="/login" />
+          </Switch>
+        </DateProvider>
+      </AuthProvider>
     </IonReactRouter>
   </IonApp>
 );

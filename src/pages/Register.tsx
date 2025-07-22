@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { IonPage, IonContent, IonInput, IonButton, IonText, IonSpinner } from '@ionic/react';
+import { IonPage, IonContent, IonButton, IonText, IonSpinner } from '@ionic/react';
 import { Link, useHistory } from 'react-router-dom';
+import { getFirestore, doc, setDoc, Timestamp } from 'firebase/firestore';
 import { getAuth, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { FirebaseError } from 'firebase/app';
 import app from '../firebaseConfig';
 
 const Register: React.FC = () => {
@@ -26,14 +28,48 @@ const Register: React.FC = () => {
     }
     setLoading(true);
     const auth = getAuth(app);
+    const db = getFirestore(app);
+
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, senha);
-      if (auth.currentUser) {
-        await updateProfile(auth.currentUser, { displayName: nome });
+      const user = userCredential.user;
+
+      await updateProfile(user, { displayName: nome });
+      const userDocRef = doc(db, 'users', user.uid);
+
+      await setDoc(userDocRef, {
+        displayName: nome,
+        email: user.email,
+        createdAt: Timestamp.fromDate(new Date()),
+      });
+
+      const settingsDocRef = doc(db, 'users', user.uid, 'settings', 'preferences');
+      await setDoc(settingsDocRef, {
+        financialStartDay: 1,
+      });
+
+      history.push('/app/dashboard');
+
+    } catch (error) {
+      if (error instanceof FirebaseError) {
+        switch (error.code) {
+          case 'auth/email-already-in-use':
+            setErro('Este endereço de e-mail já está cadastrado.');
+            break;
+          case 'auth/invalid-email':
+            setErro('O formato do e-mail é inválido.');
+            break;
+          case 'auth/weak-password':
+            setErro('A senha é muito fraca. Tente uma mais forte.');
+            break;
+          default:
+            setErro('Erro ao criar conta. Verifique os dados e tente novamente.');
+            break;
+        }
+      } else {
+        setErro('Ocorreu um erro inesperado. Tente novamente.');
       }
-      history.push('/dashboard');
-    } catch (error: any) {
-      setErro('Erro ao criar conta. Verifique os dados e tente novamente.');
+      console.error("Falha no registro:", error);
     } finally {
       setLoading(false);
     }

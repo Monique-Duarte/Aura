@@ -3,15 +3,11 @@ import { IonPage, IonHeader, IonToolbar, IonButtons, IonMenuButton, IonTitle, Io
 import PeriodSelector from '../components/PeriodSelector';
 import BalanceChart from '../components/BalanceChart';
 import CategoryChart from '../components/CategoryChart';
-import CategorySummaryList from '../components/CategorySummaryList'; // Importa a nova lista
+import CategorySummaryList from '../components/CategorySummaryList';
+import FamilyChartManager from '../components/FamilyChartManager';
 import { useTransactionSummary } from '../hooks/useTransactionSummary';
 import { useCategorySummary } from '../hooks/useCategorySummary';
 import './Dashboard.css';
-
-// --- Componente de Gráfico (placeholder para o último) ---
-const DashboardFamilyChart: React.FC = () => (
-  <div className="dashboard-chart-placeholder">Conjunto</div>
-);
 
 const chartOptions = [
   { key: 'balance', label: 'Gráfico Balanço' },
@@ -19,18 +15,15 @@ const chartOptions = [
   { key: 'family', label: 'Gráfico Conjunto' },
 ] as const;
 
-// Define a estrutura de um objeto de período
 interface Period {
   startDate: Date;
   endDate: Date;
 }
 
-// --- Componente Principal do Dashboard ---
 const Dashboard: React.FC = () => {
   const [activeChart, setActiveChart] = useState<'balance' | 'category' | 'family'>('balance');
   const [selectedPeriod, setSelectedPeriod] = useState<Period | null>(null);
 
-  // Usa os hooks para buscar os dados de resumo
   const { summary: balanceSummary, loading: balanceLoading } = useTransactionSummary(selectedPeriod);
   const { chartData: categoryChartData, summaryList: categorySummaryList, loading: categoryLoading } = useCategorySummary(selectedPeriod);
 
@@ -82,15 +75,12 @@ const Dashboard: React.FC = () => {
                 <IonSpinner />
               </div>
             ) : (
-              // O gráfico continua na sua área designada
               <CategoryChart data={categoryChartData} />
             )
           )}
-          {activeChart === 'family' && <DashboardFamilyChart />}
+          {activeChart === 'family' && <FamilyChartManager period={selectedPeriod} />}
         </div>
 
-        {/* CORREÇÃO: A lista de resumo agora é renderizada FORA e ABAIXO da área do gráfico */}
-        {/* Ela só aparece quando o gráfico de categoria está ativo e não está carregando */}
         {activeChart === 'category' && !categoryLoading && categorySummaryList.length > 0 && (
           <CategorySummaryList summary={categorySummaryList} />
         )}

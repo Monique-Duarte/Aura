@@ -8,18 +8,27 @@ interface Period {
   endDate: Date;
 }
 
-interface TransactionSummary {
+// A interface agora pode retornar dados de um ou dois utilizadores
+export interface TransactionSummary {
   totalIncome: number;
   totalExpense: number;
+  // Dados individuais para o gráfico de família
+  user1Income?: number;
+  user1Expense?: number;
+  user2Income?: number;
+  user2Expense?: number;
 }
 
-export const useTransactionSummary = (period: Period | null) => {
+// O hook agora aceita uma lista de IDs de utilizadores
+export const useTransactionSummary = (period: Period | null, memberIds: string[] = []) => {
   const { user } = useAuth();
   const [summary, setSummary] = useState<TransactionSummary>({ totalIncome: 0, totalExpense: 0 });
   const [loading, setLoading] = useState(true);
 
   const fetchSummary = useCallback(async () => {
-    if (!user || !period) {
+    // Se memberIds for fornecido, usa-o. Senão, usa o ID do utilizador logado.
+    const idsToFetch = memberIds.length > 0 ? memberIds : (user ? [user.uid] : []);
+    if (idsToFetch.length === 0 || !period) {
       setLoading(false);
       return;
     }
@@ -27,28 +36,43 @@ export const useTransactionSummary = (period: Period | null) => {
     setLoading(true);
     try {
       const db = getFirestore(app);
-      const transactionsRef = collection(db, 'users', user.uid, 'transactions');
-      const q = query(
-        transactionsRef,
-        where('date', '>=', period.startDate),
-        where('date', '<=', period.endDate)
-      );
+      let totalIncome = 0, totalExpense = 0;
+      let user1Income = 0, user1Expense = 0;
+      let user2Income = 0, user2Expense = 0;
 
-      const querySnapshot = await getDocs(q);
-      
-      let income = 0;
-      let expense = 0;
+      // Itera sobre os IDs (seja 1 ou 2) e busca as transações de cada um
+      for (const [index, userId] of idsToFetch.entries()) {
+        const transactionsRef = collection(db, 'users', userId, 'transactions');
+        const q = query(
+          transactionsRef,
+          where('date', '>=', period.startDate),
+          where('date', '<=', period.endDate)
+        );
+        const querySnapshot = await getDocs(q);
+        
+        querySnapshot.forEach(doc => {
+          const data = doc.data();
+          if (data.type === 'income') {
+            totalIncome += data.amount;
+            // CORREÇÃO: Substituído o operador ternário por um if/else
+            if (index === 0) {
+              user1Income += data.amount;
+            } else {
+              user2Income += data.amount;
+            }
+          } else if (data.type === 'expense') {
+            totalExpense += data.amount;
+            // CORREÇÃO: Substituído o operador ternário por um if/else
+            if (index === 0) {
+              user1Expense += data.amount;
+            } else {
+              user2Expense += data.amount;
+            }
+          }
+        });
+      }
 
-      querySnapshot.forEach(doc => {
-        const data = doc.data();
-        if (data.type === 'income') {
-          income += data.amount;
-        } else if (data.type === 'expense') {
-          expense += data.amount;
-        }
-      });
-
-      setSummary({ totalIncome: income, totalExpense: expense });
+      setSummary({ totalIncome, totalExpense, user1Income, user1Expense, user2Income, user2Expense });
 
     } catch (error) {
       console.error("Erro ao buscar resumo de transações:", error);
@@ -56,7 +80,8 @@ export const useTransactionSummary = (period: Period | null) => {
     } finally {
       setLoading(false);
     }
-  }, [user, period]);
+    // Usamos JSON.stringify para que o array de dependências do useCallback seja estável
+  }, [user, period, JSON.stringify(memberIds)]);
 
   useEffect(() => {
     fetchSummary();

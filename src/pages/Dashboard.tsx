@@ -1,15 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { IonPage, IonHeader, IonToolbar, IonButtons, IonMenuButton, IonTitle, IonContent } from '@ionic/react';
-import PeriodSelector from '../components/PeriodSelector'; // Importa o novo componente
+import React, { useState } from 'react';
+import { IonPage, IonHeader, IonToolbar, IonButtons, IonMenuButton, IonTitle, IonContent, IonSpinner } from '@ionic/react';
+import PeriodSelector from '../components/PeriodSelector';
+import BalanceChart from '../components/BalanceChart';
+import CategoryChart from '../components/CategoryChart';
+import CategorySummaryList from '../components/CategorySummaryList'; // Importa a nova lista
+import { useTransactionSummary } from '../hooks/useTransactionSummary';
+import { useCategorySummary } from '../hooks/useCategorySummary';
 import './Dashboard.css';
 
-// --- Componentes de Gráfico (placeholders) ---
-const DashboardBalanceChart: React.FC = () => (
-  <div className="dashboard-chart-placeholder">Balanço</div>
-);
-const DashboardCategoryChart: React.FC = () => (
-  <div className="dashboard-chart-placeholder">Categoria</div>
-);
+// --- Componente de Gráfico (placeholder para o último) ---
 const DashboardFamilyChart: React.FC = () => (
   <div className="dashboard-chart-placeholder">Conjunto</div>
 );
@@ -29,19 +28,11 @@ interface Period {
 // --- Componente Principal do Dashboard ---
 const Dashboard: React.FC = () => {
   const [activeChart, setActiveChart] = useState<'balance' | 'category' | 'family'>('balance');
-  // Estado para armazenar o período selecionado, recebido do componente filho
   const [selectedPeriod, setSelectedPeriod] = useState<Period | null>(null);
 
-  // Efeito para buscar dados sempre que o período selecionado mudar
-  useEffect(() => {
-    if (selectedPeriod) {
-      console.log('NOVO PERÍODO SELECIONADO! Buscar dados para:', selectedPeriod.startDate, 'até', selectedPeriod.endDate);
-      //
-      // AQUI VOCÊ COLOCARÁ A LÓGICA PARA BUSCAR OS DADOS DO FIREBASE
-      // USANDO as datas de `selectedPeriod.startDate` e `selectedPeriod.endDate`.
-      //
-    }
-  }, [selectedPeriod]);
+  // Usa os hooks para buscar os dados de resumo
+  const { summary: balanceSummary, loading: balanceLoading } = useTransactionSummary(selectedPeriod);
+  const { chartData: categoryChartData, summaryList: categorySummaryList, loading: categoryLoading } = useCategorySummary(selectedPeriod);
 
   return (
     <IonPage>
@@ -73,10 +64,36 @@ const Dashboard: React.FC = () => {
         </div>
 
         <div className="dashboard-chart-area">
-          {activeChart === 'balance' && <DashboardBalanceChart />}
-          {activeChart === 'category' && <DashboardCategoryChart />}
+          {activeChart === 'balance' && (
+            balanceLoading ? (
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '300px' }}>
+                <IonSpinner />
+              </div>
+            ) : (
+              <BalanceChart 
+                totalIncome={balanceSummary.totalIncome} 
+                totalExpense={balanceSummary.totalExpense} 
+              />
+            )
+          )}
+          {activeChart === 'category' && (
+            categoryLoading || !categoryChartData ? (
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '300px' }}>
+                <IonSpinner />
+              </div>
+            ) : (
+              // O gráfico continua na sua área designada
+              <CategoryChart data={categoryChartData} />
+            )
+          )}
           {activeChart === 'family' && <DashboardFamilyChart />}
         </div>
+
+        {/* CORREÇÃO: A lista de resumo agora é renderizada FORA e ABAIXO da área do gráfico */}
+        {/* Ela só aparece quando o gráfico de categoria está ativo e não está carregando */}
+        {activeChart === 'category' && !categoryLoading && categorySummaryList.length > 0 && (
+          <CategorySummaryList summary={categorySummaryList} />
+        )}
       </IonContent>
     </IonPage>
   );

@@ -7,6 +7,7 @@ import CategorySummaryList from '../components/CategorySummaryList';
 import FamilyChartManager from '../components/FamilyChartManager';
 import { useTransactionSummary } from '../hooks/useTransactionSummary';
 import { useCategorySummary } from '../hooks/useCategorySummary';
+import { useAccountBalance } from '../hooks/useAccountBalance'; // Importa o novo hook de saldo
 import './Dashboard.css';
 
 const chartOptions = [
@@ -24,8 +25,10 @@ const Dashboard: React.FC = () => {
   const [activeChart, setActiveChart] = useState<'balance' | 'category' | 'family'>('balance');
   const [selectedPeriod, setSelectedPeriod] = useState<Period | null>(null);
 
+  // Hooks para buscar os dados de resumo
   const { summary: balanceSummary, loading: balanceLoading } = useTransactionSummary(selectedPeriod);
   const { chartData: categoryChartData, summaryList: categorySummaryList, loading: categoryLoading } = useCategorySummary(selectedPeriod);
+  const { balance: currentBalance, loading: accountBalanceLoading } = useAccountBalance(); // Usa o novo hook
 
   return (
     <IonPage>
@@ -38,6 +41,19 @@ const Dashboard: React.FC = () => {
         </IonToolbar>
       </IonHeader>
       <IonContent className="ion-padding">
+        
+        {/* NOVO: Card de Saldo Atual */}
+        <div className="current-balance-card">
+          {accountBalanceLoading ? (
+            <IonSpinner name="crescent" />
+          ) : (
+            <>
+              <p>Saldo Atual</p>
+              <h2>{currentBalance.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</h2>
+            </>
+          )}
+        </div>
+
         <div className="dashboard-header-row">
           <h2 className="dashboard-title">Resumo Mensal</h2>
           <PeriodSelector onPeriodChange={setSelectedPeriod} />
@@ -56,29 +72,27 @@ const Dashboard: React.FC = () => {
           ))}
         </div>
 
-        <div className="dashboard-chart-area">
-          {activeChart === 'balance' && (
-            balanceLoading ? (
-              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '300px' }}>
-                <IonSpinner />
-              </div>
+        <div className="dashboard-chart-area chart-wrapper">
+          <div className={`chart-container ${activeChart === 'balance' ? 'active' : ''}`}>
+            {balanceLoading ? (
+              <div className="spinner-container"><IonSpinner /></div>
             ) : (
               <BalanceChart 
                 totalIncome={balanceSummary.totalIncome} 
                 totalExpense={balanceSummary.totalExpense} 
               />
-            )
-          )}
-          {activeChart === 'category' && (
-            categoryLoading || !categoryChartData ? (
-              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '300px' }}>
-                <IonSpinner />
-              </div>
+            )}
+          </div>
+          <div className={`chart-container ${activeChart === 'category' ? 'active' : ''}`}>
+            {categoryLoading || !categoryChartData ? (
+              <div className="spinner-container"><IonSpinner /></div>
             ) : (
               <CategoryChart data={categoryChartData} />
-            )
-          )}
-          {activeChart === 'family' && <FamilyChartManager period={selectedPeriod} />}
+            )}
+          </div>
+          <div className={`chart-container ${activeChart === 'family' ? 'active' : ''}`}>
+            <FamilyChartManager period={selectedPeriod} />
+          </div>
         </div>
 
         {activeChart === 'category' && !categoryLoading && categorySummaryList.length > 0 && (

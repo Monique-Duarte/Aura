@@ -28,7 +28,10 @@ export const useAccountBalance = () => {
         if (data.type === 'income') {
           total += data.amount;
         } else if (data.type === 'expense') {
-          total -= data.amount;
+          // Apenas subtrai se for débito ou se for crédito E estiver pago
+          if (data.paymentMethod === 'debit' || (data.paymentMethod === 'credit' && data.isPaid === true)) {
+            total -= data.amount;
+          }
         }
       });
 

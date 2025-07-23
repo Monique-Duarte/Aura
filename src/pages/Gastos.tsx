@@ -26,7 +26,7 @@ import {
   IonSegmentButton,
   IonActionSheet,
 } from '@ionic/react';
-import { add, close, pencil, trash, walletOutline } from 'ionicons/icons';
+import { add, close, pencil, trash, walletOutline, checkmarkCircleOutline } from 'ionicons/icons';
 import { useAuth } from '../hooks/AuthContext';
 import { getFirestore, collection, addDoc, query, where, getDocs, Timestamp, doc, deleteDoc, updateDoc, writeBatch } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
@@ -47,6 +47,7 @@ interface ExpenseTransaction {
   amount: number;
   date: Date;
   isRecurring: boolean;
+  isPaid?: boolean;
   categories?: string[];
   paymentMethod?: 'credit' | 'debit';
   isInstallment?: boolean;
@@ -75,7 +76,7 @@ const Gastos: React.FC = () => {
   const [showDeleteAlert, setShowDeleteAlert] = useState(false);
   const [expenseToAction, setExpenseToAction] = useState<ExpenseTransaction | null>(null);
   const [showActionSheet, setShowActionSheet] = useState(false);
-  const [selectedPeriod, setSelectedPeriod] = useState<Period | null>(null); // Estado para o período selecionado
+  const [selectedPeriod, setSelectedPeriod] = useState<Period | null>(null);
 
   const fetchExpenses = useCallback(async () => {
     if (!user || !selectedPeriod) { setLoading(false); return; }
@@ -115,17 +116,25 @@ const Gastos: React.FC = () => {
         if (paymentMethod === 'credit' && installments > 1 && !editingExpense) {
             const batch = writeBatch(db);
             const groupId = uuidv4();
+            const installmentAmount = Math.abs(amount) / installments;
+
             for (let i = 0; i < installments; i++) {
                 const installmentDate = new Date(date);
                 installmentDate.setMonth(installmentDate.getMonth() + i);
                 const newDocRef = doc(collection(db, 'users', user.uid, 'transactions'));
                 batch.set(newDocRef, {
-                    type: 'expense', amount: Math.abs(amount),
+                    type: 'expense', 
+                    amount: installmentAmount,
                     description: `${description} (${i + 1}/${installments})`,
-                    date: Timestamp.fromDate(installmentDate), isRecurring: false,
-                    paymentMethod, isInstallment: true, installmentNumber: i + 1,
-                    totalInstallments: installments, installmentGroupId: groupId,
+                    date: Timestamp.fromDate(installmentDate), 
+                    isRecurring: false,
+                    paymentMethod, 
+                    isInstallment: true, 
+                    installmentNumber: i + 1,
+                    totalInstallments: installments, 
+                    installmentGroupId: groupId,
                     categories: selectedCategories,
+                    isPaid: false,
                 });
             }
             await batch.commit();
@@ -134,6 +143,7 @@ const Gastos: React.FC = () => {
                 amount: Math.abs(amount), description,
                 date: Timestamp.fromDate(new Date(date)),
                 isRecurring, paymentMethod, categories: selectedCategories,
+                isPaid: paymentMethod === 'debit',
                 ...(isRecurring && { recurringDay: new Date(date).getDate() }),
             };
             if (editingExpense) {
@@ -148,6 +158,38 @@ const Gastos: React.FC = () => {
         fetchExpenses();
     } catch (error) {
         console.error("Erro ao salvar gasto:", error);
+    }
+  };
+
+  const handleTogglePaidStatus = async () => {
+    if (!user || !expenseToAction) return;
+    const db = getFirestore(app);
+    const docRef = doc(db, 'users', user.uid, 'transactions', expenseToAction.id);
+    try {
+      await updateDoc(docRef, { isPaid: !expenseToAction.isPaid });
+      fetchExpenses();
+    } catch (error) {
+      console.error("Erro ao atualizar status de pagamento:", error);
+    }
+  };
+
+  const handlePayAll = async () => {
+    if (!user) return;
+    const unpaidExpenses = expenses.filter(exp => !exp.isPaid);
+    if (unpaidExpenses.length === 0) return;
+
+    const db = getFirestore(app);
+    const batch = writeBatch(db);
+    unpaidExpenses.forEach(expense => {
+      const docRef = doc(db, 'users', user.uid, 'transactions', expense.id);
+      batch.update(docRef, { isPaid: true });
+    });
+
+    try {
+      await batch.commit();
+      fetchExpenses();
+    } catch (error) {
+      console.error("Erro ao pagar todas as contas:", error);
     }
   };
 
@@ -213,6 +255,8 @@ const Gastos: React.FC = () => {
     setSelectedCategories([]);
   };
 
+  const unpaidExpenses = expenses.filter(exp => !exp.isPaid);
+  const paidExpenses = expenses.filter(exp => exp.isPaid);
   const totalExpense = expenses.reduce((sum, item) => sum + item.amount, 0);
 
   const today = new Date();
@@ -239,22 +283,52 @@ const Gastos: React.FC = () => {
           <PeriodSelector onPeriodChange={setSelectedPeriod} />
         </div>
 
+        {unpaidExpenses.length > 0 && (
+          <div className="pay-all-container">
+            <IonButton expand="block" fill="outline" onClick={handlePayAll}>
+              <IonIcon slot="start" icon={checkmarkCircleOutline} />
+              Pagar Todas as Contas Pendentes
+            </IonButton>
+          </div>
+        )}
+
         {loading ? (
           <div style={{ textAlign: 'center', marginTop: '20px' }}><IonSpinner /></div>
         ) : (
-          <IonList>
-            {expenses.map(expense => (
-              <IonItem key={expense.id} lines="inset" button onClick={() => handleItemClick(expense)}>
-                <IonLabel>
-                  <h2>{expense.description}</h2>
-                  <p>{expense.date.toLocaleDateString('pt-BR')}</p>
-                </IonLabel>
-                <IonText color="danger" slot="end">
-                  <p>{expense.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
-                </IonText>
-              </IonItem>
-            ))}
-          </IonList>
+          <>
+            <IonList>
+              {unpaidExpenses.map(expense => (
+                <IonItem key={expense.id} lines="inset" button onClick={() => handleItemClick(expense)} className="item-unpaid">
+                  <IonLabel>
+                    <h2>{expense.description}</h2>
+                    <p>{expense.date.toLocaleDateString('pt-BR')}</p>
+                  </IonLabel>
+                  <IonText color="danger" slot="end">
+                    <p>{expense.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+                  </IonText>
+                </IonItem>
+              ))}
+            </IonList>
+
+            {paidExpenses.length > 0 && (
+              <div className="paid-section">
+                <div className="divider"><span>Contas Pagas</span></div>
+                <IonList>
+                  {paidExpenses.map(expense => (
+                    <IonItem key={expense.id} lines="inset" button onClick={() => handleItemClick(expense)} className="item-paid">
+                      <IonLabel>
+                        <h2>{expense.description}</h2>
+                        <p>{expense.date.toLocaleDateString('pt-BR')}</p>
+                      </IonLabel>
+                      <IonText color="danger" slot="end">
+                        <p>{expense.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+                      </IonText>
+                    </IonItem>
+                  ))}
+                </IonList>
+              </div>
+            )}
+          </>
         )}
 
         <IonFab vertical="bottom" horizontal="end" slot="fixed">
@@ -355,6 +429,11 @@ const Gastos: React.FC = () => {
             onDidDismiss={() => setShowActionSheet(false)}
             header={expenseToAction?.description}
             buttons={[
+                ...(expenseToAction && !expenseToAction.isPaid ? [{
+                    text: 'Pagar Conta',
+                    icon: checkmarkCircleOutline,
+                    handler: handleTogglePaidStatus,
+                }] : []),
                 {
                     text: 'Editar',
                     icon: pencil,

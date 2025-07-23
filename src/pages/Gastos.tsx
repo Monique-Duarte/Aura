@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   IonPage,
   IonHeader,
@@ -56,6 +56,15 @@ interface ExpenseTransaction {
   installmentGroupId?: string;
 }
 
+// --- Constantes ---
+const filterOptions = [
+  { key: 'all', label: 'Gastos Totais' },
+  { key: 'credit', label: 'Gastos Crédito' },
+  { key: 'debit', label: 'Gastos Débito' },
+] as const;
+
+type FilterMode = typeof filterOptions[number]['key'];
+
 const Gastos: React.FC = () => {
   const { user } = useAuth();
   const [showModal, setShowModal] = useState(false);
@@ -77,6 +86,7 @@ const Gastos: React.FC = () => {
   const [expenseToAction, setExpenseToAction] = useState<ExpenseTransaction | null>(null);
   const [showActionSheet, setShowActionSheet] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState<Period | null>(null);
+  const [filterMode, setFilterMode] = useState<FilterMode>('all'); // Estado para o filtro
 
   const fetchExpenses = useCallback(async () => {
     if (!user || !selectedPeriod) { setLoading(false); return; }
@@ -255,9 +265,17 @@ const Gastos: React.FC = () => {
     setSelectedCategories([]);
   };
 
-  const unpaidExpenses = expenses.filter(exp => !exp.isPaid);
-  const paidExpenses = expenses.filter(exp => exp.isPaid);
-  const totalExpense = expenses.reduce((sum, item) => sum + item.amount, 0);
+  // --- Cálculos para a UI ---
+  const displayedExpenses = useMemo(() => {
+    if (filterMode === 'all') {
+      return expenses;
+    }
+    return expenses.filter(exp => exp.paymentMethod === filterMode);
+  }, [expenses, filterMode]);
+
+  const unpaidExpenses = displayedExpenses.filter(exp => !exp.isPaid);
+  const paidExpenses = displayedExpenses.filter(exp => exp.isPaid);
+  const totalExpense = displayedExpenses.reduce((sum, item) => sum + item.amount, 0);
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -283,6 +301,20 @@ const Gastos: React.FC = () => {
           <PeriodSelector onPeriodChange={setSelectedPeriod} />
         </div>
 
+        {/* Botões de Filtro */}
+        <div className="dashboard-chart-legend" style={{ justifyContent: 'center' }}>
+          {filterOptions.map(opt => (
+            <button
+              key={opt.key}
+              className={`dashboard-legend-btn${filterMode === opt.key ? ' active' : ''}`}
+              onClick={() => setFilterMode(opt.key)}
+              type="button"
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+
         {unpaidExpenses.length > 0 && (
           <div className="pay-all-container">
             <IonButton expand="block" fill="outline" onClick={handlePayAll}>
@@ -303,9 +335,16 @@ const Gastos: React.FC = () => {
                     <h2>{expense.description}</h2>
                     <p>{expense.date.toLocaleDateString('pt-BR')}</p>
                   </IonLabel>
-                  <IonText color="danger" slot="end">
-                    <p>{expense.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
-                  </IonText>
+                  <div slot="end" className="item-details-end">
+                    <IonText color="danger">
+                      <p>{expense.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+                    </IonText>
+                    {expense.paymentMethod && (
+                      <div className={`payment-method-tag ${expense.paymentMethod}`}>
+                        {expense.paymentMethod === 'credit' ? 'CRÉD' : 'DÉB'}
+                      </div>
+                    )}
+                  </div>
                 </IonItem>
               ))}
             </IonList>
@@ -320,9 +359,16 @@ const Gastos: React.FC = () => {
                         <h2>{expense.description}</h2>
                         <p>{expense.date.toLocaleDateString('pt-BR')}</p>
                       </IonLabel>
-                      <IonText color="danger" slot="end">
-                        <p>{expense.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
-                      </IonText>
+                      <div slot="end" className="item-details-end">
+                        <IonText color="danger">
+                          <p>{expense.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+                        </IonText>
+                        {expense.paymentMethod && (
+                          <div className={`payment-method-tag ${expense.paymentMethod}`}>
+                            {expense.paymentMethod === 'credit' ? 'CRÉD' : 'DÉB'}
+                          </div>
+                        )}
+                      </div>
                     </IonItem>
                   ))}
                 </IonList>
@@ -361,13 +407,17 @@ const Gastos: React.FC = () => {
                 </div>
                 <div className="form-field-group">
                   <IonItem>
-                    <IonLabel position="floating">Valor (R$)</IonLabel>
-                    <IonInput type="number" value={amount} onIonChange={e => setAmount(parseFloat(e.detail.value!))} placeholder="100,00" />
+                    <IonLabel position="floating">
+                      {installments > 1 ? 'Valor Total (R$)' : 'Valor (R$)'}
+                    </IonLabel>
+                    <IonInput type="number" value={amount} onIonChange={e => setAmount(parseFloat(e.detail.value!))} placeholder="2000,00" />
                   </IonItem>
                 </div>
                 <div className="form-field-group">
                   <IonItem lines="none" className="date-item">
-                    <IonLabel>Data</IonLabel>
+                    <IonLabel>
+                      {installments > 1 ? 'Data da Primeira Parcela' : 'Data'}
+                    </IonLabel>
                     <IonDatetimeButton datetime="datetime-in-modal"></IonDatetimeButton>
                   </IonItem>
                 </div>
@@ -387,8 +437,13 @@ const Gastos: React.FC = () => {
                   <div className="form-field-group">
                     <IonItem>
                       <IonLabel position="floating">Nº de Parcelas</IonLabel>
-                      <IonInput type="number" value={installments} onIonChange={e => setInstallments(parseInt(e.detail.value!, 10))} />
+                      <IonInput type="number" value={installments} onIonChange={e => setInstallments(parseInt(e.detail.value!, 10) || 1)} />
                     </IonItem>
+                    {installments > 1 && amount && (
+                      <IonText color="medium" style={{ paddingLeft: '16px', fontSize: '0.8rem' }}>
+                        <p>{installments}x de {(amount / installments).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+                      </IonText>
+                    )}
                   </div>
                 )}
                 <div className="form-field-group">

@@ -33,7 +33,7 @@ import { v4 as uuidv4 } from 'uuid';
 import app from '../firebaseConfig';
 import './Lancamentos.css';
 import CategorySelector from '../components/CategorySelector';
-import PeriodSelector from '../components/PeriodSelector'; // Importa o seletor de período
+import PeriodSelector from '../components/PeriodSelector';
 
 // --- Interfaces ---
 interface Period {
@@ -78,7 +78,6 @@ const Gastos: React.FC = () => {
   const [selectedPeriod, setSelectedPeriod] = useState<Period | null>(null); // Estado para o período selecionado
 
   const fetchExpenses = useCallback(async () => {
-    // ALTERAÇÃO: Usa o 'selectedPeriod' do estado em vez do 'currentPeriod' do hook
     if (!user || !selectedPeriod) { setLoading(false); return; }
     setLoading(true);
     try {
@@ -102,7 +101,7 @@ const Gastos: React.FC = () => {
     } finally {
         setLoading(false);
     }
-  }, [user, selectedPeriod]); // ALTERAÇÃO: Depende do 'selectedPeriod'
+  }, [user, selectedPeriod]);
 
   useEffect(() => {
     fetchExpenses();
@@ -216,7 +215,9 @@ const Gastos: React.FC = () => {
 
   const totalExpense = expenses.reduce((sum, item) => sum + item.amount, 0);
 
-  const isFutureInstallment = expenseToAction?.isInstallment && expenseToAction.date > new Date();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const isFutureExpense = expenseToAction && expenseToAction.date > today;
 
   return (
     <IonPage>
@@ -234,7 +235,6 @@ const Gastos: React.FC = () => {
           </IonText>
         </div>
 
-        {/* ALTERAÇÃO: Seletor de período movido para fora do card */}
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
           <PeriodSelector onPeriodChange={setSelectedPeriod} />
         </div>
@@ -361,8 +361,8 @@ const Gastos: React.FC = () => {
                     handler: handleEditClick,
                     cssClass: 'action-sheet-edit',
                 },
-                ...(isFutureInstallment ? [{
-                    text: 'Antecipar Parcela',
+                ...(isFutureExpense ? [{
+                    text: 'Antecipar Gasto',
                     icon: walletOutline,
                     handler: handleAnticipateClick,
                     cssClass: 'action-sheet-anticipate',

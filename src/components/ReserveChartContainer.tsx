@@ -1,26 +1,8 @@
 import React, { useState, useRef } from 'react';
-import { IonIcon, IonSpinner, IonText } from '@ionic/react';
-import { documentTextOutline } from 'ionicons/icons';
+import { IonSpinner, IonText } from '@ionic/react';
 import DateSelector from './DateSelector';
-import ActionButton from './ActionButton';
 import ReserveLineChart from './ReserveLineChart';
 import { useReserveHistory } from '../hooks/useReserveHistory';
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
-import html2canvas from 'html2canvas';
-
-// Tipagem para jspdf-autotable
-interface AutoTableUserOptions {
-  head: string[][];
-  body: (string | number)[][];
-  startY: number;
-}
-
-declare module 'jspdf' {
-  interface jsPDF {
-    autoTable: (options: AutoTableUserOptions) => jsPDF;
-  }
-}
 
 interface Period {
   startDate: Date;
@@ -36,63 +18,13 @@ const ReserveChartContainer: React.FC<ReserveChartContainerProps> = ({ goals }) 
   const totalChartRef = useRef<HTMLDivElement>(null);
   const individualChartRef = useRef<HTMLDivElement>(null);
 
-  const { totalChartData, individualChartData, transactions, loading } = useReserveHistory(period, goals);
-
-  const handleGeneratePdf = async () => {
-    const totalChartElement = totalChartRef.current;
-    if (!totalChartElement) return;
-
-    const canvas = await html2canvas(totalChartElement);
-    const imgData = canvas.toDataURL('image/png');
-    
-    const pdf = new jsPDF('p', 'mm', 'a4');
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    
-    pdf.setFontSize(16);
-    pdf.text("Evolução Total da Reserva", pdfWidth / 2, 15, { align: 'center' });
-    
-    const imgWidth = 190;
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-    pdf.addImage(imgData, 'PNG', 10, 25, imgWidth, imgHeight);
-    
-    pdf.addPage();
-    pdf.setFontSize(16);
-    pdf.text("Detalhes das Transações", pdfWidth / 2, 15, { align: 'center' });
-
-    const tableColumn = ["Data", "Descrição", "Tipo", "Valor"];
-    const tableRows: (string | number)[][] = [];
-
-    transactions.forEach(t => {
-      const transactionData = [
-        t.date.toLocaleDateString('pt-BR'),
-        t.description,
-        t.type === 'reserve_add' ? 'Depósito' : 'Resgate',
-        t.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-      ];
-      tableRows.push(transactionData);
-    });
-
-    pdf.autoTable({
-      head: [tableColumn],
-      body: tableRows,
-      startY: 25,
-    });
-
-    pdf.save("resumo_reserva.pdf");
-  };
+  const { totalChartData, individualChartData, loading } = useReserveHistory(period, goals);
 
   return (
     <div>
-      {/* --- ALTERAÇÃO: Layout do seletor de data e botão ajustado --- */}
-      <div style={{ display: 'flex', alignItems: 'center', marginBottom: '16px', gap: '16px' }}>
-        <div style={{ flex: 1 }}>
+      <div style={{ display: 'flex', alignItems: 'stretch', marginBottom: '16px', gap: '8px' }}>
+        <div style={{ flex: '1 1 auto', minWidth: 0 }}>
           <DateSelector onPeriodChange={setPeriod} />
-        </div>
-        <div>
-          <ActionButton onClick={handleGeneratePdf} fill="outline" disabled={loading || transactions.length === 0}>
-            <IonIcon slot="start" icon={documentTextOutline} />
-            PDF
-          </ActionButton>
         </div>
       </div>
       

@@ -42,7 +42,6 @@ const Dashboard: React.FC = () => {
       </IonHeader>
       <IonContent className="ion-padding">
         
-        {/* NOVO: Card de Saldo Atual */}
         <div className="current-balance-card">
           {accountBalanceLoading ? (
             <IonSpinner name="crescent" />

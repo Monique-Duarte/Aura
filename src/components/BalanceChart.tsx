@@ -20,7 +20,6 @@ ChartJS.register(
   Legend
 );
 
-// --- ALTERAÇÃO 1: Adicionada a propriedade 'totalReserved' ---
 interface BalanceChartProps {
   totalIncome: number;
   totalExpense: number;
@@ -34,24 +33,27 @@ const BalanceChart: React.FC<BalanceChartProps> = ({ totalIncome, totalExpense, 
       {
         label: 'Renda',
         data: [totalIncome],
-        backgroundColor: 'rgba(45, 211, 111, 0.6)',
+        backgroundColor: 'rgba(45, 211, 111, 0.7)',
         borderColor: 'rgba(45, 211, 111, 1)',
         borderWidth: 1,
+        borderRadius: 5,
       },
       {
         label: 'Gastos',
         data: [totalExpense],
-        backgroundColor: 'rgba(235, 68, 90, 0.6)',
-        borderColor: 'rgba(235, 68, 90, 1)',
+        backgroundColor: 'rgba(255, 99, 132, 0.7)',
+        borderColor: 'rgba(255, 99, 132, 1)',
         borderWidth: 1,
+        borderRadius: 5,
       },
-      // --- ALTERAÇÃO 2: Novo "dataset" para a barra de Reserva ---
       {
         label: 'Reserva',
         data: [totalReserved],
-        backgroundColor: 'rgba(54, 162, 235, 0.6)', // Cor azul
-        borderColor: 'rgba(54, 162, 235, 1)',
+        // Cor amarela para combinar com a cor primária do app
+        backgroundColor: 'rgba(255, 204, 41, 0.7)', 
+        borderColor: 'rgba(255, 204, 41, 1)',
         borderWidth: 1,
+        borderRadius: 5,
       },
     ],
   };
@@ -64,6 +66,14 @@ const BalanceChart: React.FC<BalanceChartProps> = ({ totalIncome, totalExpense, 
         position: 'top' as const,
         labels: {
           color: '#ffffff',
+          // --- ALTERAÇÕES PARA MELHORAR A LEGENDA ---
+          font: {
+            size: 14, // Aumenta o tamanho da fonte
+            weight: 'bold' as const, // Deixa a fonte em negrito
+          },
+          usePointStyle: true, // Usa o estilo de ponto (círculo, etc.)
+          pointStyle: 'rectRounded', // Define o estilo como um retângulo arredondado
+          padding: 20, // Aumenta o espaçamento entre os itens
         },
       },
       title: {

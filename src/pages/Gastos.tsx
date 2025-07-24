@@ -1,7 +1,31 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { IonPage, IonHeader, IonToolbar, IonButtons, IonButton, IonMenuButton, IonTitle, IonContent, IonFab, IonFabButton, IonIcon, IonInput, IonItem, IonLabel, IonList, IonDatetime, IonToggle, IonText, IonSpinner, IonDatetimeButton, IonSegment, IonSegmentButton, IonActionSheet, IonModal,
+import {
+  IonPage,
+  IonHeader,
+  IonToolbar,
+  IonButtons,
+  IonMenuButton,
+  IonTitle,
+  IonContent,
+  IonFab,
+  IonFabButton,
+  IonIcon,
+  IonInput,
+  IonItem,
+  IonLabel,
+  IonList,
+  IonDatetime,
+  IonToggle,
+  IonText,
+  IonSpinner,
+  IonDatetimeButton,
+  IonSegment,
+  IonSegmentButton,
+  IonActionSheet,
+  IonModal,
 } from '@ionic/react';
-import { add, close, pencil, trash, walletOutline, checkmarkCircleOutline } from 'ionicons/icons';
+
+import { add, close, pencil, trash, walletOutline, checkmarkCircleOutline, closeCircleOutline } from 'ionicons/icons';
 import { useAuth } from '../hooks/AuthContext';
 import { getFirestore, collection, addDoc, query, where, getDocs, Timestamp, doc, deleteDoc, updateDoc, writeBatch } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
@@ -9,8 +33,6 @@ import app from '../firebaseConfig';
 import './Lancamentos.css';
 import CategorySelector from '../components/CategorySelector';
 import PeriodSelector from '../components/PeriodSelector';
-
-// --- Importando os componentes reutilizáveis ---
 import AppModal from '../components/AppModal';
 import ActionButton from '../components/ActionButton';
 import ActionAlert from '../components/ActionAlert';
@@ -36,7 +58,6 @@ interface ExpenseTransaction {
   installmentGroupId?: string;
 }
 
-// --- Constantes ---
 const filterOptions = [
   { key: 'all', label: 'Gastos Totais' },
   { key: 'credit', label: 'Gastos Crédito' },
@@ -63,6 +84,7 @@ const Gastos: React.FC = () => {
   // Estados de controle
   const [editingExpense, setEditingExpense] = useState<ExpenseTransaction | null>(null);
   const [showDeleteAlert, setShowDeleteAlert] = useState(false);
+  const [showPayAllAlert, setShowPayAllAlert] = useState(false);
   const [expenseToAction, setExpenseToAction] = useState<ExpenseTransaction | null>(null);
   const [showActionSheet, setShowActionSheet] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState<Period | null>(null);
@@ -295,10 +317,9 @@ const Gastos: React.FC = () => {
 
         {unpaidExpenses.length > 0 && (
           <div className="pay-all-container">
-            <IonButton expand="block" fill="outline" onClick={handlePayAll}>
-              <IonIcon slot="start" icon={checkmarkCircleOutline} />
+            <ActionButton fill="outline" onClick={() => setShowPayAllAlert(true)} icon={checkmarkCircleOutline}>
               Pagar Todas as Contas Pendentes
-            </IonButton>
+            </ActionButton>
           </div>
         )}
 
@@ -440,6 +461,18 @@ const Gastos: React.FC = () => {
           onConfirm={confirmDelete}
           confirmButtonText="Excluir"
         />
+
+        <ActionAlert
+          isOpen={showPayAllAlert}
+          onDidDismiss={() => setShowPayAllAlert(false)}
+          header={'Confirmar Pagamento'}
+          message={'Deseja marcar todas as contas pendentes como pagas?'}
+          onConfirm={() => {
+            handlePayAll();
+            setShowPayAllAlert(false);
+          }}
+          confirmButtonText="Pagar Todas"
+        />
         
         <IonActionSheet
           isOpen={showActionSheet}
@@ -449,6 +482,12 @@ const Gastos: React.FC = () => {
               ...(expenseToAction && !expenseToAction.isPaid ? [{
                   text: 'Pagar Conta',
                   icon: checkmarkCircleOutline,
+                  handler: handleTogglePaidStatus,
+                  cssClass: 'action-sheet-edit',
+              }] : []),
+              ...(expenseToAction && expenseToAction.isPaid ? [{
+                  text: 'Marcar como não pago',
+                  icon: closeCircleOutline,
                   handler: handleTogglePaidStatus,
                   cssClass: 'action-sheet-edit',
               }] : []),
@@ -462,7 +501,7 @@ const Gastos: React.FC = () => {
                   text: 'Antecipar Gasto',
                   icon: walletOutline,
                   handler: handleAnticipateClick,
-                  cssClass: 'action-sheet-anticipate',
+                  cssClass: 'action-sheet-edit',
               }] : []),
               {
                   text: 'Excluir',

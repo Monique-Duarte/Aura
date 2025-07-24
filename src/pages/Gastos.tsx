@@ -30,7 +30,7 @@ import { useAuth } from '../hooks/AuthContext';
 import { getFirestore, collection, addDoc, query, where, getDocs, Timestamp, doc, deleteDoc, updateDoc, writeBatch } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
 import app from '../firebaseConfig';
-import './Lancamentos.css';
+import '../styles/Lancamentos.css';
 import CategorySelector from '../components/CategorySelector';
 import PeriodSelector from '../components/PeriodSelector';
 import AppModal from '../components/AppModal';

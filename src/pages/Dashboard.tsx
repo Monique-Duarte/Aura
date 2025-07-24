@@ -8,7 +8,7 @@ import FamilyChartManager from '../components/FamilyChartManager';
 import { useTransactionSummary } from '../hooks/useTransactionSummary';
 import { useCategorySummary } from '../hooks/useCategorySummary';
 import { useAccountBalance } from '../hooks/useAccountBalance';
-import './Dashboard.css';
+import '../styles/Dashboard.css';
 
 const chartOptions = [
   { key: 'balance', label: 'Gráfico Balanço' },

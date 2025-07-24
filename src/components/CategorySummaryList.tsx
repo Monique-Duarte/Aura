@@ -1,6 +1,6 @@
 import React from 'react';
 import { IonList, IonItem, IonLabel, IonText } from '@ionic/react';
-import './CategorySummaryList.css';
+import '../styles/CategorySummaryList.css';
 
 // Interface para definir a estrutura de cada item na lista de resumo
 export interface CategorySummaryItem {

@@ -1,16 +1,53 @@
 import React, { useState, useEffect } from 'react';
-import { IonPage, IonHeader, IonToolbar, IonButtons, IonMenuButton, IonTitle, IonContent, IonFab, IonFabButton, IonIcon, IonInput, IonItem, IonLabel, IonList, IonText, IonSpinner, IonActionSheet, IonToggle,
+import {
+  IonPage,
+  IonHeader,
+  IonToolbar,
+  IonButtons,
+  IonMenuButton,
+  IonTitle,
+  IonContent,
+  IonFab,
+  IonFabButton,
+  IonIcon,
+  IonInput,
+  IonItem,
+  IonLabel,
+  IonList,
+  IonText,
+  IonSpinner,
+  IonActionSheet,
+  IonToggle,
+  IonDatetime, // Adicionado
+  IonDatetimeButton, // Adicionado
+  IonModal, // Adicionado
 } from '@ionic/react';
 import { add, close, pencil, trash, walletOutline, checkmarkCircleOutline, swapHorizontalOutline } from 'ionicons/icons';
 import { useAuth } from '../hooks/AuthContext';
-import { getFirestore, collection, addDoc, query, onSnapshot, Timestamp, doc, updateDoc, where,getDocs,writeBatch,QueryDocumentSnapshot,DocumentData
+import { 
+    getFirestore, 
+    collection, 
+    addDoc, 
+    query, 
+    onSnapshot, 
+    Timestamp, 
+    doc, 
+    updateDoc, 
+    where,
+    getDocs,
+    writeBatch,
+    QueryDocumentSnapshot,
+    DocumentData
 } from 'firebase/firestore';
 import app from '../firebaseConfig';
-import './Lancamentos.css';
+
+
+// --- Importando os componentes reutilizáveis ---
 import AppModal from '../components/AppModal';
 import ActionButton from '../components/ActionButton';
 import ActionAlert from '../components/ActionAlert';
 import InputAlert from '../components/InputAlert';
+import ReserveChartContainer from '../components/ReserveChartContainer';
 
 // --- Interfaces ---
 interface ReserveGoal {
@@ -33,6 +70,7 @@ const Reserva: React.FC = () => {
   const { user } = useAuth();
   const [goals, setGoals] = useState<ReserveGoal[]>([]);
   const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<'list' | 'chart'>('list');
   
   // Estados dos modais e formulários
   const [showGoalModal, setShowGoalModal] = useState(false);
@@ -44,6 +82,10 @@ const Reserva: React.FC = () => {
   const [transactionAmount, setTransactionAmount] = useState<number | undefined>();
   const [isRecurring, setIsRecurring] = useState(false);
   const [transactionMode, setTransactionMode] = useState<'add' | 'withdraw'>('add');
+  
+  // --- NOVOS ESTADOS PARA AS DATAS ---
+  const [goalCreationDate, setGoalCreationDate] = useState(new Date().toISOString());
+  const [transactionDate, setTransactionDate] = useState(new Date().toISOString());
 
   // Estados de controle
   const [editingGoal, setEditingGoal] = useState<ReserveGoal | null>(null);
@@ -119,7 +161,7 @@ const Reserva: React.FC = () => {
           const initialTransaction = {
             description: `Depósito Inicial - ${goalName}`,
             amount: Math.abs(initialAmount),
-            date: Timestamp.fromDate(new Date()),
+            date: Timestamp.fromDate(new Date(goalCreationDate)), // Usa a data selecionada
             type: 'reserve_add',
             reserveId: newGoalRef.id,
             isRecurring: false,
@@ -175,11 +217,11 @@ const Reserva: React.FC = () => {
     const dataToSave = {
       description: `${transactionMode === 'add' ? 'Adicionar Valor' : 'Resgate'} - ${goalToAction.name}`,
       amount: Math.abs(transactionAmount),
-      date: Timestamp.fromDate(new Date()),
+      date: Timestamp.fromDate(new Date(transactionDate)), // Usa a data selecionada
       type: transactionMode === 'add' ? 'reserve_add' : 'reserve_withdraw',
       reserveId: goalToAction.id,
       isRecurring: transactionMode === 'add' ? isRecurring : false,
-      ...(transactionMode === 'add' && isRecurring && { recurringDay: new Date().getDate() }),
+      ...(transactionMode === 'add' && isRecurring && { recurringDay: new Date(transactionDate).getDate() }),
     };
     await addDoc(collection(db, 'users', user.uid, 'transactions'), dataToSave);
     closeTransactionModal();
@@ -227,12 +269,14 @@ const Reserva: React.FC = () => {
     setYieldPercentage(undefined);
     setInitialAmount(undefined);
     setTargetAmount(undefined);
+    setGoalCreationDate(new Date().toISOString());
   };
 
   const closeTransactionModal = () => {
     setShowTransactionModal(false);
     setTransactionAmount(undefined);
     setIsRecurring(false);
+    setTransactionDate(new Date().toISOString());
   };
 
   const totalReserve = goals.reduce((sum, goal) => sum + goal.balance, 0);
@@ -253,22 +297,47 @@ const Reserva: React.FC = () => {
           </IonText>
         </div>
 
+        <div className="dashboard-chart-legend" style={{ justifyContent: 'center' }}>
+            <button
+                className={`dashboard-legend-btn${viewMode === 'list' ? ' active' : ''}`}
+                onClick={() => setViewMode('list')}
+                type="button"
+            >
+                Lista
+            </button>
+            <button
+                className={`dashboard-legend-btn${viewMode === 'chart' ? ' active' : ''}`}
+                onClick={() => setViewMode('chart')}
+                type="button"
+            >
+                Gráfico
+            </button>
+        </div>
+
         {loading ? (
           <div style={{ textAlign: 'center', marginTop: '20px' }}><IonSpinner /></div>
         ) : (
-          <IonList>
-            {goals.map(goal => (
-              <IonItem key={goal.id} lines="inset" button onClick={() => handleItemClick(goal)}>
-                <IonLabel>
-                  <h2>{goal.name}</h2>
-                  {goal.yieldPercentage ? <p>Rendimento: {goal.yieldPercentage}% ao mês</p> : <p>Sem rendimento</p>}
-                </IonLabel>
-                <IonText color="success" slot="end">
-                  <p>{goal.balance.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
-                </IonText>
-              </IonItem>
-            ))}
-          </IonList>
+          <>
+            {viewMode === 'list' && (
+              <IonList>
+                {goals.map(goal => (
+                  <IonItem key={goal.id} lines="inset" button onClick={() => handleItemClick(goal)}>
+                    <IonLabel>
+                      <h2>{goal.name}</h2>
+                      {goal.yieldPercentage ? <p>Rendimento: {goal.yieldPercentage}% ao mês</p> : <p>Sem rendimento</p>}
+                    </IonLabel>
+                    <IonText color="success" slot="end">
+                      <p>{goal.balance.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+                    </IonText>
+                  </IonItem>
+                ))}
+              </IonList>
+            )}
+
+            {viewMode === 'chart' && (
+              <ReserveChartContainer goals={goals} />
+            )}
+          </>
         )}
 
         <IonFab vertical="bottom" horizontal="end" slot="fixed">
@@ -289,12 +358,20 @@ const Reserva: React.FC = () => {
             </IonItem>
           </div>
           {!editingGoal && (
-            <div className="form-field-group">
-              <IonItem>
-                <IonLabel position="floating">Valor Inicial (R$)</IonLabel>
-                <IonInput type="number" value={initialAmount} onIonChange={e => setInitialAmount(parseFloat(e.detail.value!))} placeholder="Opcional. Ex: 500,00" />
-              </IonItem>
-            </div>
+            <>
+              <div className="form-field-group">
+                <IonItem>
+                  <IonLabel position="floating">Valor Inicial (R$)</IonLabel>
+                  <IonInput type="number" value={initialAmount} onIonChange={e => setInitialAmount(parseFloat(e.detail.value!))} placeholder="Opcional. Ex: 500,00" />
+                </IonItem>
+              </div>
+              <div className="form-field-group">
+                  <IonItem lines="none" className="date-item">
+                      <IonLabel>Data do Depósito Inicial</IonLabel>
+                      <IonDatetimeButton datetime="datetime-goal-modal"></IonDatetimeButton>
+                  </IonItem>
+              </div>
+            </>
           )}
           <div className="form-field-group">
             <IonItem>
@@ -325,6 +402,12 @@ const Reserva: React.FC = () => {
               <IonInput type="number" value={transactionAmount} onIonChange={e => setTransactionAmount(parseFloat(e.detail.value!))} placeholder="100,00" />
             </IonItem>
           </div>
+          <div className="form-field-group">
+              <IonItem lines="none" className="date-item">
+                  <IonLabel>Data da Transação</IonLabel>
+                  <IonDatetimeButton datetime="datetime-transaction-modal"></IonDatetimeButton>
+              </IonItem>
+          </div>
           {transactionMode === 'add' && (
             <div className="form-field-group">
               <IonItem lines="none" className="toggle-item">
@@ -337,6 +420,24 @@ const Reserva: React.FC = () => {
             Confirmar
           </ActionButton>
         </AppModal>
+        
+        <IonModal keepContentsMounted={true}>
+            <IonDatetime 
+              id="datetime-goal-modal" 
+              value={goalCreationDate} 
+              onIonChange={e => { const value = e.detail.value; if (typeof value === 'string') { setGoalCreationDate(value); } }} 
+              presentation="date" 
+            />
+        </IonModal>
+        <IonModal keepContentsMounted={true}>
+            <IonDatetime 
+              id="datetime-transaction-modal" 
+              value={transactionDate} 
+              onIonChange={e => { const value = e.detail.value; if (typeof value === 'string') { setTransactionDate(value); } }} 
+              presentation="date" 
+            />
+        </IonModal>
+
         <ActionAlert
             isOpen={showDeleteAlert}
             onDidDismiss={() => setShowDeleteAlert(false)}
@@ -345,6 +446,7 @@ const Reserva: React.FC = () => {
             onConfirm={confirmDeleteGoal}
             confirmButtonText="Excluir"
         />
+        
         <InputAlert
             isOpen={showAdjustBalanceAlert}
             onDidDismiss={() => setShowAdjustBalanceAlert(false)}
@@ -353,6 +455,7 @@ const Reserva: React.FC = () => {
             inputs={[{ name: 'newBalance', type: 'number', placeholder: 'Ex: 1550,75', value: goalToAction?.balance }]}
             onConfirm={(data: { newBalance: string }) => confirmBalanceAdjustment(data)}
         />
+        
         <IonActionSheet
             isOpen={showActionSheet}
             onDidDismiss={() => setShowActionSheet(false)}

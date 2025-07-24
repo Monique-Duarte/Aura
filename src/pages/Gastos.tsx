@@ -1,30 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import {
-  IonPage,
-  IonHeader,
-  IonToolbar,
-  IonButtons,
-  IonMenuButton,
-  IonTitle,
-  IonContent,
-  IonFab,
-  IonFabButton,
-  IonIcon,
-  IonModal,
-  IonButton,
-  IonInput,
-  IonItem,
-  IonLabel,
-  IonList,
-  IonDatetime,
-  IonToggle,
-  IonText,
-  IonSpinner,
-  IonDatetimeButton,
-  IonAlert,
-  IonSegment,
-  IonSegmentButton,
-  IonActionSheet,
+import { IonPage, IonHeader, IonToolbar, IonButtons, IonButton, IonMenuButton, IonTitle, IonContent, IonFab, IonFabButton, IonIcon, IonInput, IonItem, IonLabel, IonList, IonDatetime, IonToggle, IonText, IonSpinner, IonDatetimeButton, IonSegment, IonSegmentButton, IonActionSheet, IonModal,
 } from '@ionic/react';
 import { add, close, pencil, trash, walletOutline, checkmarkCircleOutline } from 'ionicons/icons';
 import { useAuth } from '../hooks/AuthContext';
@@ -34,6 +9,11 @@ import app from '../firebaseConfig';
 import './Lancamentos.css';
 import CategorySelector from '../components/CategorySelector';
 import PeriodSelector from '../components/PeriodSelector';
+
+// --- Importando os componentes reutilizáveis ---
+import AppModal from '../components/AppModal';
+import ActionButton from '../components/ActionButton';
+import ActionAlert from '../components/ActionAlert';
 
 // --- Interfaces ---
 interface Period {
@@ -86,10 +66,10 @@ const Gastos: React.FC = () => {
   const [expenseToAction, setExpenseToAction] = useState<ExpenseTransaction | null>(null);
   const [showActionSheet, setShowActionSheet] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState<Period | null>(null);
-  const [filterMode, setFilterMode] = useState<FilterMode>('all'); // Estado para o filtro
+  const [filterMode, setFilterMode] = useState<FilterMode>('all');
 
   const fetchExpenses = useCallback(async () => {
-    if (!user || !selectedPeriod) { setLoading(false); return; }
+    if (!user || !selectedPeriod) { setExpenses([]); setLoading(false); return; }
     setLoading(true);
     try {
         const db = getFirestore(app);
@@ -158,7 +138,7 @@ const Gastos: React.FC = () => {
             };
             if (editingExpense) {
                 const docRef = doc(db, 'users', user.uid, 'transactions', editingExpense.id);
-                await updateDoc(docRef, dataToSave);
+                await updateDoc(docRef, { ...dataToSave, type: 'expense' });
             } else {
                 const transactionsRef = collection(db, 'users', user.uid, 'transactions');
                 await addDoc(transactionsRef, { ...dataToSave, type: 'expense' });
@@ -265,7 +245,6 @@ const Gastos: React.FC = () => {
     setSelectedCategories([]);
   };
 
-  // --- Cálculos para a UI ---
   const displayedExpenses = useMemo(() => {
     if (filterMode === 'all') {
       return expenses;
@@ -301,7 +280,6 @@ const Gastos: React.FC = () => {
           <PeriodSelector onPeriodChange={setSelectedPeriod} />
         </div>
 
-        {/* Botões de Filtro */}
         <div className="dashboard-chart-legend" style={{ justifyContent: 'center' }}>
           {filterOptions.map(opt => (
             <button
@@ -381,138 +359,123 @@ const Gastos: React.FC = () => {
           <IonFabButton onClick={() => setShowModal(true)}><IonIcon icon={add} /></IonFabButton>
         </IonFab>
 
-        <IonModal isOpen={showModal} onDidDismiss={closeModalAndReset} initialBreakpoint={0.9} breakpoints={[0, 0.9, 1]}>
-          <IonHeader>
-            <IonToolbar>
-              <IonTitle>{editingExpense ? 'Editar Gasto' : 'Novo Gasto'}</IonTitle>
-              <IonButtons slot="end">
-                <IonButton onClick={closeModalAndReset}><IonIcon icon={close} /></IonButton>
-              </IonButtons>
-            </IonToolbar>
-          </IonHeader>
-          <IonContent className="ion-padding">
-            <div className="income-modal-form">
-              <div className="form-fields-container">
-                <div className="form-field-group">
-                  <IonItem>
-                    <IonLabel position="floating">Descrição</IonLabel>
-                    <IonInput value={description} onIonChange={e => setDescription(e.detail.value!)} placeholder="Ex: Tênis, Supermercado" />
-                  </IonItem>
-                </div>
-                <div className="form-field-group">
-                  <CategorySelector 
-                    selectedCategories={selectedCategories} 
-                    onCategoryChange={setSelectedCategories} 
-                  />
-                </div>
-                <div className="form-field-group">
-                  <IonItem>
-                    <IonLabel position="floating">
-                      {installments > 1 ? 'Valor Total (R$)' : 'Valor (R$)'}
-                    </IonLabel>
-                    <IonInput type="number" value={amount} onIonChange={e => setAmount(parseFloat(e.detail.value!))} placeholder="2000,00" />
-                  </IonItem>
-                </div>
-                <div className="form-field-group">
-                  <IonItem lines="none" className="date-item">
-                    <IonLabel>
-                      {installments > 1 ? 'Data da Primeira Parcela' : 'Data'}
-                    </IonLabel>
-                    <IonDatetimeButton datetime="datetime-in-modal"></IonDatetimeButton>
-                  </IonItem>
-                </div>
-                <div className="form-field-group">
-                    <IonLabel style={{ paddingLeft: '16px', color: 'var(--ion-color-medium-shade)' }}>Forma de Pagamento</IonLabel>
-                    <IonSegment value={paymentMethod} onIonChange={e => {
-                        const value = e.detail.value;
-                        if (value === 'credit' || value === 'debit') {
-                            setPaymentMethod(value);
-                        }
-                    }}>
-                        <IonSegmentButton value="debit"><IonLabel>Débito</IonLabel></IonSegmentButton>
-                        <IonSegmentButton value="credit"><IonLabel>Crédito</IonLabel></IonSegmentButton>
-                    </IonSegment>
-                </div>
-                {paymentMethod === 'credit' && !editingExpense && (
-                  <div className="form-field-group">
-                    <IonItem>
-                      <IonLabel position="floating">Nº de Parcelas</IonLabel>
-                      <IonInput type="number" value={installments} onIonChange={e => setInstallments(parseInt(e.detail.value!, 10) || 1)} />
-                    </IonItem>
-                    {installments > 1 && amount && (
-                      <IonText color="medium" style={{ paddingLeft: '16px', fontSize: '0.8rem' }}>
-                        <p>{installments}x de {(amount / installments).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
-                      </IonText>
-                    )}
-                  </div>
-                )}
-                <div className="form-field-group">
-                  <IonItem lines="none" className="toggle-item">
-                    <IonLabel>Gasto Fixo Mensal?</IonLabel>
-                    <IonToggle checked={isRecurring} onIonChange={e => setIsRecurring(e.detail.checked)} />
-                  </IonItem>
-                </div>
-              </div>
-              <IonButton expand="block" onClick={handleSaveExpense} className="save-button">
-                {editingExpense ? 'Salvar Alterações' : 'Salvar Gasto'}
-              </IonButton>
+        <AppModal
+          title={editingExpense ? 'Editar Gasto' : 'Novo Gasto'}
+          isOpen={showModal}
+          onDidDismiss={closeModalAndReset}
+        >
+          <div className="form-field-group">
+            <IonItem>
+              <IonLabel position="floating">Descrição</IonLabel>
+              <IonInput value={description} onIonChange={e => setDescription(e.detail.value!)} placeholder="Ex: Tênis, Supermercado" />
+            </IonItem>
+          </div>
+          <div className="form-field-group">
+            <CategorySelector 
+              selectedCategories={selectedCategories} 
+              onCategoryChange={setSelectedCategories} 
+            />
+          </div>
+          <div className="form-field-group">
+            <IonItem>
+              <IonLabel position="floating">
+                {installments > 1 ? 'Valor Total (R$)' : 'Valor (R$)'}
+              </IonLabel>
+              <IonInput type="number" value={amount} onIonChange={e => setAmount(parseFloat(e.detail.value!))} placeholder="2000,00" />
+            </IonItem>
+          </div>
+          <div className="form-field-group">
+            <IonItem lines="none" className="date-item">
+              <IonLabel>
+                {installments > 1 ? 'Data da Primeira Parcela' : 'Data'}
+              </IonLabel>
+              <IonDatetimeButton datetime="datetime-in-modal"></IonDatetimeButton>
+            </IonItem>
+          </div>
+          <div className="form-field-group">
+              <IonLabel style={{ paddingLeft: '16px', color: 'var(--ion-color-medium-shade)' }}>Forma de Pagamento</IonLabel>
+              <IonSegment value={paymentMethod} onIonChange={e => {
+                  const value = e.detail.value;
+                  if (value === 'credit' || value === 'debit') {
+                      setPaymentMethod(value);
+                  }
+              }}>
+                  <IonSegmentButton value="debit"><IonLabel>Débito</IonLabel></IonSegmentButton>
+                  <IonSegmentButton value="credit"><IonLabel>Crédito</IonLabel></IonSegmentButton>
+              </IonSegment>
+          </div>
+          {paymentMethod === 'credit' && !editingExpense && (
+            <div className="form-field-group">
+              <IonItem>
+                <IonLabel position="floating">Nº de Parcelas</IonLabel>
+                <IonInput type="number" value={installments} onIonChange={e => setInstallments(parseInt(e.detail.value!, 10) || 1)} />
+              </IonItem>
+              {installments > 1 && amount && (
+                <IonText color="medium" style={{ paddingLeft: '16px', fontSize: '0.8rem' }}>
+                  <p>{installments}x de {(amount / installments).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+                </IonText>
+              )}
             </div>
-          </IonContent>
-        </IonModal>
+          )}
+          <div className="form-field-group">
+            <IonItem lines="none" className="toggle-item">
+              <IonLabel>Gasto Fixo Mensal?</IonLabel>
+              <IonToggle checked={isRecurring} onIonChange={e => setIsRecurring(e.detail.checked)} />
+            </IonItem>
+          </div>
+          <ActionButton onClick={handleSaveExpense}>
+            {editingExpense ? 'Salvar Alterações' : 'Salvar Gasto'}
+          </ActionButton>
+        </AppModal>
 
         <IonModal keepContentsMounted={true}>
             <IonDatetime id="datetime-in-modal" value={date} onIonChange={e => { const value = e.detail.value; if (typeof value === 'string') { setDate(value); } }} presentation="date" />
         </IonModal>
 
-        <IonAlert
-            isOpen={showDeleteAlert}
-            onDidDismiss={() => setShowDeleteAlert(false)}
-            header={'Confirmar Exclusão'}
-            message={'Tem certeza que deseja excluir este lançamento?'}
-            buttons={[
-                { text: 'Cancelar', role: 'cancel' },
-                { 
-                  text: 'Excluir', 
-                  cssClass: 'alert-button-danger', 
-                  handler: confirmDelete 
-                }
-            ]}
+        <ActionAlert
+          isOpen={showDeleteAlert}
+          onDidDismiss={() => setShowDeleteAlert(false)}
+          header={'Confirmar Exclusão'}
+          message={'Tem certeza que deseja excluir este lançamento?'}
+          onConfirm={confirmDelete}
+          confirmButtonText="Excluir"
         />
         
         <IonActionSheet
-            isOpen={showActionSheet}
-            onDidDismiss={() => setShowActionSheet(false)}
-            header={expenseToAction?.description}
-            buttons={[
-                ...(expenseToAction && !expenseToAction.isPaid ? [{
-                    text: 'Pagar Conta',
-                    icon: checkmarkCircleOutline,
-                    handler: handleTogglePaidStatus,
-                }] : []),
-                {
-                    text: 'Editar',
-                    icon: pencil,
-                    handler: handleEditClick,
-                    cssClass: 'action-sheet-edit',
-                },
-                ...(isFutureExpense ? [{
-                    text: 'Antecipar Gasto',
-                    icon: walletOutline,
-                    handler: handleAnticipateClick,
-                    cssClass: 'action-sheet-anticipate',
-                }] : []),
-                {
-                    text: 'Excluir',
-                    role: 'destructive',
-                    icon: trash,
-                    handler: handleDeleteClick
-                },
-                {
-                    text: 'Cancelar',
-                    icon: close,
-                    role: 'cancel'
-                }
-            ]}
+          isOpen={showActionSheet}
+          onDidDismiss={() => setShowActionSheet(false)}
+          header={expenseToAction?.description}
+          buttons={[
+              ...(expenseToAction && !expenseToAction.isPaid ? [{
+                  text: 'Pagar Conta',
+                  icon: checkmarkCircleOutline,
+                  handler: handleTogglePaidStatus,
+                  cssClass: 'action-sheet-edit',
+              }] : []),
+              {
+                  text: 'Editar',
+                  icon: pencil,
+                  handler: handleEditClick,
+                  cssClass: 'action-sheet-edit',
+              },
+              ...(isFutureExpense ? [{
+                  text: 'Antecipar Gasto',
+                  icon: walletOutline,
+                  handler: handleAnticipateClick,
+                  cssClass: 'action-sheet-anticipate',
+              }] : []),
+              {
+                  text: 'Excluir',
+                  role: 'destructive',
+                  icon: trash,
+                  handler: handleDeleteClick
+              },
+              {
+                  text: 'Cancelar',
+                  icon: close,
+                  role: 'cancel'
+              }
+          ]}
         />
       </IonContent>
     </IonPage>

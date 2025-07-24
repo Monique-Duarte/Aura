@@ -233,3 +233,15 @@ ion-datetime {
 .pay-all-container {
   margin-bottom: 16px;
 }
+
+/* Para navegadores baseados em WebKit (Chrome, Safari, Edge) */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Para o Firefox */
+input[type=number] {
+  -moz-appearance: textfield;
+}

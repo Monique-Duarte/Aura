@@ -8,10 +8,9 @@ import {
   Title,
   Tooltip,
   Legend,
-  TooltipItem, // Importa o tipo correto para o contexto do tooltip
+  TooltipItem,
 } from 'chart.js';
 
-// Registra os componentes necessários do Chart.js
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -21,12 +20,14 @@ ChartJS.register(
   Legend
 );
 
+// --- ALTERAÇÃO 1: Adicionada a propriedade 'totalReserved' ---
 interface BalanceChartProps {
   totalIncome: number;
   totalExpense: number;
+  totalReserved: number;
 }
 
-const BalanceChart: React.FC<BalanceChartProps> = ({ totalIncome, totalExpense }) => {
+const BalanceChart: React.FC<BalanceChartProps> = ({ totalIncome, totalExpense, totalReserved }) => {
   const data = {
     labels: ['Balanço Mensal'],
     datasets: [
@@ -42,6 +43,14 @@ const BalanceChart: React.FC<BalanceChartProps> = ({ totalIncome, totalExpense }
         data: [totalExpense],
         backgroundColor: 'rgba(235, 68, 90, 0.6)',
         borderColor: 'rgba(235, 68, 90, 1)',
+        borderWidth: 1,
+      },
+      // --- ALTERAÇÃO 2: Novo "dataset" para a barra de Reserva ---
+      {
+        label: 'Reserva',
+        data: [totalReserved],
+        backgroundColor: 'rgba(54, 162, 235, 0.6)', // Cor azul
+        borderColor: 'rgba(54, 162, 235, 1)',
         borderWidth: 1,
       },
     ],

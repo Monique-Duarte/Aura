@@ -7,7 +7,7 @@ import CategorySummaryList from '../components/CategorySummaryList';
 import FamilyChartManager from '../components/FamilyChartManager';
 import { useTransactionSummary } from '../hooks/useTransactionSummary';
 import { useCategorySummary } from '../hooks/useCategorySummary';
-import { useAccountBalance } from '../hooks/useAccountBalance'; // Importa o novo hook de saldo
+import { useAccountBalance } from '../hooks/useAccountBalance';
 import './Dashboard.css';
 
 const chartOptions = [
@@ -28,7 +28,7 @@ const Dashboard: React.FC = () => {
   // Hooks para buscar os dados de resumo
   const { summary: balanceSummary, loading: balanceLoading } = useTransactionSummary(selectedPeriod);
   const { chartData: categoryChartData, summaryList: categorySummaryList, loading: categoryLoading } = useCategorySummary(selectedPeriod);
-  const { balance: currentBalance, loading: accountBalanceLoading } = useAccountBalance(); // Usa o novo hook
+  const { balance: currentBalance, loading: accountBalanceLoading } = useAccountBalance();
 
   return (
     <IonPage>
@@ -80,6 +80,7 @@ const Dashboard: React.FC = () => {
               <BalanceChart 
                 totalIncome={balanceSummary.totalIncome} 
                 totalExpense={balanceSummary.totalExpense} 
+                totalReserved={balanceSummary.totalReserved} 
               />
             )}
           </div>

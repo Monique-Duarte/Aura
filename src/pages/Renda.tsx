@@ -10,8 +10,6 @@ import {
   IonFab,
   IonFabButton,
   IonIcon,
-  IonModal,
-  IonButton,
   IonInput,
   IonItem,
   IonLabel,
@@ -21,8 +19,8 @@ import {
   IonText,
   IonSpinner,
   IonDatetimeButton,
-  IonAlert,
   IonActionSheet,
+  IonModal,
 } from '@ionic/react';
 import { add, close, pencil, trash } from 'ionicons/icons';
 import { useAuth } from '../hooks/AuthContext';
@@ -30,6 +28,9 @@ import { getFirestore, collection, addDoc, query, where, getDocs, Timestamp, doc
 import app from '../firebaseConfig';
 import './Lancamentos.css';
 import PeriodSelector from '../components/PeriodSelector';
+import AppModal from '../components/AppModal';
+import ActionButton from '../components/ActionButton';
+import ActionAlert from '../components/ActionAlert';
 
 // --- Interfaces ---
 interface Period {
@@ -66,6 +67,7 @@ const Renda: React.FC = () => {
 
   const fetchIncomes = useCallback(async () => {
     if (!user || !selectedPeriod) {
+      setIncomes([]);
       setLoading(false);
       return;
     }
@@ -114,7 +116,7 @@ const Renda: React.FC = () => {
     try {
       if (editingIncome) {
         const docRef = doc(db, 'users', user.uid, 'transactions', editingIncome.id);
-        await updateDoc(docRef, dataToSave);
+        await updateDoc(docRef, { ...dataToSave, type: 'income' });
       } else {
         const transactionsRef = collection(db, 'users', user.uid, 'transactions');
         await addDoc(transactionsRef, { ...dataToSave, type: 'income' });
@@ -217,88 +219,76 @@ const Renda: React.FC = () => {
           </IonFabButton>
         </IonFab>
 
-        <IonModal isOpen={showModal} onDidDismiss={closeModalAndReset} initialBreakpoint={0.75} breakpoints={[0, 0.75, 1]}>
-          <IonHeader>
-            <IonToolbar>
-              <IonTitle>{editingIncome ? 'Editar Renda' : 'Nova Renda'}</IonTitle>
-              <IonButtons slot="end">
-                <IonButton onClick={closeModalAndReset}><IonIcon icon={close} /></IonButton>
-              </IonButtons>
-            </IonToolbar>
-          </IonHeader>
-          <IonContent className="ion-padding">
-            <div className="income-modal-form">
-              <div className="form-fields-container">
-                <div className="form-field-group">
-                  <IonItem>
-                    <IonLabel position="floating">Descrição</IonLabel>
-                    <IonInput value={description} onIonChange={e => setDescription(e.detail.value!)} placeholder="Ex: Salário, Freelance" />
-                  </IonItem>
-                </div>
-                <div className="form-field-group">
-                  <IonItem>
-                    <IonLabel position="floating">Valor (R$)</IonLabel>
-                    <IonInput type="number" value={amount} onIonChange={e => setAmount(parseFloat(e.detail.value!))} placeholder="1500,00" />
-                  </IonItem>
-                </div>
-                <div className="form-field-group">
-                  <IonItem lines="none" className="date-item">
-                    <IonLabel>Data</IonLabel>
-                    <IonDatetimeButton datetime="datetime-in-modal"></IonDatetimeButton>
-                  </IonItem>
-                </div>
-                <div className="form-field-group">
-                  <IonItem lines="none" className="toggle-item">
-                    <IonLabel>Renda Fixa Mensal?</IonLabel>
-                    <IonToggle checked={isRecurring} onIonChange={e => setIsRecurring(e.detail.checked)} />
-                  </IonItem>
-                </div>
-              </div>
-              <IonButton expand="block" onClick={handleSaveIncome} className="save-button">
-                {editingIncome ? 'Salvar Alterações' : 'Salvar Renda'}
-              </IonButton>
-            </div>
-          </IonContent>
-        </IonModal>
+        <AppModal
+          title={editingIncome ? 'Editar Renda' : 'Nova Renda'}
+          isOpen={showModal}
+          onDidDismiss={closeModalAndReset}
+        >
+          <div className="form-field-group">
+            <IonItem>
+              <IonLabel position="floating">Descrição</IonLabel>
+              <IonInput value={description} onIonChange={e => setDescription(e.detail.value!)} placeholder="Ex: Salário, Freelance" />
+            </IonItem>
+          </div>
+          <div className="form-field-group">
+            <IonItem>
+              <IonLabel position="floating">Valor (R$)</IonLabel>
+              <IonInput type="number" value={amount} onIonChange={e => setAmount(parseFloat(e.detail.value!))} placeholder="1500,00" />
+            </IonItem>
+          </div>
+          <div className="form-field-group">
+            <IonItem lines="none" className="date-item">
+              <IonLabel>Data</IonLabel>
+              <IonDatetimeButton datetime="datetime-in-modal"></IonDatetimeButton>
+            </IonItem>
+          </div>
+          <div className="form-field-group">
+            <IonItem lines="none" className="toggle-item">
+              <IonLabel>Renda Fixa Mensal?</IonLabel>
+              <IonToggle checked={isRecurring} onIonChange={e => setIsRecurring(e.detail.checked)} />
+            </IonItem>
+          </div>
+          <ActionButton onClick={handleSaveIncome}>
+            {editingIncome ? 'Salvar Alterações' : 'Salvar Renda'}
+          </ActionButton>
+        </AppModal>
 
         <IonModal keepContentsMounted={true}>
             <IonDatetime id="datetime-in-modal" value={date} onIonChange={e => { const value = e.detail.value; if (typeof value === 'string') { setDate(value); } }} presentation="date" />
         </IonModal>
 
-        <IonAlert
-            isOpen={showDeleteAlert}
-            onDidDismiss={() => setShowDeleteAlert(false)}
-            header={'Confirmar Exclusão'}
-            message={'Tem certeza que deseja excluir este lançamento? Esta ação não pode ser desfeita.'}
-            buttons={[
-                { text: 'Cancelar', role: 'cancel' },
-                { text: 'Excluir', cssClass: 'alert-button-danger', handler: confirmDelete },
-            ]}
+        <ActionAlert
+          isOpen={showDeleteAlert}
+          onDidDismiss={() => setShowDeleteAlert(false)}
+          header={'Confirmar Exclusão'}
+          message={'Tem certeza que deseja excluir este lançamento? Esta ação não pode ser desfeita.'}
+          onConfirm={confirmDelete}
+          confirmButtonText="Excluir"
         />
         
         <IonActionSheet
-            isOpen={showActionSheet}
-            onDidDismiss={() => setShowActionSheet(false)}
-            header={incomeToAction?.description}
-            buttons={[
-                {
-                    text: 'Editar',
-                    icon: pencil,
-                    handler: handleEditClick,
-                    cssClass: 'action-sheet-edit',
-                },
-                {
-                    text: 'Excluir',
-                    role: 'destructive',
-                    icon: trash,
-                    handler: handleDeleteClick
-                },
-                {
-                    text: 'Cancelar',
-                    icon: close,
-                    role: 'cancel'
-                }
-            ]}
+          isOpen={showActionSheet}
+          onDidDismiss={() => setShowActionSheet(false)}
+          header={incomeToAction?.description}
+          buttons={[
+            {
+              text: 'Editar',
+              icon: pencil,
+              handler: handleEditClick,
+              cssClass: 'action-sheet-edit',
+            },
+            {
+              text: 'Excluir',
+              role: 'destructive',
+              icon: trash,
+              handler: handleDeleteClick
+            },
+            {
+              text: 'Cancelar',
+              icon: close,
+              role: 'cancel'
+            }
+          ]}
         />
       </IonContent>
     </IonPage>

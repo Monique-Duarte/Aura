@@ -23,11 +23,13 @@ import {
   IonSegmentButton,
   IonActionSheet,
   IonModal,
+  IonSelect,
+  IonSelectOption,
 } from '@ionic/react';
 
 import { add, close, pencil, trash, walletOutline, checkmarkCircleOutline, closeCircleOutline } from 'ionicons/icons';
 import { useAuth } from '../hooks/AuthContext';
-import { getFirestore, collection, addDoc, query, where, getDocs, Timestamp, doc, deleteDoc, updateDoc, writeBatch } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, query, where, getDocs, Timestamp, doc, deleteDoc, updateDoc, writeBatch, onSnapshot } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
 import app from '../firebaseConfig';
 import '../styles/Lancamentos.css';
@@ -43,6 +45,13 @@ interface Period {
   endDate: Date;
 }
 
+interface CreditCard {
+  id: string;
+  name: string;
+  closingDay: number;
+  dueDay: number;
+}
+
 interface ExpenseTransaction {
   id: string;
   description: string;
@@ -56,6 +65,7 @@ interface ExpenseTransaction {
   installmentNumber?: number;
   totalInstallments?: number;
   installmentGroupId?: string;
+  cardId?: string;
 }
 
 const filterOptions = [
@@ -69,7 +79,8 @@ type FilterMode = typeof filterOptions[number]['key'];
 const Gastos: React.FC = () => {
   const { user } = useAuth();
   const [showModal, setShowModal] = useState(false);
-  const [expenses, setExpenses] = useState<ExpenseTransaction[]>([]);
+  const [allFetchedExpenses, setAllFetchedExpenses] = useState<ExpenseTransaction[]>([]);
+  const [cards, setCards] = useState<CreditCard[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Estados do formulário
@@ -80,6 +91,7 @@ const Gastos: React.FC = () => {
   const [paymentMethod, setPaymentMethod] = useState<'credit' | 'debit'>('debit');
   const [installments, setInstallments] = useState(1);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedCardId, setSelectedCardId] = useState<string | undefined>();
   
   // Estados de controle
   const [editingExpense, setEditingExpense] = useState<ExpenseTransaction | null>(null);
@@ -90,16 +102,32 @@ const Gastos: React.FC = () => {
   const [selectedPeriod, setSelectedPeriod] = useState<Period | null>(null);
   const [filterMode, setFilterMode] = useState<FilterMode>('all');
 
+  useEffect(() => {
+    if (!user) return;
+    const db = getFirestore(app);
+    const cardsRef = collection(db, 'users', user.uid, 'cards');
+    const unsubscribe = onSnapshot(query(cardsRef), (snapshot) => {
+      const fetchedCards = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as CreditCard[];
+      setCards(fetchedCards);
+    });
+    return () => unsubscribe();
+  }, [user]);
+
   const fetchExpenses = useCallback(async () => {
-    if (!user || !selectedPeriod) { setExpenses([]); setLoading(false); return; }
+    if (!user || !selectedPeriod) { setAllFetchedExpenses([]); setLoading(false); return; }
     setLoading(true);
     try {
         const db = getFirestore(app);
         const transactionsRef = collection(db, 'users', user.uid, 'transactions');
+        
+        // --- ALTERAÇÃO: Busca um período mais alargado para incluir despesas do ciclo anterior do cartão ---
+        const queryStartDate = new Date(selectedPeriod.startDate);
+        queryStartDate.setMonth(queryStartDate.getMonth() - 1);
+
         const q = query(
           transactionsRef,
           where('type', '==', 'expense'),
-          where('date', '>=', selectedPeriod.startDate),
+          where('date', '>=', queryStartDate),
           where('date', '<=', selectedPeriod.endDate)
         );
         const querySnapshot = await getDocs(q);
@@ -107,8 +135,8 @@ const Gastos: React.FC = () => {
           id: doc.id,
           ...doc.data(),
           date: (doc.data().date as Timestamp).toDate(),
-        })).sort((a, b) => b.date.getTime() - a.date.getTime()) as ExpenseTransaction[];
-        setExpenses(fetchedExpenses);
+        })) as ExpenseTransaction[];
+        setAllFetchedExpenses(fetchedExpenses);
     } catch (error) {
         console.error("Erro ao buscar gastos:", error);
     } finally {
@@ -134,7 +162,8 @@ const Gastos: React.FC = () => {
                 const installmentDate = new Date(date);
                 installmentDate.setMonth(installmentDate.getMonth() + i);
                 const newDocRef = doc(collection(db, 'users', user.uid, 'transactions'));
-                batch.set(newDocRef, {
+                
+                const data = {
                     type: 'expense', 
                     amount: installmentAmount,
                     description: `${description} (${i + 1}/${installments})`,
@@ -147,7 +176,9 @@ const Gastos: React.FC = () => {
                     installmentGroupId: groupId,
                     categories: selectedCategories,
                     isPaid: false,
-                });
+                    ...(selectedCardId && { cardId: selectedCardId }),
+                };
+                batch.set(newDocRef, data);
             }
             await batch.commit();
         } else {
@@ -156,6 +187,7 @@ const Gastos: React.FC = () => {
                 date: Timestamp.fromDate(new Date(date)),
                 isRecurring, paymentMethod, categories: selectedCategories,
                 isPaid: paymentMethod === 'debit',
+                ...(paymentMethod === 'credit' && selectedCardId && { cardId: selectedCardId }),
                 ...(isRecurring && { recurringDay: new Date(date).getDate() }),
             };
             if (editingExpense) {
@@ -172,6 +204,41 @@ const Gastos: React.FC = () => {
         console.error("Erro ao salvar gasto:", error);
     }
   };
+  
+  // --- ALTERAÇÃO PRINCIPAL: Lógica de filtragem que respeita o ciclo da fatura ---
+  const expensesForPeriod = useMemo(() => {
+    if (!selectedPeriod) return [];
+    
+    const cardsMap = new Map(cards.map(c => [c.id, c]));
+
+    return allFetchedExpenses.filter(expense => {
+      const expenseDate = expense.date;
+      
+      // Lógica para débito e crédito sem cartão (dentro do mês calendário)
+      if (expense.paymentMethod === 'debit' || !expense.cardId) {
+        return expenseDate >= selectedPeriod.startDate && expenseDate <= selectedPeriod.endDate;
+      }
+
+      // Lógica para crédito com cartão (respeita o ciclo da fatura)
+      const card = cardsMap.get(expense.cardId);
+      if (card) {
+        const year = selectedPeriod.startDate.getFullYear();
+        const month = selectedPeriod.startDate.getMonth();
+        
+        const closingDay = card.closingDay;
+        
+        // O ciclo da fatura começa no dia seguinte ao fecho do mês anterior
+        const cycleStartDate = new Date(year, month - 1, closingDay + 1);
+        // E termina no dia do fecho do mês atual
+        const cycleEndDate = new Date(year, month, closingDay);
+        cycleEndDate.setHours(23, 59, 59, 999); // Garante que o dia inteiro é incluído
+
+        return expenseDate >= cycleStartDate && expenseDate <= cycleEndDate;
+      }
+      
+      return false; // Se o cartão não for encontrado, não inclui a despesa
+    });
+  }, [allFetchedExpenses, selectedPeriod, cards]);
 
   const handleTogglePaidStatus = async () => {
     if (!user || !expenseToAction) return;
@@ -187,7 +254,7 @@ const Gastos: React.FC = () => {
 
   const handlePayAll = async () => {
     if (!user) return;
-    const unpaidExpenses = expenses.filter(exp => !exp.isPaid);
+    const unpaidExpenses = expensesForPeriod.filter(exp => !exp.isPaid);
     if (unpaidExpenses.length === 0) return;
 
     const db = getFirestore(app);
@@ -219,6 +286,7 @@ const Gastos: React.FC = () => {
     setIsRecurring(expenseToAction.isRecurring);
     setPaymentMethod(expenseToAction.paymentMethod || 'debit');
     setSelectedCategories(expenseToAction.categories || []);
+    setSelectedCardId(expenseToAction.cardId);
     setShowModal(true);
   };
 
@@ -265,14 +333,15 @@ const Gastos: React.FC = () => {
     setPaymentMethod('debit');
     setInstallments(1);
     setSelectedCategories([]);
+    setSelectedCardId(undefined);
   };
 
   const displayedExpenses = useMemo(() => {
     if (filterMode === 'all') {
-      return expenses;
+      return expensesForPeriod;
     }
-    return expenses.filter(exp => exp.paymentMethod === filterMode);
-  }, [expenses, filterMode]);
+    return expensesForPeriod.filter(exp => exp.paymentMethod === filterMode);
+  }, [expensesForPeriod, filterMode]);
 
   const unpaidExpenses = displayedExpenses.filter(exp => !exp.isPaid);
   const paidExpenses = displayedExpenses.filter(exp => exp.isPaid);
@@ -425,6 +494,18 @@ const Gastos: React.FC = () => {
                   <IonSegmentButton value="credit"><IonLabel>Crédito</IonLabel></IonSegmentButton>
               </IonSegment>
           </div>
+
+          {paymentMethod === 'credit' && (
+            <div className="form-field-group">
+              <IonItem>
+                <IonLabel>Cartão de Crédito</IonLabel>
+                <IonSelect value={selectedCardId} placeholder="Selecione (Opcional)" onIonChange={e => setSelectedCardId(e.detail.value)}>
+                  {cards.map(card => <IonSelectOption key={card.id} value={card.id}>{card.name}</IonSelectOption>)}
+                </IonSelect>
+              </IonItem>
+            </div>
+          )}
+
           {paymentMethod === 'credit' && !editingExpense && (
             <div className="form-field-group">
               <IonItem>

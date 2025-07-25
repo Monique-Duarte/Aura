@@ -7,6 +7,7 @@ import Dashboard from '../pages/Dashboard';
 import Renda from '../pages/Renda';
 import Gastos from '../pages/Gastos';
 import Reserva from '../pages/Reserva';
+import Cartao from '../pages/Cartao';
 
 const MainLayout: React.FC = () => {
   return (
@@ -18,6 +19,7 @@ const MainLayout: React.FC = () => {
           <PrivateRoute path="/app/renda" component={Renda} exact />
           <PrivateRoute path="/app/gastos" component={Gastos} exact />
           <PrivateRoute path="/app/reserva" component={Reserva} exact />
+          <PrivateRoute path="/app/cartao" component={Cartao} exact />
           {/* Adicione outras rotas privadas aqui */}
           <Redirect exact from="/app" to="/app/dashboard" />
         </Switch>

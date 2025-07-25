@@ -249,3 +249,15 @@ input[type=number] {
 .pay-all-container {
   margin-top: 15px;
 }
+
+/* Altera a cor do texto da opção (ex: "Nubank"), garantindo a legibilidade. */
+.alert-radio-label.sc-ion-alert-md,
+.alert-radio-label.sc-ion-alert-ios {
+  color: var(--ion-color-primary) !important;
+}
+
+/* Altera a cor do círculo de seleção para a cor primária quando uma opção é escolhida. */
+.alert-radio-inner.sc-ion-alert-md,
+.alert-radio-inner.sc-ion-alert-ios {
+  border-color: var(--ion-color-primary) !important;
+}

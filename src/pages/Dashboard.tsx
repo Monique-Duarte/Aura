@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { IonPage, IonHeader, IonToolbar, IonButtons, IonMenuButton, IonTitle, IonContent, IonSpinner } from '@ionic/react';
+import { IonPage, IonHeader, IonToolbar, IonButtons, IonMenuButton, IonTitle, IonContent, IonSpinner, IonText } from '@ionic/react';
 import PeriodSelector from '../components/PeriodSelector';
 import BalanceChart from '../components/BalanceChart';
 import CategoryChart from '../components/CategoryChart';
@@ -27,7 +27,7 @@ const Dashboard: React.FC = () => {
 
   // Hooks para buscar os dados de resumo
   const { summary: balanceSummary, loading: balanceLoading } = useTransactionSummary(selectedPeriod);
-  const { chartData: categoryChartData, summaryList: categorySummaryList, loading: categoryLoading } = useCategorySummary(selectedPeriod);
+  const { chartData: categoryChartData, summaryList: categorySummaryList, loading: categoryLoading, totalExpense } = useCategorySummary(selectedPeriod);
   const { balance: currentBalance, loading: accountBalanceLoading } = useAccountBalance();
 
   return (
@@ -42,13 +42,16 @@ const Dashboard: React.FC = () => {
       </IonHeader>
       <IonContent className="ion-padding">
         
-        <div className="current-balance-card">
+        {/* --- ALTERAÇÃO: Aplicado o estilo padronizado 'summary-card' --- */}
+        <div className="summary-card">
           {accountBalanceLoading ? (
             <IonSpinner name="crescent" />
           ) : (
             <>
-              <p>Saldo Atual</p>
-              <h2>{currentBalance.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</h2>
+              <IonText><p>Saldo Atual</p></IonText>
+              <IonText color="success">
+                <h2>{currentBalance.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</h2>
+              </IonText>
             </>
           )}
         </div>
@@ -87,7 +90,7 @@ const Dashboard: React.FC = () => {
             {categoryLoading || !categoryChartData ? (
               <div className="spinner-container"><IonSpinner /></div>
             ) : (
-              <CategoryChart data={categoryChartData} />
+              <CategoryChart data={categoryChartData} totalAmount={totalExpense} />
             )}
           </div>
           <div className={`chart-container ${activeChart === 'family' ? 'active' : ''}`}>

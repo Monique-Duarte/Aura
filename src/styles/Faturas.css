@@ -1,0 +1,55 @@
+/* --- Melhorias de Layout para a Página de Faturas --- */
+
+/* Estilo para o item do seletor de filtro de cartão */
+.invoice-filter-item {
+  --background: rgba(255, 255, 255, 0.05);
+  --border-radius: 8px;
+  margin-bottom: 24px; /* Aumenta o espaço abaixo do filtro */
+}
+
+.invoice-filter-item ion-label[position="stacked"] {
+  font-size: 0.8rem;
+  font-weight: normal;
+  color: var(--ion-color-medium-shade);
+}
+
+.invoice-filter-item ion-select {
+  font-size: 1rem;
+  font-weight: bold;
+  color: var(--ion-color-primary);
+  width: 100%;
+}
+
+/* Estilo aprimorado para os cards de fatura aberta */
+.invoice-card.open {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+  border-left: 4px solid var(--ion-color-danger); /* Borda vermelha para destacar */
+}
+
+.invoice-card.open h2 {
+  margin-top: 4px;
+  margin-bottom: 4px;
+  font-size: 1.8rem;
+}
+
+.invoice-card.open p {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.invoice-card.open .card-name {
+  font-weight: bold;
+  font-size: 1rem;
+  color: var(--ion-color-light);
+}
+
+.invoice-card.open ion-button {
+  --padding-start: 0;
+  --padding-end: 0;
+  margin-top: 8px;
+  height: auto;
+  font-weight: bold;
+}

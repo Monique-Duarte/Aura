@@ -39,7 +39,7 @@ const BalanceChart: React.FC<BalanceChartProps> = ({ totalIncome, totalExpense, 
         borderRadius: 5,
       },
       {
-        label: 'Gastos',
+        label: 'Despesas',
         data: [totalExpense],
         backgroundColor: 'rgba(255, 99, 132, 0.7)',
         borderColor: 'rgba(255, 99, 132, 1)',

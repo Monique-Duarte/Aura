@@ -34,7 +34,7 @@ import '../theme/variables.css';
 const menuOptions = [
   { title: 'Dashboard', icon: homeOutline, path: '/app/dashboard' },
   { title: 'Renda', icon: cashOutline, path: '/app/renda' },
-  { title: 'Gastos', icon: receiptOutline, path: '/app/gastos' },
+  { title: 'Despesas', icon: receiptOutline, path: '/app/Despesas' },
   { title: 'Cartão', icon: cardOutline, path: '/app/cartao' },
   { title: 'Faturas', icon: documentTextOutline, path: '/app/faturas' },
   { title: 'Reserva', icon: walletOutline, path: '/app/reserva' },

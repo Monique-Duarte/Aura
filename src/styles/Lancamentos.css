@@ -261,3 +261,7 @@ input[type=number] {
 .alert-radio-inner.sc-ion-alert-ios {
   border-color: var(--ion-color-primary) !important;
 }
+
+.payment-method-tag {
+  text-align: end;
+}

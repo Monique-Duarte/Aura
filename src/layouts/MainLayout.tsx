@@ -5,9 +5,10 @@ import SideMenu from '../components/SideMenu';
 import PrivateRoute from '../components/PrivateRoute';
 import Dashboard from '../pages/Dashboard';
 import Renda from '../pages/Renda';
-import Gastos from '../pages/Gastos';
+import Despesa from '../pages/Despesa';
 import Reserva from '../pages/Reserva';
 import Cartao from '../pages/Cartao';
+import Faturas from '../pages/Faturas';
 
 const MainLayout: React.FC = () => {
   return (
@@ -17,10 +18,10 @@ const MainLayout: React.FC = () => {
         <Switch>
           <PrivateRoute path="/app/dashboard" component={Dashboard} exact />
           <PrivateRoute path="/app/renda" component={Renda} exact />
-          <PrivateRoute path="/app/gastos" component={Gastos} exact />
+          <PrivateRoute path="/app/despesas" component={Despesa} exact />
           <PrivateRoute path="/app/reserva" component={Reserva} exact />
           <PrivateRoute path="/app/cartao" component={Cartao} exact />
-          {/* Adicione outras rotas privadas aqui */}
+          <PrivateRoute path="/app/faturas" component={Faturas} exact />
           <Redirect exact from="/app" to="/app/dashboard" />
         </Switch>
       </IonRouterOutlet>

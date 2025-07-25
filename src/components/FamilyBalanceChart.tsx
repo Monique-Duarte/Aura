@@ -17,7 +17,7 @@ interface FamilyBalanceChartProps {
 
 const FamilyBalanceChart: React.FC<FamilyBalanceChartProps> = ({ summary, user1Name, user2Name }) => {
   const data = {
-    labels: ['Renda', 'Gastos'],
+    labels: ['Renda', 'Despesas'],
     datasets: [
       {
         label: user1Name,

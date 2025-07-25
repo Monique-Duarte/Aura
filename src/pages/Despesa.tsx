@@ -69,14 +69,14 @@ interface ExpenseTransaction {
 }
 
 const filterOptions = [
-  { key: 'all', label: 'Gastos Totais' },
+  { key: 'all', label: 'Despesas Totais' },
   { key: 'credit', label: 'Gastos Crédito' },
   { key: 'debit', label: 'Gastos Débito' },
 ] as const;
 
 type FilterMode = typeof filterOptions[number]['key'];
 
-const Gastos: React.FC = () => {
+const Despesas: React.FC = () => {
   const { user } = useAuth();
   const [showModal, setShowModal] = useState(false);
   const [allFetchedExpenses, setAllFetchedExpenses] = useState<ExpenseTransaction[]>([]);
@@ -356,12 +356,12 @@ const Gastos: React.FC = () => {
       <IonHeader>
         <IonToolbar color="primary">
           <IonButtons slot="start"><IonMenuButton /></IonButtons>
-          <IonTitle>Gastos</IonTitle>
+          <IonTitle>Despesas</IonTitle>
         </IonToolbar>
       </IonHeader>
       <IonContent className="ion-padding">
         <div className="summary-card">
-          <IonText><p>Gastos totais no período</p></IonText>
+          <IonText><p>Despesas totais no período</p></IonText>
           <IonText color="danger">
             <h2>{totalExpense.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</h2>
           </IonText>
@@ -602,4 +602,4 @@ const Gastos: React.FC = () => {
   );
 };
 
-export default Gastos;
+export default Despesas;

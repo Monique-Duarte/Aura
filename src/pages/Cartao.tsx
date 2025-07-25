@@ -162,7 +162,7 @@ const Cartao: React.FC = () => {
                     <p>Ainda não há cartões registados.</p>
                 </IonText>
                 <IonText color="medium">
-                    <p>Adicione os seus cartões de crédito para um melhor controle dos seus gastos.</p>
+                    <p>Adicione os seus cartões de crédito para um melhor controle das suas despesas.</p>
                 </IonText>
             </div>
         ) : (

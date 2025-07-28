@@ -1,18 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { IonPage, IonHeader, IonToolbar, IonButtons, IonMenuButton, IonTitle, IonContent } from '@ionic/react';
-import PeriodSelector from '../components/PeriodSelector'; // Importa o novo componente
-import './Dashboard.css';
-
-// --- Componentes de Gráfico (placeholders) ---
-const DashboardBalanceChart: React.FC = () => (
-  <div className="dashboard-chart-placeholder">Balanço</div>
-);
-const DashboardCategoryChart: React.FC = () => (
-  <div className="dashboard-chart-placeholder">Categoria</div>
-);
-const DashboardFamilyChart: React.FC = () => (
-  <div className="dashboard-chart-placeholder">Conjunto</div>
-);
+import React, { useState } from 'react';
+import { IonPage, IonHeader, IonToolbar, IonButtons, IonMenuButton, IonTitle, IonContent, IonSpinner, IonText } from '@ionic/react';
+import PeriodSelector from '../components/PeriodSelector';
+import BalanceChart from '../components/BalanceChart';
+import CategoryChart from '../components/CategoryChart';
+import CategorySummaryList from '../components/CategorySummaryList';
+import FamilyChartManager from '../components/FamilyChartManager';
+import { useTransactionSummary } from '../hooks/useTransactionSummary';
+import { useCategorySummary } from '../hooks/useCategorySummary';
+import { useAccountBalance } from '../hooks/useAccountBalance';
+import '../styles/Dashboard.css';
 
 const chartOptions = [
   { key: 'balance', label: 'Gráfico Balanço' },
@@ -20,28 +16,19 @@ const chartOptions = [
   { key: 'family', label: 'Gráfico Conjunto' },
 ] as const;
 
-// Define a estrutura de um objeto de período
 interface Period {
   startDate: Date;
   endDate: Date;
 }
 
-// --- Componente Principal do Dashboard ---
 const Dashboard: React.FC = () => {
   const [activeChart, setActiveChart] = useState<'balance' | 'category' | 'family'>('balance');
-  // Estado para armazenar o período selecionado, recebido do componente filho
   const [selectedPeriod, setSelectedPeriod] = useState<Period | null>(null);
 
-  // Efeito para buscar dados sempre que o período selecionado mudar
-  useEffect(() => {
-    if (selectedPeriod) {
-      console.log('NOVO PERÍODO SELECIONADO! Buscar dados para:', selectedPeriod.startDate, 'até', selectedPeriod.endDate);
-      //
-      // AQUI VOCÊ COLOCARÁ A LÓGICA PARA BUSCAR OS DADOS DO FIREBASE
-      // USANDO as datas de `selectedPeriod.startDate` e `selectedPeriod.endDate`.
-      //
-    }
-  }, [selectedPeriod]);
+  // Hooks para buscar os dados de resumo
+  const { summary: balanceSummary, loading: balanceLoading } = useTransactionSummary(selectedPeriod);
+  const { chartData: categoryChartData, summaryList: categorySummaryList, loading: categoryLoading, totalExpense } = useCategorySummary(selectedPeriod);
+  const { balance: currentBalance, loading: accountBalanceLoading } = useAccountBalance();
 
   return (
     <IonPage>
@@ -54,6 +41,21 @@ const Dashboard: React.FC = () => {
         </IonToolbar>
       </IonHeader>
       <IonContent className="ion-padding">
+        
+        {/* --- ALTERAÇÃO: Aplicado o estilo padronizado 'summary-card' --- */}
+        <div className="summary-card">
+          {accountBalanceLoading ? (
+            <IonSpinner name="crescent" />
+          ) : (
+            <>
+              <IonText><p>Saldo Atual</p></IonText>
+              <IonText color="success">
+                <h2>{currentBalance.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</h2>
+              </IonText>
+            </>
+          )}
+        </div>
+
         <div className="dashboard-header-row">
           <h2 className="dashboard-title">Resumo Mensal</h2>
           <PeriodSelector onPeriodChange={setSelectedPeriod} />
@@ -72,11 +74,33 @@ const Dashboard: React.FC = () => {
           ))}
         </div>
 
-        <div className="dashboard-chart-area">
-          {activeChart === 'balance' && <DashboardBalanceChart />}
-          {activeChart === 'category' && <DashboardCategoryChart />}
-          {activeChart === 'family' && <DashboardFamilyChart />}
+        <div className="dashboard-chart-area chart-wrapper">
+          <div className={`chart-container ${activeChart === 'balance' ? 'active' : ''}`}>
+            {balanceLoading ? (
+              <div className="spinner-container"><IonSpinner /></div>
+            ) : (
+              <BalanceChart 
+                totalIncome={balanceSummary.totalIncome} 
+                totalExpense={balanceSummary.totalExpense} 
+                totalReserved={balanceSummary.totalReserved} 
+              />
+            )}
+          </div>
+          <div className={`chart-container ${activeChart === 'category' ? 'active' : ''}`}>
+            {categoryLoading || !categoryChartData ? (
+              <div className="spinner-container"><IonSpinner /></div>
+            ) : (
+              <CategoryChart data={categoryChartData} totalAmount={totalExpense} />
+            )}
+          </div>
+          <div className={`chart-container ${activeChart === 'family' ? 'active' : ''}`}>
+            <FamilyChartManager period={selectedPeriod} />
+          </div>
         </div>
+
+        {activeChart === 'category' && !categoryLoading && categorySummaryList.length > 0 && (
+          <CategorySummaryList summary={categorySummaryList} />
+        )}
       </IonContent>
     </IonPage>
   );

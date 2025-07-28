@@ -1,0 +1,67 @@
+.category-summary-container {
+  margin-top: 32px; /* Aumenta o espaço após o gráfico */
+}
+
+.summary-list-title {
+  font-size: 1.2rem; /* Título um pouco maior */
+  font-weight: 700; /* Mais destaque */
+  color: var(--ion-color-light); /* Cor mais clara para o título */
+  margin-bottom: 16px;
+  padding-left: 4px;
+}
+
+.summary-list {
+  background: transparent;
+  padding: 0;
+}
+
+.summary-list-item {
+  --background: rgba(255, 255, 255, 0.05);
+  --border-radius: 12px;
+  margin-bottom: 12px; /* Mais espaço entre os itens */
+  --padding-start: 16px;
+  --inner-padding-end: 16px;
+  --padding-top: 8px; /* Mais espaço vertical */
+  --padding-bottom: 8px;
+}
+
+.category-color-dot {
+  width: 10px; /* Ponto um pouco menor e mais sutil */
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 16px;
+  flex-shrink: 0;
+}
+
+.summary-list-item h2 {
+  font-weight: 600;
+  font-size: 1.1rem; /* Nome da categoria com mais destaque */
+  margin-bottom: 4px; /* Espaço para a barra de progresso */
+}
+
+.summary-list-item p {
+  font-size: 0.8rem;
+  color: var(--ion-color-medium-shade);
+}
+
+.summary-item-total {
+  font-weight: 700; /* Valor total com mais destaque */
+  font-size: 1.1rem;
+  text-align: right;
+  min-width: 100px; /* Garante alinhamento dos valores */
+}
+
+/* --- NOVO: Barra de Progresso para a Percentagem --- */
+.percentage-bar-background {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  height: 6px;
+  width: 100%;
+  margin-top: 4px;
+}
+
+.percentage-bar-foreground {
+  height: 100%;
+  border-radius: 4px;
+  /* A cor será definida inline no componente */
+}

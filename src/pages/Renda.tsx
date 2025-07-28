@@ -10,8 +10,6 @@ import {
   IonFab,
   IonFabButton,
   IonIcon,
-  IonModal,
-  IonButton,
   IonInput,
   IonItem,
   IonLabel,
@@ -21,17 +19,24 @@ import {
   IonText,
   IonSpinner,
   IonDatetimeButton,
-  IonAlert,
-  IonItemSliding,
-  IonItemOptions,
-  IonItemOption, 
+  IonActionSheet,
+  IonModal,
 } from '@ionic/react';
 import { add, close, pencil, trash } from 'ionicons/icons';
-import { useDate } from '../hooks/DateContext';
 import { useAuth } from '../hooks/AuthContext';
 import { getFirestore, collection, addDoc, query, where, getDocs, Timestamp, doc, deleteDoc, updateDoc } from 'firebase/firestore';
 import app from '../firebaseConfig';
-import './Lancamentos.css';
+import '../styles/Lancamentos.css';
+import PeriodSelector from '../components/PeriodSelector';
+import AppModal from '../components/AppModal';
+import ActionButton from '../components/ActionButton';
+import ActionAlert from '../components/ActionAlert';
+
+// --- Interfaces ---
+interface Period {
+  startDate: Date;
+  endDate: Date;
+}
 
 interface IncomeTransaction {
   id: string;
@@ -43,52 +48,54 @@ interface IncomeTransaction {
 
 const Renda: React.FC = () => {
   const { user } = useAuth();
-  const { currentPeriod } = useDate();
   const [showModal, setShowModal] = useState(false);
   const [incomes, setIncomes] = useState<IncomeTransaction[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Estados para o formulário no modal
+  // Estados do formulário
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState<number | undefined>();
   const [date, setDate] = useState(new Date().toISOString());
   const [isRecurring, setIsRecurring] = useState(false);
 
-  // Estado para controlar a edição e exclusão
+  // Estados de controle
   const [editingIncome, setEditingIncome] = useState<IncomeTransaction | null>(null);
   const [showDeleteAlert, setShowDeleteAlert] = useState(false);
-  const [incomeToDelete, setIncomeToDelete] = useState<string | null>(null);
+  const [incomeToAction, setIncomeToAction] = useState<IncomeTransaction | null>(null);
+  const [showActionSheet, setShowActionSheet] = useState(false);
+  const [selectedPeriod, setSelectedPeriod] = useState<Period | null>(null);
 
   const fetchIncomes = useCallback(async () => {
-    if (!user || !currentPeriod) {
-        setLoading(false);
-        return;
-    };
+    if (!user || !selectedPeriod) {
+      setIncomes([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
-        const db = getFirestore(app);
-        const transactionsRef = collection(db, 'users', user.uid, 'transactions');
-        const q = query(
-          transactionsRef,
-          where('type', '==', 'income'),
-          where('date', '>=', currentPeriod.startDate),
-          where('date', '<=', currentPeriod.endDate)
-        );
+      const db = getFirestore(app);
+      const transactionsRef = collection(db, 'users', user.uid, 'transactions');
+      const q = query(
+        transactionsRef,
+        where('type', '==', 'income'),
+        where('date', '>=', selectedPeriod.startDate),
+        where('date', '<=', selectedPeriod.endDate)
+      );
 
-        const querySnapshot = await getDocs(q);
-        const fetchedIncomes = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-          date: (doc.data().date as Timestamp).toDate(),
-        })) as IncomeTransaction[];
+      const querySnapshot = await getDocs(q);
+      const fetchedIncomes = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        date: (doc.data().date as Timestamp).toDate(),
+      })).sort((a, b) => b.date.getTime() - a.date.getTime()) as IncomeTransaction[];
 
-        setIncomes(fetchedIncomes);
+      setIncomes(fetchedIncomes);
     } catch (error) {
-        console.error("Erro ao buscar rendas:", error);
+      console.error("Erro ao buscar rendas:", error);
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
-  }, [user, currentPeriod]);
+  }, [user, selectedPeriod]);
 
   useEffect(() => {
     fetchIncomes();
@@ -99,54 +106,60 @@ const Renda: React.FC = () => {
     const db = getFirestore(app);
 
     const dataToSave = {
-        amount: Math.abs(amount),
-        description,
-        date: Timestamp.fromDate(new Date(date)),
-        isRecurring,
-        ...(isRecurring && { recurringDay: new Date(date).getDate() }),
+      amount: Math.abs(amount),
+      description,
+      date: Timestamp.fromDate(new Date(date)),
+      isRecurring,
+      ...(isRecurring && { recurringDay: new Date(date).getDate() }),
     };
 
     try {
-        if (editingIncome) {
-            const docRef = doc(db, 'users', user.uid, 'transactions', editingIncome.id);
-            await updateDoc(docRef, dataToSave);
-        } else {
-            const transactionsRef = collection(db, 'users', user.uid, 'transactions');
-            await addDoc(transactionsRef, { ...dataToSave, type: 'income' });
-        }
-        closeModalAndReset();
-        fetchIncomes();
+      if (editingIncome) {
+        const docRef = doc(db, 'users', user.uid, 'transactions', editingIncome.id);
+        await updateDoc(docRef, { ...dataToSave, type: 'income' });
+      } else {
+        const transactionsRef = collection(db, 'users', user.uid, 'transactions');
+        await addDoc(transactionsRef, { ...dataToSave, type: 'income' });
+      }
+      closeModalAndReset();
+      fetchIncomes();
     } catch (error) {
-        console.error("Erro ao salvar renda:", error);
+      console.error("Erro ao salvar renda:", error);
     }
   };
 
-  const handleEditClick = (income: IncomeTransaction) => {
-    setEditingIncome(income);
-    setDescription(income.description);
-    setAmount(income.amount);
-    setDate(income.date.toISOString());
-    setIsRecurring(income.isRecurring);
+  const handleItemClick = (income: IncomeTransaction) => {
+    setIncomeToAction(income);
+    setShowActionSheet(true);
+  };
+
+  const handleEditClick = () => {
+    if (!incomeToAction) return;
+    setEditingIncome(incomeToAction);
+    setDescription(incomeToAction.description);
+    setAmount(incomeToAction.amount);
+    setDate(incomeToAction.date.toISOString());
+    setIsRecurring(incomeToAction.isRecurring);
     setShowModal(true);
   };
 
-  const handleDeleteClick = (id: string) => {
-    setIncomeToDelete(id);
+  const handleDeleteClick = () => {
+    if (!incomeToAction) return;
     setShowDeleteAlert(true);
   };
 
   const confirmDelete = async () => {
-    if (!user || !incomeToDelete) return;
+    if (!user || !incomeToAction) return;
     const db = getFirestore(app);
-    const docRef = doc(db, 'users', user.uid, 'transactions', incomeToDelete);
+    const docRef = doc(db, 'users', user.uid, 'transactions', incomeToAction.id);
     try {
-        await deleteDoc(docRef);
-        fetchIncomes(); // Atualiza a lista
+      await deleteDoc(docRef);
+      fetchIncomes();
     } catch (error) {
-        console.error("Erro ao excluir renda:", error);
+      console.error("Erro ao excluir renda:", error);
     }
     setShowDeleteAlert(false);
-    setIncomeToDelete(null);
+    setIncomeToAction(null);
   };
 
   const closeModalAndReset = () => {
@@ -178,46 +191,24 @@ const Renda: React.FC = () => {
           </IonText>
         </div>
 
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+          <PeriodSelector onPeriodChange={setSelectedPeriod} />
+        </div>
+
         {loading ? (
           <div style={{ textAlign: 'center', marginTop: '20px' }}><IonSpinner /></div>
         ) : (
           <IonList>
             {incomes.map(income => (
-              <IonItemSliding key={income.id}>
-                <IonItemOptions side="start">
-                  <IonItemOption color="primary" onClick={() => handleEditClick(income)}>
-                    <IonIcon slot="icon-only" icon={pencil} />
-                  </IonItemOption>
-                </IonItemOptions>
-
-                <IonItem lines="inset">
-                  <IonLabel>
-                    <h2>{income.description}</h2>
-                    <p>{income.date.toLocaleDateString('pt-BR')}</p>
-                  </IonLabel>
-                  
-                  <div slot="end" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <IonText color="success">
-                      <p style={{ margin: 0 }}>{income.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
-                    </IonText>
-                    
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      <IonButton color="primary" fill="clear" size="small" style={{ height: '22px'}} onClick={() => handleEditClick(income)}>
-                        <IonIcon slot="icon-only" icon={pencil} />
-                      </IonButton>
-                      <IonButton color="danger" fill="clear" size="small" style={{ height: '22px'}} onClick={() => handleDeleteClick(income.id)}>
-                        <IonIcon slot="icon-only" icon={trash} />
-                      </IonButton>
-                    </div>
-                  </div>
-                </IonItem>
-
-                <IonItemOptions side="end">
-                  <IonItemOption color="danger" onClick={() => handleDeleteClick(income.id)}>
-                    <IonIcon slot="icon-only" icon={trash} />
-                  </IonItemOption>
-                </IonItemOptions>
-              </IonItemSliding>
+              <IonItem key={income.id} lines="inset" button onClick={() => handleItemClick(income)}>
+                <IonLabel>
+                  <h2>{income.description}</h2>
+                  <p>{income.date.toLocaleDateString('pt-BR')}</p>
+                </IonLabel>
+                <IonText color="success" slot="end">
+                  <p>{income.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+                </IonText>
+              </IonItem>
             ))}
           </IonList>
         )}
@@ -228,63 +219,76 @@ const Renda: React.FC = () => {
           </IonFabButton>
         </IonFab>
 
-        <IonModal isOpen={showModal} onDidDismiss={closeModalAndReset} initialBreakpoint={0.75} breakpoints={[0, 0.75, 1]}>
-          <IonHeader>
-            <IonToolbar>
-              <IonTitle>{editingIncome ? 'Editar Renda' : 'Nova Renda'}</IonTitle>
-              <IonButtons slot="end">
-                <IonButton onClick={closeModalAndReset}><IonIcon icon={close} /></IonButton>
-              </IonButtons>
-            </IonToolbar>
-          </IonHeader>
-          <IonContent className="ion-padding">
-            <div className="income-modal-form">
-              <div className="form-fields-container">
-                <div className="form-field-group">
-                  <IonItem>
-                    <IonLabel position="floating">Descrição</IonLabel>
-                    <IonInput value={description} onIonChange={e => setDescription(e.detail.value!)} placeholder="Ex: Salário, Freelance" />
-                  </IonItem>
-                </div>
-                <div className="form-field-group">
-                  <IonItem>
-                    <IonLabel position="floating">Valor (R$)</IonLabel>
-                    <IonInput type="number" value={amount} onIonChange={e => setAmount(parseFloat(e.detail.value!))} placeholder="1500,00" />
-                  </IonItem>
-                </div>
-                <div className="form-field-group">
-                  <IonItem lines="none" className="date-item">
-                    <IonLabel>Data</IonLabel>
-                    <IonDatetimeButton datetime="datetime-in-modal"></IonDatetimeButton>
-                  </IonItem>
-                </div>
-                <div className="form-field-group">
-                  <IonItem lines="none" className="toggle-item">
-                    <IonLabel>Renda Fixa Mensal?</IonLabel>
-                    <IonToggle checked={isRecurring} onIonChange={e => setIsRecurring(e.detail.checked)} />
-                  </IonItem>
-                </div>
-              </div>
-              <IonButton expand="block" onClick={handleSaveIncome} className="save-button">
-                {editingIncome ? 'Salvar Alterações' : 'Salvar Renda'}
-              </IonButton>
-            </div>
-          </IonContent>
-        </IonModal>
+        <AppModal
+          title={editingIncome ? 'Editar Renda' : 'Nova Renda'}
+          isOpen={showModal}
+          onDidDismiss={closeModalAndReset}
+        >
+          <div className="form-field-group">
+            <IonItem>
+              <IonLabel position="floating">Descrição</IonLabel>
+              <IonInput value={description} onIonChange={e => setDescription(e.detail.value!)} placeholder="Ex: Salário, Freelance" />
+            </IonItem>
+          </div>
+          <div className="form-field-group">
+            <IonItem>
+              <IonLabel position="floating">Valor (R$)</IonLabel>
+              <IonInput type="number" value={amount} onIonChange={e => setAmount(parseFloat(e.detail.value!))} placeholder="1500,00" />
+            </IonItem>
+          </div>
+          <div className="form-field-group">
+            <IonItem lines="none" className="date-item">
+              <IonLabel>Data</IonLabel>
+              <IonDatetimeButton datetime="datetime-in-modal"></IonDatetimeButton>
+            </IonItem>
+          </div>
+          <div className="form-field-group">
+            <IonItem lines="none" className="toggle-item">
+              <IonLabel>Renda Fixa Mensal?</IonLabel>
+              <IonToggle checked={isRecurring} onIonChange={e => setIsRecurring(e.detail.checked)} />
+            </IonItem>
+          </div>
+          <ActionButton onClick={handleSaveIncome}>
+            {editingIncome ? 'Salvar Alterações' : 'Salvar Renda'}
+          </ActionButton>
+        </AppModal>
 
         <IonModal keepContentsMounted={true}>
             <IonDatetime id="datetime-in-modal" value={date} onIonChange={e => { const value = e.detail.value; if (typeof value === 'string') { setDate(value); } }} presentation="date" />
         </IonModal>
 
-        <IonAlert
-            isOpen={showDeleteAlert}
-            onDidDismiss={() => setShowDeleteAlert(false)}
-            header={'Confirmar Exclusão'}
-            message={'Tem certeza que deseja excluir este lançamento? Esta ação não pode ser desfeita.'}
-            buttons={[
-                { text: 'Cancelar', role: 'cancel' },
-                { text: 'Excluir', cssClass: 'alert-button-danger', handler: confirmDelete },
-            ]}
+        <ActionAlert
+          isOpen={showDeleteAlert}
+          onDidDismiss={() => setShowDeleteAlert(false)}
+          header={'Confirmar Exclusão'}
+          message={'Tem certeza que deseja excluir este lançamento? Esta ação não pode ser desfeita.'}
+          onConfirm={confirmDelete}
+          confirmButtonText="Excluir"
+        />
+        
+        <IonActionSheet
+          isOpen={showActionSheet}
+          onDidDismiss={() => setShowActionSheet(false)}
+          header={incomeToAction?.description}
+          buttons={[
+            {
+              text: 'Editar',
+              icon: pencil,
+              handler: handleEditClick,
+              cssClass: 'action-sheet-edit',
+            },
+            {
+              text: 'Excluir',
+              role: 'destructive',
+              icon: trash,
+              handler: handleDeleteClick
+            },
+            {
+              text: 'Cancelar',
+              icon: close,
+              role: 'cancel'
+            }
+          ]}
         />
       </IonContent>
     </IonPage>

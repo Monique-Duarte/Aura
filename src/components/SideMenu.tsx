@@ -14,7 +14,18 @@ import {
   IonNote,
   IonSpinner
 } from '@ionic/react';
-import { cashOutline, cardOutline, trendingUpOutline, walletOutline, homeOutline, receiptOutline, logOutOutline, personCircleOutline } from 'ionicons/icons';
+
+import { 
+  cashOutline, 
+  cardOutline, 
+  walletOutline, 
+  homeOutline, 
+  receiptOutline, 
+  logOutOutline, 
+  personCircleOutline,
+  settingsOutline, 
+  documentTextOutline 
+} from 'ionicons/icons';
 import { useLocation, useHistory } from 'react-router-dom';
 import { getAuth, signOut, onAuthStateChanged, User, updateProfile } from 'firebase/auth';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -23,10 +34,11 @@ import '../theme/variables.css';
 const menuOptions = [
   { title: 'Dashboard', icon: homeOutline, path: '/app/dashboard' },
   { title: 'Renda', icon: cashOutline, path: '/app/renda' },
-  { title: 'Gastos', icon: cardOutline, path: '/app/gastos' },
-  { title: 'Faturas', icon: receiptOutline, path: '/app/faturas' },
+  { title: 'Despesas', icon: receiptOutline, path: '/app/Despesas' },
+  { title: 'Cartão', icon: cardOutline, path: '/app/cartao' },
+  { title: 'Faturas', icon: documentTextOutline, path: '/app/faturas' },
   { title: 'Reserva', icon: walletOutline, path: '/app/reserva' },
-  { title: 'Investimentos', icon: trendingUpOutline, path: '/app/investimentos' },
+  { title: 'Configurações', icon: settingsOutline, path: '/app/configuracao' },
 ];
 
 const SideMenu: React.FC<{ contentId: string }> = ({ contentId }) => {
@@ -75,7 +87,7 @@ const SideMenu: React.FC<{ contentId: string }> = ({ contentId }) => {
       if (auth.currentUser) {
         await updateProfile(auth.currentUser, { photoURL });
       }
-      setUser({ ...user, photoURL });
+      setUser(prevUser => prevUser ? { ...prevUser, photoURL } : null);
 
     } catch (error) {
       console.error("Erro ao fazer upload da imagem:", error);
@@ -129,12 +141,12 @@ const SideMenu: React.FC<{ contentId: string }> = ({ contentId }) => {
 
       <IonFooter className="ion-no-border">
          <IonList>
-            <IonMenuToggle autoHide={false}>
-              <IonItem button lines="none" onClick={handleLogout}>
-                <IonIcon slot="start" icon={logOutOutline} />
-                <IonLabel>Sair</IonLabel>
-              </IonItem>
-            </IonMenuToggle>
+           <IonMenuToggle autoHide={false}>
+             <IonItem button lines="none" onClick={handleLogout}>
+               <IonIcon slot="start" icon={logOutOutline} />
+               <IonLabel>Sair</IonLabel>
+             </IonItem>
+           </IonMenuToggle>
          </IonList>
       </IonFooter>
     </IonMenu>

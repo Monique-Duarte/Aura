@@ -1,0 +1,42 @@
+.date-selector-container {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+}
+
+.date-selector-item {
+  --background: rgba(255, 255, 255, 0.05);
+  --border-color: var(--ion-color-medium-tint);
+  --border-radius: 8px;
+  --padding-start: 8px;
+  --inner-padding-end: 8px;
+  flex: 1;
+}
+
+.date-selector-item ion-label {
+  font-size: 0.75rem;
+  color: var(--ion-color-medium-shade);
+  margin-bottom: 2px;
+  font-weight: normal;
+}
+
+.date-selector-item ion-datetime-button {
+  --color: var(--ion-color-primary);
+  --ion-background-color-step-300: transparent;
+  --background: transparent;
+  --background-hover: transparent;
+  --background-activated: transparent;
+  --background-focused: transparent;
+  font-weight: bold;
+  padding-inline-start: 0;
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+.date-selector-item ion-datetime-button::part(button) {
+  background: transparent;
+  padding-inline-start: 0;
+  justify-content: flex-start;
+}

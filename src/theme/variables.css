@@ -1,3 +1,19 @@
+/*
+  Correção para a Sobreposição da Barra de Estado (Safe Area)
+*/
+
+/*
+  Esta regra aplica um preenchimento (padding) na parte de cima
+  de todos os cabeçalhos (IonHeader) da sua aplicação.
+  A variável '--ion-safe-area-top' é fornecida automaticamente
+  pelo Ionic e tem o valor exato da altura da barra de estado
+  do dispositivo.
+*/
+ion-header {
+  padding-top: var(--ion-safe-area-top);
+}
+
+
 /* =========================
    TELA DE LOGIN
    ========================= */

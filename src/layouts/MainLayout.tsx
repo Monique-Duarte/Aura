@@ -9,6 +9,7 @@ import Despesa from '../pages/Despesa';
 import Reserva from '../pages/Reserva';
 import Cartao from '../pages/Cartao';
 import Faturas from '../pages/Faturas';
+import Configuracao from '../pages/Configuracao';
 
 const MainLayout: React.FC = () => {
   return (
@@ -22,6 +23,7 @@ const MainLayout: React.FC = () => {
           <PrivateRoute path="/app/reserva" component={Reserva} exact />
           <PrivateRoute path="/app/cartao" component={Cartao} exact />
           <PrivateRoute path="/app/faturas" component={Faturas} exact />
+          <PrivateRoute path="/app/configuracao" component={Configuracao} exact />
           <Redirect exact from="/app" to="/app/dashboard" />
         </Switch>
       </IonRouterOutlet>

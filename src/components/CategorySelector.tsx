@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { IonItem, IonLabel, IonSelect, IonSelectOption, IonAlert } from '@ionic/react';
 import { useCategories, Category } from '../hooks/useCategories';
 
@@ -8,12 +8,8 @@ interface CategorySelectorProps {
 }
 
 const CategorySelector: React.FC<CategorySelectorProps> = ({ selectedCategories, onCategoryChange }) => {
-  const { availableCategories, fetchCategories, createCategory } = useCategories();
+  const { availableCategories, addCategory } = useCategories();
   const [showNewCategoryAlert, setShowNewCategoryAlert] = useState(false);
-
-  useEffect(() => {
-    fetchCategories();
-  }, [fetchCategories]);
 
   const handleSelectionChange = (e: CustomEvent) => {
     const selected: string[] = e.detail.value;
@@ -26,16 +22,18 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({ selectedCategories,
   };
 
   const handleCreateCategory = async (categoryName: string) => {
-    await createCategory(categoryName);
-    if (categoryName && !selectedCategories.includes(categoryName)) {
-        onCategoryChange([...selectedCategories, categoryName]);
+    if (categoryName && categoryName.trim()) {
+      await addCategory(categoryName.trim(), '#cccccc');
+      if (!selectedCategories.includes(categoryName.trim())) {
+        onCategoryChange([...selectedCategories, categoryName.trim()]);
+      }
     }
   };
 
   return (
     <>
       <IonItem>
-        <IonLabel position="floating">Categorias</IonLabel>
+        <IonLabel className='label' position="floating">Categorias</IonLabel>
         <IonSelect
           value={selectedCategories}
           multiple={true}

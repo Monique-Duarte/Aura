@@ -1,0 +1,42 @@
+/* Estilo para a bolinha de cor ao lado do nome da categoria */
+.category-color-dot {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid var(--ion-color-medium-tint);
+  margin-right: 16px;
+}
+
+/* Estilo para o seletor de cor no modal */
+.color-picker-item {
+  --inner-padding-end: 0;
+}
+
+.color-picker-item .color-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+}
+
+/* Estilo para o input de cor nativo do browser */
+.color-picker-item input[type="color"] {
+  width: 48px;
+  height: 48px;
+  border: none;
+  padding: 0;
+  border-radius: 8px;
+  background-color: transparent;
+  cursor: pointer;
+}
+
+/* Estilo para o campo de texto do código hexadecimal da cor */
+.color-picker-item input[type="text"] {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--ion-text-color);
+  font-size: 1rem;
+  font-weight: bold;
+  text-transform: uppercase;
+}

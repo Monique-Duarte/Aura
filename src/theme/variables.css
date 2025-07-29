@@ -9,8 +9,8 @@
   pelo Ionic e tem o valor exato da altura da barra de estado
   do dispositivo.
 */
-ion-header {
-  padding-top: var(--ion-safe-area-top);
+ion-header ion-toolbar {
+  padding-top: var(--ion-safe-area-top) !important;
 }
 
 
@@ -24,6 +24,12 @@ ion-header {
   --ion-color-primary-contrast: #202023;
   --aura-accent: #FFD600;
   --aura-bg: #202023;
+  --ion-color-danger: #FF6347;
+  --ion-color-danger-rgb: 255, 99, 71;
+  --ion-color-danger-contrast: #ffffff;
+  --ion-color-danger-contrast-rgb: 255, 255, 255;
+  --ion-color-danger-shade: #e05740;
+  --ion-color-danger-tint: #ff735a;
 }
 
 body {

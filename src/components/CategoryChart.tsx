@@ -6,18 +6,19 @@ import {
   Tooltip,
   Legend,
   TooltipItem,
-  Chart, // Importar o tipo Chart para o plugin
+  Chart,
 } from 'chart.js';
 import { ChartData } from '../hooks/useCategorySummary';
 
-// Registra os componentes necessários para o gráfico de rosca
 ChartJS.register(ArcElement, Tooltip, Legend);
 
+// A interface agora agarda recibir 'totalAmount'
 interface CategoryChartProps {
   data: ChartData;
+  totalAmount: number;
 }
 
-const CategoryChart: React.FC<CategoryChartProps> = ({ data }) => {
+const CategoryChart: React.FC<CategoryChartProps> = ({ data, totalAmount }) => {
   const centerTextPlugin = {
     id: 'centerText',
     afterDraw: (chart: Chart) => {
@@ -28,22 +29,23 @@ const CategoryChart: React.FC<CategoryChartProps> = ({ data }) => {
       const x = left + width / 2;
       const y = top + height / 2;
 
-      const total = chart.data.datasets[0].data.reduce((sum, value) => (sum as number) + (value as number), 0) as number;
+      // Utiliza a prop 'totalAmount' directamente
       const totalFormatted = new Intl.NumberFormat('pt-BR', {
         style: 'currency',
         currency: 'BRL',
-      }).format(total);
+      }).format(totalAmount);
 
       ctx.save();
       
       ctx.font = 'bold 16px sans-serif';
       ctx.fillStyle = '#ffffff';
       ctx.textAlign = 'center';
-      ctx.fillText('Total Gasto', x, y - 5);
+      ctx.textBaseline = 'middle';
+      ctx.fillText('Total Gasto', x, y - 10);
 
       ctx.font = '14px sans-serif';
       ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-      ctx.fillText(totalFormatted, x, y + 15);
+      ctx.fillText(totalFormatted, x, y + 10);
 
       ctx.restore();
     },
@@ -96,7 +98,7 @@ const CategoryChart: React.FC<CategoryChartProps> = ({ data }) => {
         <Doughnut options={options} data={data} plugins={[centerTextPlugin]} />
       ) : (
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: 'var(--ion-color-medium-shade)' }}>
-          <p>Nenhum gasto com categoria no período.</p>
+          <p>Nenhum gasto com categoría no período.</p>
         </div>
       )}
     </div>

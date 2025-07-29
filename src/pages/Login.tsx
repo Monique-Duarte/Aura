@@ -5,6 +5,7 @@ import { getAuth, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvide
 import { FirebaseError } from 'firebase/app';
 import app from '../firebaseConfig';
 import logo from '/logo.png';
+import '../theme/variables.css';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');

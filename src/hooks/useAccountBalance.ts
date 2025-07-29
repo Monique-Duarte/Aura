@@ -25,8 +25,6 @@ export const useAccountBalance = () => {
     // atualizada ou removida, em qualquer página.
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       let total = 0;
-      console.log("--- Recalculando Saldo Atual ---");
-      
       querySnapshot.forEach(doc => {
         const data = doc.data();
         const amount = typeof data.amount === 'number' ? data.amount : 0;
@@ -52,8 +50,6 @@ export const useAccountBalance = () => {
         
         console.log(`Transação: ${data.description || 'Sem descrição'} | Operação: ${operation} | Saldo Parcial: ${total}`);
       });
-
-      console.log("--- Saldo Final Calculado: ---", total);
       setBalance(total);
       setLoading(false);
     }, (error) => {

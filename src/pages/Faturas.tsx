@@ -13,21 +13,18 @@ import {
   IonList,
   IonText,
   IonSpinner,
-  IonSelect,
-  IonSelectOption,
   IonListHeader,
 } from '@ionic/react';
-// --- ALTERAÇÃO: Importando o ícone 'closeCircleOutline' ---
-import { checkmarkCircleOutline, closeCircleOutline } from 'ionicons/icons';
+import { checkmarkCircleOutline } from 'ionicons/icons';
 import { useAuth } from '../hooks/AuthContext';
 import { getFirestore, collection, query, where, onSnapshot, Timestamp, writeBatch, doc } from 'firebase/firestore';
 import app from '../firebaseConfig';
-import '../styles/Faturas.css';
 import { scheduleInvoiceNotifications } from '../logic/notificationLogic';
-
+import { getInvoicePeriodForExpense } from '../logic/fatureLogic';
 import AppModal from '../components/AppModal';
 import ActionButton from '../components/ActionButton';
-import ActionAlert from '../components/ActionAlert';
+import '../styles/Faturas.css';
+import '../theme/variables.css';
 
 // --- Interfaces ---
 interface CreditCard {
@@ -62,13 +59,9 @@ const Faturas: React.FC = () => {
   const [cards, setCards] = useState<CreditCard[]>([]);
   const [expenses, setExpenses] = useState<ExpenseTransaction[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
 
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
-  
-  // --- NOVO: Estado para o alerta de confirmação de pagamento ---
-  const [showPayConfirmationAlert, setShowPayConfirmationAlert] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -108,23 +101,14 @@ const Faturas: React.FC = () => {
       const card = cards.find(c => c.id === expense.cardId);
       if (!card) return;
 
-      const expenseDate = expense.date;
-      let invoiceYear = expenseDate.getFullYear();
-      let invoiceMonth = expenseDate.getMonth();
-
-      if (expenseDate.getDate() > card.closingDay) {
-        invoiceMonth += 1;
-        if (invoiceMonth > 11) {
-          invoiceMonth = 0;
-          invoiceYear += 1;
-        }
-      }
-
+      // --- ALTERAÇÃO: Utilizando a função de lógica testada ---
+      const { startDate, endDate } = getInvoicePeriodForExpense(expense.date, card);
+      
+      const invoiceYear = endDate.getFullYear();
+      const invoiceMonth = endDate.getMonth();
       const invoiceId = `${card.id}-${invoiceYear}-${invoiceMonth}`;
       
       if (!groupedInvoices.has(invoiceId)) {
-        const startDate = new Date(invoiceYear, invoiceMonth - 1, card.closingDay + 1);
-        const endDate = new Date(invoiceYear, invoiceMonth, card.closingDay);
         const dueDate = new Date(invoiceYear, invoiceMonth, card.dueDay);
         
         groupedInvoices.set(invoiceId, {
@@ -156,36 +140,24 @@ const Faturas: React.FC = () => {
     }
   }, [allInvoices]);
 
-  // --- ALTERAÇÃO: Funções separadas para pagar e "despagar" a fatura ---
-  const executePaymentToggle = async (invoice: Invoice, newStatus: boolean) => {
+
+  const handlePayInvoice = async (invoice: Invoice) => {
     if (!user || invoice.transactions.length === 0) return;
     
     const db = getFirestore(app);
     const batch = writeBatch(db);
 
     invoice.transactions.forEach(trans => {
-      const docRef = doc(db, 'users', user.uid, 'transactions', trans.id);
-      batch.update(docRef, { isPaid: newStatus });
+      if (!trans.isPaid) {
+        const docRef = doc(db, 'users', user.uid, 'transactions', trans.id);
+        batch.update(docRef, { isPaid: true });
+      }
     });
 
     try {
       await batch.commit();
-      setShowDetailsModal(false); // Fecha o modal após a ação
     } catch (error) {
-      console.error("Erro ao atualizar o estado da fatura:", error);
-    }
-  };
-
-  const confirmPayInvoice = () => {
-    if (selectedInvoice) {
-      executePaymentToggle(selectedInvoice, true);
-    }
-    setShowPayConfirmationAlert(false);
-  };
-
-  const handleUnpayInvoice = () => {
-    if (selectedInvoice) {
-      executePaymentToggle(selectedInvoice, false);
+      console.error("Erro ao pagar a fatura:", error);
     }
   };
 
@@ -208,21 +180,6 @@ const Faturas: React.FC = () => {
         </IonToolbar>
       </IonHeader>
       <IonContent className="ion-padding">
-        <IonItem lines="none" className="invoice-filter-item">
-          <IonLabel position="stacked">Filtrar Histórico por Cartão</IonLabel>
-          <IonSelect 
-            value={selectedCardId} 
-            placeholder="Ver todos" 
-            onIonChange={e => setSelectedCardId(e.detail.value as string | null)}
-            interface="popover"
-          >
-            <IonSelectOption value={null}>Ver todos</IonSelectOption>
-            {cards.map(card => (
-              <IonSelectOption key={card.id} value={card.id}>{card.name}</IonSelectOption>
-            ))}
-          </IonSelect>
-        </IonItem>
-
         {loading ? (
           <div style={{ textAlign: 'center', marginTop: '20px' }}><IonSpinner /></div>
         ) : (
@@ -241,9 +198,7 @@ const Faturas: React.FC = () => {
 
             <IonList>
               <IonListHeader>Histórico de Faturas Fechadas</IonListHeader>
-              {closedInvoices.length > 0 ? closedInvoices
-                .filter(invoice => !selectedCardId || invoice.cardName === cards.find(c => c.id === selectedCardId)?.name)
-                .map(invoice => (
+              {closedInvoices.length > 0 ? closedInvoices.map(invoice => (
                   <IonItem key={invoice.id} button onClick={() => openDetailsModal(invoice)}>
                     <IonLabel>
                       <h2>{invoice.cardName} - {invoice.dueDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric' })}</h2>
@@ -280,17 +235,10 @@ const Faturas: React.FC = () => {
               </IonList>
               <div className="invoice-summary">
                 <IonText><h3>Total: {selectedInvoice.totalAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</h3></IonText>
-                
-                {/* --- ALTERAÇÃO: Botão condicional para Pagar ou "Despagar" --- */}
-                {!selectedInvoice.isPaid ? (
-                  <ActionButton onClick={() => setShowPayConfirmationAlert(true)}>
+                {!selectedInvoice.isPaid && (
+                  <ActionButton onClick={() => handlePayInvoice(selectedInvoice)}>
                     <IonIcon slot="start" icon={checkmarkCircleOutline} />
                     Marcar Fatura como Paga
-                  </ActionButton>
-                ) : (
-                  <ActionButton onClick={handleUnpayInvoice} fill="outline">
-                    <IonIcon slot="start" icon={closeCircleOutline} />
-                    Marcar como Não Paga
                   </ActionButton>
                 )}
               </div>
@@ -298,15 +246,6 @@ const Faturas: React.FC = () => {
           )}
         </AppModal>
 
-        {/* --- NOVO: Alerta de confirmação para o pagamento --- */}
-        <ActionAlert
-          isOpen={showPayConfirmationAlert}
-          onDidDismiss={() => setShowPayConfirmationAlert(false)}
-          header="Confirmar Pagamento"
-          message={`Tem a certeza que deseja marcar a fatura do cartão "${selectedInvoice?.cardName}" como paga?`}
-          onConfirm={confirmPayInvoice}
-          confirmButtonText="Confirmar"
-        />
       </IonContent>
     </IonPage>
   );

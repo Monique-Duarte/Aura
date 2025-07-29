@@ -26,11 +26,12 @@ import { add, close, pencil, trash } from 'ionicons/icons';
 import { useAuth } from '../hooks/AuthContext';
 import { getFirestore, collection, addDoc, query, where, getDocs, Timestamp, doc, deleteDoc, updateDoc } from 'firebase/firestore';
 import app from '../firebaseConfig';
-import '../styles/Lancamentos.css';
 import PeriodSelector from '../components/PeriodSelector';
 import AppModal from '../components/AppModal';
 import ActionButton from '../components/ActionButton';
 import ActionAlert from '../components/ActionAlert';
+import '../styles/Lancamentos.css';
+import '../theme/variables.css';
 
 // --- Interfaces ---
 interface Period {

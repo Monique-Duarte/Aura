@@ -5,6 +5,7 @@ import { getFirestore, doc, setDoc, Timestamp } from 'firebase/firestore';
 import { getAuth, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { FirebaseError } from 'firebase/app';
 import app from '../firebaseConfig';
+import '../theme/variables.css';
 
 const Register: React.FC = () => {
   const [nome, setNome] = useState('');

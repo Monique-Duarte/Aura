@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react'; // --- ALTERAÇÃO: Importado o useMemo ---
 import { IonPage, IonHeader, IonToolbar, IonButtons, IonMenuButton, IonTitle, IonContent, IonSpinner, IonText } from '@ionic/react';
 import PeriodSelector from '../components/PeriodSelector';
 import BalanceChart from '../components/BalanceChart';
@@ -9,6 +9,7 @@ import { useTransactionSummary } from '../hooks/useTransactionSummary';
 import { useCategorySummary } from '../hooks/useCategorySummary';
 import { useAccountBalance } from '../hooks/useAccountBalance';
 import '../styles/Dashboard.css';
+import '../theme/variables.css';
 
 const chartOptions = [
   { key: 'balance', label: 'Gráfico Balanço' },
@@ -25,9 +26,14 @@ const Dashboard: React.FC = () => {
   const [activeChart, setActiveChart] = useState<'balance' | 'category' | 'family'>('balance');
   const [selectedPeriod, setSelectedPeriod] = useState<Period | null>(null);
 
+  // --- CORREÇÃO: Criado um array de dependências estável com useMemo ---
+  // Isto garante que a referência do array não muda a cada renderização, quebrando o ciclo.
+  const memberIds = useMemo(() => [], []);
+
   // Hooks para buscar os dados de resumo
   const { summary: balanceSummary, loading: balanceLoading } = useTransactionSummary(selectedPeriod);
-  const { chartData: categoryChartData, summaryList: categorySummaryList, loading: categoryLoading, totalExpense } = useCategorySummary(selectedPeriod);
+  // Agora passamos o array estável para o hook
+  const { chartData: categoryChartData, summaryList: categorySummaryList, loading: categoryLoading, totalExpense } = useCategorySummary(selectedPeriod, memberIds);
   const { balance: currentBalance, loading: accountBalanceLoading } = useAccountBalance();
 
   return (
@@ -42,7 +48,6 @@ const Dashboard: React.FC = () => {
       </IonHeader>
       <IonContent className="ion-padding">
         
-        {/* --- ALTERAÇÃO: Aplicado o estilo padronizado 'summary-card' --- */}
         <div className="summary-card">
           {accountBalanceLoading ? (
             <IonSpinner name="crescent" />

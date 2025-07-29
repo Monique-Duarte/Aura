@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { IonPage, IonContent, IonInput, IonButton, IonText, IonSpinner } from '@ionic/react';
+import { IonPage, IonContent, IonButton, IonText, IonSpinner } from '@ionic/react';
 import { Link } from 'react-router-dom';
 import { getAuth, sendPasswordResetEmail } from 'firebase/auth';
 import app from '../firebaseConfig';
+import '../theme/variables.css';
 
 const ResetPassword: React.FC = () => {
   const [email, setEmail] = useState('');

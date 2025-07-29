@@ -26,28 +26,26 @@ import { add, close, pencil, trash, walletOutline, checkmarkCircleOutline, swapH
 import { useAuth } from '../hooks/AuthContext';
 import { 
     getFirestore, 
-    collection, 
-    addDoc, 
-    query, 
-    onSnapshot, 
-    Timestamp, 
-    doc, 
-    updateDoc, 
-    where,
-    getDocs,
-    writeBatch,
-    QueryDocumentSnapshot,
-    DocumentData
+   collection, 
+  addDoc, 
+  query, 
+  onSnapshot, 
+  Timestamp, 
+  doc, 
+  updateDoc, 
+  where,
+  getDocs,
+  writeBatch,
+  QueryDocumentSnapshot,
+  DocumentData
 } from 'firebase/firestore';
 import app from '../firebaseConfig';
-
-
-// --- Importando os componentes reutilizáveis ---
 import AppModal from '../components/AppModal';
 import ActionButton from '../components/ActionButton';
 import ActionAlert from '../components/ActionAlert';
 import InputAlert from '../components/InputAlert';
 import ReserveChartContainer from '../components/ReserveChartContainer';
+import '../theme/variables.css';
 
 // --- Interfaces ---
 interface ReserveGoal {

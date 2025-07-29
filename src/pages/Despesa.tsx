@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   IonPage,
   IonHeader,
@@ -29,15 +29,16 @@ import {
 
 import { add, close, pencil, trash, walletOutline, checkmarkCircleOutline, closeCircleOutline } from 'ionicons/icons';
 import { useAuth } from '../hooks/AuthContext';
-import { getFirestore, collection, addDoc, query, where, getDocs, Timestamp, doc, deleteDoc, updateDoc, writeBatch, onSnapshot } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, query, where, Timestamp, doc, deleteDoc, updateDoc, writeBatch, onSnapshot } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
 import app from '../firebaseConfig';
-import '../styles/Lancamentos.css';
 import CategorySelector from '../components/CategorySelector';
 import PeriodSelector from '../components/PeriodSelector';
 import AppModal from '../components/AppModal';
 import ActionButton from '../components/ActionButton';
 import ActionAlert from '../components/ActionAlert';
+import '../styles/Lancamentos.css';
+import '../theme/variables.css';
 
 // --- Interfaces ---
 interface Period {
@@ -113,40 +114,30 @@ const Despesas: React.FC = () => {
     return () => unsubscribe();
   }, [user]);
 
-  const fetchExpenses = useCallback(async () => {
-    if (!user || !selectedPeriod) { setAllFetchedExpenses([]); setLoading(false); return; }
-    setLoading(true);
-    try {
-        const db = getFirestore(app);
-        const transactionsRef = collection(db, 'users', user.uid, 'transactions');
-        
-        // --- ALTERAÇÃO: Busca um período mais alargado para incluir despesas do ciclo anterior do cartão ---
-        const queryStartDate = new Date(selectedPeriod.startDate);
-        queryStartDate.setMonth(queryStartDate.getMonth() - 1);
-
-        const q = query(
-          transactionsRef,
-          where('type', '==', 'expense'),
-          where('date', '>=', queryStartDate),
-          where('date', '<=', selectedPeriod.endDate)
-        );
-        const querySnapshot = await getDocs(q);
-        const fetchedExpenses = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-          date: (doc.data().date as Timestamp).toDate(),
-        })) as ExpenseTransaction[];
-        setAllFetchedExpenses(fetchedExpenses);
-    } catch (error) {
-        console.error("Erro ao buscar gastos:", error);
-    } finally {
-        setLoading(false);
-    }
-  }, [user, selectedPeriod]);
-
+  // --- ALTERAÇÃO: Trocado getDocs por onSnapshot para atualizações em tempo real ---
   useEffect(() => {
-    fetchExpenses();
-  }, [fetchExpenses]);
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    const db = getFirestore(app);
+    const transactionsRef = collection(db, 'users', user.uid, 'transactions');
+    const q = query(transactionsRef, where('type', '==', 'expense'));
+    
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      const fetchedExpenses = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        date: (doc.data().date as Timestamp).toDate(),
+      })) as ExpenseTransaction[];
+      setAllFetchedExpenses(fetchedExpenses);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
 
   const handleSaveExpense = async () => {
     if (!user || !amount || !description) return;
@@ -199,13 +190,12 @@ const Despesas: React.FC = () => {
             }
         }
         closeModalAndReset();
-        fetchExpenses();
+        // fetchExpenses(); // Removido - onSnapshot atualiza automaticamente
     } catch (error) {
         console.error("Erro ao salvar gasto:", error);
     }
   };
   
-  // --- ALTERAÇÃO PRINCIPAL: Lógica de filtragem que respeita o ciclo da fatura ---
   const expensesForPeriod = useMemo(() => {
     if (!selectedPeriod) return [];
     
@@ -214,12 +204,10 @@ const Despesas: React.FC = () => {
     return allFetchedExpenses.filter(expense => {
       const expenseDate = expense.date;
       
-      // Lógica para débito e crédito sem cartão (dentro do mês calendário)
       if (expense.paymentMethod === 'debit' || !expense.cardId) {
         return expenseDate >= selectedPeriod.startDate && expenseDate <= selectedPeriod.endDate;
       }
 
-      // Lógica para crédito com cartão (respeita o ciclo da fatura)
       const card = cardsMap.get(expense.cardId);
       if (card) {
         const year = selectedPeriod.startDate.getFullYear();
@@ -227,16 +215,14 @@ const Despesas: React.FC = () => {
         
         const closingDay = card.closingDay;
         
-        // O ciclo da fatura começa no dia seguinte ao fecho do mês anterior
         const cycleStartDate = new Date(year, month - 1, closingDay + 1);
-        // E termina no dia do fecho do mês atual
         const cycleEndDate = new Date(year, month, closingDay);
-        cycleEndDate.setHours(23, 59, 59, 999); // Garante que o dia inteiro é incluído
+        cycleEndDate.setHours(23, 59, 59, 999);
 
         return expenseDate >= cycleStartDate && expenseDate <= cycleEndDate;
       }
       
-      return false; // Se o cartão não for encontrado, não inclui a despesa
+      return false;
     });
   }, [allFetchedExpenses, selectedPeriod, cards]);
 
@@ -246,7 +232,7 @@ const Despesas: React.FC = () => {
     const docRef = doc(db, 'users', user.uid, 'transactions', expenseToAction.id);
     try {
       await updateDoc(docRef, { isPaid: !expenseToAction.isPaid });
-      fetchExpenses();
+      // fetchExpenses(); // Removido
     } catch (error) {
       console.error("Erro ao atualizar status de pagamento:", error);
     }
@@ -266,7 +252,7 @@ const Despesas: React.FC = () => {
 
     try {
       await batch.commit();
-      fetchExpenses();
+      // fetchExpenses(); // Removido
     } catch (error) {
       console.error("Erro ao pagar todas as contas:", error);
     }
@@ -303,7 +289,7 @@ const Despesas: React.FC = () => {
         await updateDoc(docRef, {
             date: Timestamp.fromDate(new Date()),
         });
-        fetchExpenses();
+        // fetchExpenses(); // Removido
     } catch (error) {
         console.error("Erro ao antecipar parcela:", error);
     }
@@ -315,7 +301,7 @@ const Despesas: React.FC = () => {
     const docRef = doc(db, 'users', user.uid, 'transactions', expenseToAction.id);
     try {
         await deleteDoc(docRef);
-        fetchExpenses();
+        // fetchExpenses(); // Removido
     } catch (error) {
         console.error("Erro ao excluir gasto:", error);
     }

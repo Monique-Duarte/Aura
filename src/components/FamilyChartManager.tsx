@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react'; // 1. Importar useMemo
 import { IonSpinner, IonInput, IonItem, IonButton, IonText, IonLabel } from '@ionic/react';
 import { usePartnership } from '../hooks/usePartnership';
 import { useTransactionSummary } from '../hooks/useTransactionSummary';
@@ -20,11 +20,9 @@ interface FamilyChartManagerProps {
 const FamilyChartManager: React.FC<FamilyChartManagerProps> = ({ period }) => {
   const { user } = useAuth();
   const { partnership, status, loading, sendInvite, acceptInvite, cancelPartnership } = usePartnership();
-  
-  // Hooks para buscar os dados combinados
-  const { summary: familyBalance, loading: balanceLoading } = useTransactionSummary(period, partnership?.members || []);
-  const { chartData: familyCategoryChartData, summaryList: familyCategorySummaryList, loading: categoryLoading } = useCategorySummary(period, partnership?.members || []);
-
+  const memberIds = useMemo(() => partnership?.members || [], [partnership]);
+  const { summary: familyBalance, loading: balanceLoading } = useTransactionSummary(period, memberIds);
+  const { chartData: familyCategoryChartData, summaryList: familyCategorySummaryList, loading: categoryLoading } = useCategorySummary(period, memberIds);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteCode, setInviteCode] = useState('');
   const [error, setError] = useState('');

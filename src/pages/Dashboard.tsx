@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react'; // --- ALTERAÇÃO: Importado o useMemo ---
+import React, { useState, useMemo } from 'react';
 import { IonPage, IonHeader, IonToolbar, IonButtons, IonMenuButton, IonTitle, IonContent, IonSpinner, IonText } from '@ionic/react';
 import PeriodSelector from '../components/PeriodSelector';
 import BalanceChart from '../components/BalanceChart';
@@ -25,14 +25,8 @@ interface Period {
 const Dashboard: React.FC = () => {
   const [activeChart, setActiveChart] = useState<'balance' | 'category' | 'family'>('balance');
   const [selectedPeriod, setSelectedPeriod] = useState<Period | null>(null);
-
-  // --- CORREÇÃO: Criado um array de dependências estável com useMemo ---
-  // Isto garante que a referência do array não muda a cada renderização, quebrando o ciclo.
   const memberIds = useMemo(() => [], []);
-
-  // Hooks para buscar os dados de resumo
   const { summary: balanceSummary, loading: balanceLoading } = useTransactionSummary(selectedPeriod);
-  // Agora passamos o array estável para o hook
   const { chartData: categoryChartData, summaryList: categorySummaryList, loading: categoryLoading, totalExpense } = useCategorySummary(selectedPeriod, memberIds);
   const { balance: currentBalance, loading: accountBalanceLoading } = useAccountBalance();
 

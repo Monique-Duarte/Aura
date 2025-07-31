@@ -15,16 +15,16 @@ import {
   IonSpinner,
   IonListHeader,
 } from '@ionic/react';
-import { checkmarkCircleOutline } from 'ionicons/icons';
+// --- ALTERAÇÃO: Importado o ícone de 'close' ---
+import { checkmarkCircleOutline, closeCircleOutline, cardOutline } from 'ionicons/icons';
 import { useAuth } from '../hooks/AuthContext';
 import { getFirestore, collection, query, where, onSnapshot, Timestamp, writeBatch, doc } from 'firebase/firestore';
 import app from '../firebaseConfig';
+import '../styles/Faturas.css';
 import { scheduleInvoiceNotifications } from '../logic/notificationLogic';
 import { getInvoicePeriodForExpense } from '../logic/fatureLogic';
 import AppModal from '../components/AppModal';
 import ActionButton from '../components/ActionButton';
-import '../styles/Faturas.css';
-import '../theme/variables.css';
 
 // --- Interfaces ---
 interface CreditCard {
@@ -101,7 +101,6 @@ const Faturas: React.FC = () => {
       const card = cards.find(c => c.id === expense.cardId);
       if (!card) return;
 
-      // --- ALTERAÇÃO: Utilizando a função de lógica testada ---
       const { startDate, endDate } = getInvoicePeriodForExpense(expense.date, card);
       
       const invoiceYear = endDate.getFullYear();
@@ -141,23 +140,22 @@ const Faturas: React.FC = () => {
   }, [allInvoices]);
 
 
-  const handlePayInvoice = async (invoice: Invoice) => {
+  const handlePaymentToggle = async (invoice: Invoice, newStatus: boolean) => {
     if (!user || invoice.transactions.length === 0) return;
     
     const db = getFirestore(app);
     const batch = writeBatch(db);
 
     invoice.transactions.forEach(trans => {
-      if (!trans.isPaid) {
-        const docRef = doc(db, 'users', user.uid, 'transactions', trans.id);
-        batch.update(docRef, { isPaid: true });
-      }
+      const docRef = doc(db, 'users', user.uid, 'transactions', trans.id);
+      batch.update(docRef, { isPaid: newStatus });
     });
 
     try {
       await batch.commit();
+      setShowDetailsModal(false);
     } catch (error) {
-      console.error("Erro ao pagar a fatura:", error);
+      console.error("Erro ao atualizar o estado da fatura:", error);
     }
   };
 
@@ -182,6 +180,16 @@ const Faturas: React.FC = () => {
       <IonContent className="ion-padding">
         {loading ? (
           <div style={{ textAlign: 'center', marginTop: '20px' }}><IonSpinner /></div>
+        ) : cards.length === 0 ? (
+          <div className="empty-state">
+            <IonIcon icon={cardOutline} className="empty-state-icon" />
+            <IonText>
+                <p>Nenhum cartão registado.</p>
+            </IonText>
+            <IonText color="medium">
+                <p>Vá a "Meus Cartões" para adicionar um e ver as suas faturas aqui.</p>
+            </IonText>
+          </div>
         ) : (
           <>
             <IonListHeader>Faturas Abertas</IonListHeader>
@@ -235,10 +243,17 @@ const Faturas: React.FC = () => {
               </IonList>
               <div className="invoice-summary">
                 <IonText><h3>Total: {selectedInvoice.totalAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</h3></IonText>
-                {!selectedInvoice.isPaid && (
-                  <ActionButton onClick={() => handlePayInvoice(selectedInvoice)}>
+                
+                {/* --- ALTERAÇÃO: Botão condicional para Pagar ou "Despagar" --- */}
+                {!selectedInvoice.isPaid ? (
+                  <ActionButton onClick={() => handlePaymentToggle(selectedInvoice, true)}>
                     <IonIcon slot="start" icon={checkmarkCircleOutline} />
                     Marcar Fatura como Paga
+                  </ActionButton>
+                ) : (
+                  <ActionButton onClick={() => handlePaymentToggle(selectedInvoice, false)} fill="outline">
+                    <IonIcon slot="start" icon={closeCircleOutline} />
+                    Marcar como Não Paga
                   </ActionButton>
                 )}
               </div>

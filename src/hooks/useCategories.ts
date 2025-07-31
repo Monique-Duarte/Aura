@@ -50,11 +50,17 @@ export const useCategories = () => {
     return () => unsubscribe();
   }, [user]);
 
+  // --- CORREÇÃO 1: Memoizar a lista de categorias padrão ---
+  // Isso garante que a lista de categorias padrão tenha uma referência estável.
+  const defaultCategoriesWithIds = useMemo(() => {
+    return DEFAULT_CATEGORIES.map(cat => ({ ...cat, id: `default-${cat.name}` }));
+  }, []); // Array vazio porque DEFAULT_CATEGORIES nunca muda.
+
   // Combina as categorias padrão com as do utilizador para uso geral
   const availableCategories = useMemo(() => {
-    const defaultWithIds = DEFAULT_CATEGORIES.map(cat => ({ ...cat, id: `default-${cat.name}` }));
-    return [...defaultWithIds, ...userCategories].sort((a, b) => a.name.localeCompare(b.name));
-  }, [userCategories]);
+    // A ordenação é feita aqui para que o array final seja consistente
+    return [...defaultCategoriesWithIds, ...userCategories].sort((a, b) => a.name.localeCompare(b.name));
+  }, [defaultCategoriesWithIds, userCategories]); // Depende das duas listas estáveis
 
   const addCategory = useCallback(async (name: string, color: string) => {
     if (!user) return;
@@ -74,9 +80,9 @@ export const useCategories = () => {
     await deleteDoc(doc(db, 'users', user.uid, 'categories', id));
   }, [user]);
 
-  // Este hook já não exporta 'fetchCategories', pois a busca é automática e em tempo real.
+  // --- CORREÇÃO 2: Retornar a versão memoizada das categorias padrão ---
   return { 
-    defaultCategories: DEFAULT_CATEGORIES.map(cat => ({ ...cat, id: `default-${cat.name}` })),
+    defaultCategories: defaultCategoriesWithIds,
     userCategories,
     availableCategories,
     loading, 

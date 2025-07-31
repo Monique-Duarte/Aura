@@ -13,24 +13,21 @@ import {
   IonInput,
   IonItem,
   IonLabel,
-  IonList,
   IonSpinner,
   IonListHeader,
-  IonItemSliding,
-  IonItemOptions,
-  IonItemOption,
+  IonActionSheet,
+  IonNote, // Adicionado para o subtítulo
 } from '@ionic/react';
-import { add, pencil, trash } from 'ionicons/icons';
+import { add, pencil, trash, warningOutline, close } from 'ionicons/icons';
 import { useCategories, Category } from '../hooks/useCategories';
+import { getAuth, deleteUser } from 'firebase/auth';
 import AppModal from '../components/AppModal';
 import ActionButton from '../components/ActionButton';
 import ActionAlert from '../components/ActionAlert';
 import '../styles/Configuracao.css';
-import '../theme/variables.css';
 
 const Configuracao: React.FC = () => {
   const { 
-    defaultCategories, 
     userCategories, 
     loading, 
     addCategory, 
@@ -42,7 +39,10 @@ const Configuracao: React.FC = () => {
   const [categoryName, setCategoryName] = useState('');
   const [categoryColor, setCategoryColor] = useState('#ffffff');
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
+  const [categoryToAction, setCategoryToAction] = useState<Category | null>(null);
+  const [showDeleteCategoryAlert, setShowDeleteCategoryAlert] = useState(false);
+  const [showDeleteAccountAlert, setShowDeleteAccountAlert] = useState(false);
+  const [showCategoryActionSheet, setShowCategoryActionSheet] = useState(false);
 
   const openAddModal = () => {
     setEditingCategory(null);
@@ -51,10 +51,11 @@ const Configuracao: React.FC = () => {
     setShowModal(true);
   };
 
-  const openEditModal = (category: Category) => {
-    setEditingCategory(category);
-    setCategoryName(category.name);
-    setCategoryColor(category.color);
+  const openEditModal = () => {
+    if (!categoryToAction) return;
+    setEditingCategory(categoryToAction);
+    setCategoryName(categoryToAction.name);
+    setCategoryColor(categoryToAction.color);
     setShowModal(true);
   };
 
@@ -72,15 +73,38 @@ const Configuracao: React.FC = () => {
     setShowModal(false);
   };
 
-  const handleDeleteClick = (category: Category) => {
-    setCategoryToDelete(category);
+  const handleDeleteClick = () => {
+    if (!categoryToAction) return;
+    setShowDeleteCategoryAlert(true);
   };
 
-  const confirmDelete = async () => {
-    if (categoryToDelete) {
-      await deleteCategory(categoryToDelete.id);
-      setCategoryToDelete(null);
+  const confirmDeleteCategory = async () => {
+    if (categoryToAction) {
+      await deleteCategory(categoryToAction.id);
+      setCategoryToAction(null);
     }
+    setShowDeleteCategoryAlert(false);
+  };
+
+  const confirmDeleteAccount = async () => {
+    const authUser = getAuth().currentUser;
+    if (authUser) {
+      try {
+        // AVISO: Isto apaga o utilizador, mas não os seus dados no Firestore.
+        // A exclusão completa de dados deve ser feita por uma Cloud Function no Firebase.
+        await deleteUser(authUser);
+        window.location.href = '/login';
+      } catch (error) {
+        console.error("Erro ao excluir a conta:", error);
+        alert("Erro ao excluir a conta. Pode ser necessário fazer logout e login novamente.");
+      }
+    }
+    setShowDeleteAccountAlert(false);
+  };
+
+  const handleCategoryClick = (category: Category) => {
+    setCategoryToAction(category);
+    setShowCategoryActionSheet(true);
   };
 
   return (
@@ -98,35 +122,34 @@ const Configuracao: React.FC = () => {
           <div style={{ textAlign: 'center' }}><IonSpinner /></div>
         ) : (
           <>
-            <IonList>
-              <IonListHeader>Categorias Padrão</IonListHeader>
-              {defaultCategories.map(cat => (
-                <IonItem key={cat.id} lines="inset">
+            <IonListHeader className="category-header">
+              <IonLabel>Minhas Categorias</IonLabel>
+              <IonNote slot="end">Toque para editar</IonNote>
+            </IonListHeader>
+
+            <div className="category-grid">
+              {userCategories.length > 0 ? userCategories.map(cat => (
+                <div key={cat.id} className="category-grid-item" onClick={() => handleCategoryClick(cat)}>
                   <div className="category-color-dot" style={{ backgroundColor: cat.color }}></div>
                   <IonLabel>{cat.name}</IonLabel>
+                </div>
+              )) : (
+                <IonItem lines="none" style={{ gridColumn: '1 / -1' }}>
+                  <IonLabel color="medium" className="ion-text-center">
+                    <p>Ainda não criou nenhuma categoria. Use o botão '+' para adicionar.</p>
+                  </IonLabel>
                 </IonItem>
-              ))}
-            </IonList>
+              )}
+            </div>
 
-            <IonList style={{ marginTop: '24px' }}>
-              <IonListHeader>Minhas Categorias</IonListHeader>
-              {userCategories.map(cat => (
-                <IonItemSliding key={cat.id}>
-                  <IonItem lines="inset">
-                    <div className="category-color-dot" style={{ backgroundColor: cat.color }}></div>
-                    <IonLabel>{cat.name}</IonLabel>
-                  </IonItem>
-                  <IonItemOptions side="end">
-                    <IonItemOption onClick={() => openEditModal(cat)}>
-                      <IonIcon slot="icon-only" icon={pencil} />
-                    </IonItemOption>
-                    <IonItemOption color="danger" onClick={() => handleDeleteClick(cat)}>
-                      <IonIcon slot="icon-only" icon={trash} />
-                    </IonItemOption>
-                  </IonItemOptions>
-                </IonItemSliding>
-              ))}
-            </IonList>
+            <div className="danger-zone">
+              <h3>Zona de Perigo</h3>
+              <p>A exclusão da sua conta é uma ação permanente e irá apagar o seu perfil de autenticação.</p>
+              <ActionButton onClick={() => setShowDeleteAccountAlert(true)} fill="outline" color="danger">
+                <IonIcon slot="start" icon={warningOutline} />
+                Excluir Minha Conta
+              </ActionButton>
+            </div>
           </>
         )}
 
@@ -155,7 +178,7 @@ const Configuracao: React.FC = () => {
               />
               <input 
                 type="text" 
-                value={categoryColor} 
+                value={categoryColor.toUpperCase()} 
                 onChange={e => setCategoryColor(e.target.value)}
               />
             </div>
@@ -166,12 +189,46 @@ const Configuracao: React.FC = () => {
         </AppModal>
 
         <ActionAlert
-          isOpen={!!categoryToDelete}
-          onDidDismiss={() => setCategoryToDelete(null)}
+          isOpen={showDeleteCategoryAlert}
+          onDidDismiss={() => setCategoryToAction(null)}
           header="Confirmar Exclusão"
-          message={`Tem a certeza que deseja excluir a categoria "${categoryToDelete?.name}"?`}
-          onConfirm={confirmDelete}
+          message={`Tem a certeza que deseja excluir a categoria "${categoryToAction?.name}"?`}
+          onConfirm={confirmDeleteCategory}
           confirmButtonText="Excluir"
+        />
+
+        <ActionAlert
+          isOpen={showDeleteAccountAlert}
+          onDidDismiss={() => setShowDeleteAccountAlert(false)}
+          header="Excluir Conta Permanentemente"
+          message="Tem a certeza ABSOLUTA? Esta ação não pode ser desfeita. Todos os seus dados de autenticação serão apagados."
+          onConfirm={confirmDeleteAccount}
+          confirmButtonText="Sim, Excluir Tudo"
+        />
+
+        <IonActionSheet
+          isOpen={showCategoryActionSheet}
+          onDidDismiss={() => setShowCategoryActionSheet(false)}
+          header={categoryToAction?.name}
+          buttons={[
+            {
+              text: 'Editar',
+              icon: pencil,
+              handler: openEditModal,
+              cssClass: 'action-sheet-edit',
+            },
+            {
+              text: 'Excluir',
+              role: 'destructive',
+              icon: trash,
+              handler: handleDeleteClick
+            },
+            {
+              text: 'Cancelar',
+              icon: close,
+              role: 'cancel'
+            }
+          ]}
         />
       </IonContent>
     </IonPage>

@@ -25,11 +25,11 @@ import {
   IonModal,
   IonSelect,
   IonSelectOption,
+  IonAlert,
 } from '@ionic/react';
-
-import { add, close, pencil, trash, walletOutline, checkmarkCircleOutline, closeCircleOutline } from 'ionicons/icons';
+import { add, close, pencil, trash, checkmarkCircleOutline, closeCircleOutline } from 'ionicons/icons';
 import { useAuth } from '../hooks/AuthContext';
-import { getFirestore, collection, addDoc, query, where, Timestamp, doc, deleteDoc, updateDoc, writeBatch, onSnapshot } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, query, where, Timestamp, doc, deleteDoc, updateDoc, writeBatch, onSnapshot, getDocs } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
 import app from '../firebaseConfig';
 import CategorySelector from '../components/CategorySelector';
@@ -39,6 +39,7 @@ import ActionButton from '../components/ActionButton';
 import ActionAlert from '../components/ActionAlert';
 import '../styles/Lancamentos.css';
 import '../theme/variables.css';
+import { getInvoicePeriodForExpense } from '../logic/fatureLogic';
 
 // --- Interfaces ---
 interface Period {
@@ -84,7 +85,7 @@ const Despesas: React.FC = () => {
   const [cards, setCards] = useState<CreditCard[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Estados do formulário
+  // --- Estados do formulário ---
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState<number | undefined>();
   const [date, setDate] = useState(new Date().toISOString());
@@ -93,13 +94,16 @@ const Despesas: React.FC = () => {
   const [installments, setInstallments] = useState(1);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedCardId, setSelectedCardId] = useState<string | undefined>();
-  
-  // Estados de controle
   const [editingExpense, setEditingExpense] = useState<ExpenseTransaction | null>(null);
+
+  // --- Estados de Alertas e Menus ---
   const [showDeleteAlert, setShowDeleteAlert] = useState(false);
   const [showPayAllAlert, setShowPayAllAlert] = useState(false);
   const [expenseToAction, setExpenseToAction] = useState<ExpenseTransaction | null>(null);
   const [showActionSheet, setShowActionSheet] = useState(false);
+  const [showInstallmentDeleteAlert, setShowInstallmentDeleteAlert] = useState(false);
+
+  // --- Estados de Filtro ---
   const [selectedPeriod, setSelectedPeriod] = useState<Period | null>(null);
   const [filterMode, setFilterMode] = useState<FilterMode>('all');
 
@@ -114,7 +118,6 @@ const Despesas: React.FC = () => {
     return () => unsubscribe();
   }, [user]);
 
-  // --- ALTERAÇÃO: Trocado getDocs por onSnapshot para atualizações em tempo real ---
   useEffect(() => {
     if (!user) {
       setLoading(false);
@@ -134,97 +137,89 @@ const Despesas: React.FC = () => {
       setAllFetchedExpenses(fetchedExpenses);
       setLoading(false);
     });
-
     return () => unsubscribe();
   }, [user]);
 
+  const expensesForPeriod = useMemo(() => {
+    if (!selectedPeriod) return [];
+    
+    return allFetchedExpenses.filter(expense => {
+      if (expense.paymentMethod !== 'credit' || !expense.cardId) {
+        return expense.date >= selectedPeriod.startDate && expense.date <= selectedPeriod.endDate;
+      }
+
+      const card = cards.find(c => c.id === expense.cardId);
+      if (!card) {
+        return expense.date >= selectedPeriod.startDate && expense.date <= selectedPeriod.endDate;
+      }
+
+      const invoicePeriod = getInvoicePeriodForExpense(expense.date, card);
+      
+      return (
+        invoicePeriod.endDate.getMonth() === selectedPeriod.startDate.getMonth() &&
+        invoicePeriod.endDate.getFullYear() === selectedPeriod.startDate.getFullYear()
+      );
+    });
+  }, [allFetchedExpenses, selectedPeriod, cards]);
 
   const handleSaveExpense = async () => {
     if (!user || !amount || !description) return;
     const db = getFirestore(app);
 
     try {
-        if (paymentMethod === 'credit' && installments > 1 && !editingExpense) {
-            const batch = writeBatch(db);
-            const groupId = uuidv4();
-            const installmentAmount = Math.abs(amount) / installments;
+      if (paymentMethod === 'credit' && installments > 1 && !editingExpense) {
+        const batch = writeBatch(db);
+        const groupId = uuidv4();
+        const installmentAmount = Math.abs(amount) / installments;
 
-            for (let i = 0; i < installments; i++) {
-                const installmentDate = new Date(date);
-                installmentDate.setMonth(installmentDate.getMonth() + i);
-                const newDocRef = doc(collection(db, 'users', user.uid, 'transactions'));
-                
-                const data = {
-                    type: 'expense', 
-                    amount: installmentAmount,
-                    description: `${description} (${i + 1}/${installments})`,
-                    date: Timestamp.fromDate(installmentDate), 
-                    isRecurring: false,
-                    paymentMethod, 
-                    isInstallment: true, 
-                    installmentNumber: i + 1,
-                    totalInstallments: installments, 
-                    installmentGroupId: groupId,
-                    categories: selectedCategories,
-                    isPaid: false,
-                    ...(selectedCardId && { cardId: selectedCardId }),
-                };
-                batch.set(newDocRef, data);
-            }
-            await batch.commit();
-        } else {
-            const dataToSave = {
-                amount: Math.abs(amount), description,
-                date: Timestamp.fromDate(new Date(date)),
-                isRecurring, paymentMethod, categories: selectedCategories,
-                isPaid: paymentMethod === 'debit',
-                ...(paymentMethod === 'credit' && selectedCardId && { cardId: selectedCardId }),
-                ...(isRecurring && { recurringDay: new Date(date).getDate() }),
-            };
-            if (editingExpense) {
-                const docRef = doc(db, 'users', user.uid, 'transactions', editingExpense.id);
-                await updateDoc(docRef, { ...dataToSave, type: 'expense' });
-            } else {
-                const transactionsRef = collection(db, 'users', user.uid, 'transactions');
-                await addDoc(transactionsRef, { ...dataToSave, type: 'expense' });
-            }
+        for (let i = 0; i < installments; i++) {
+          const installmentDate = new Date(date);
+          installmentDate.setMonth(installmentDate.getMonth() + i);
+          const newDocRef = doc(collection(db, 'users', user.uid, 'transactions'));
+          
+          const data = {
+            type: 'expense',
+            amount: installmentAmount,
+            description: `${description} (${i + 1}/${installments})`,
+            date: Timestamp.fromDate(installmentDate),
+            isRecurring: false,
+            paymentMethod,
+            isInstallment: true,
+            installmentNumber: i + 1,
+            totalInstallments: installments,
+            installmentGroupId: groupId,
+            categories: selectedCategories,
+            isPaid: false,
+            ...(selectedCardId && { cardId: selectedCardId }),
+          };
+          batch.set(newDocRef, data);
         }
-        closeModalAndReset();
-        // fetchExpenses(); // Removido - onSnapshot atualiza automaticamente
+        await batch.commit();
+      } else {
+        const dataToSave = {
+          amount: Math.abs(amount),
+          description,
+          date: Timestamp.fromDate(new Date(date)),
+          isRecurring,
+          paymentMethod,
+          categories: selectedCategories,
+          isPaid: paymentMethod === 'debit',
+          ...(paymentMethod === 'credit' && selectedCardId && { cardId: selectedCardId }),
+          ...(isRecurring && { recurringDay: new Date(date).getDate() }),
+        };
+        if (editingExpense) {
+          const docRef = doc(db, 'users', user.uid, 'transactions', editingExpense.id);
+          await updateDoc(docRef, { ...dataToSave, type: 'expense' });
+        } else {
+          const transactionsRef = collection(db, 'users', user.uid, 'transactions');
+          await addDoc(transactionsRef, { ...dataToSave, type: 'expense' });
+        }
+      }
+      closeModalAndReset();
     } catch (error) {
-        console.error("Erro ao salvar gasto:", error);
+      console.error("Erro ao salvar gasto:", error);
     }
   };
-  
-  const expensesForPeriod = useMemo(() => {
-    if (!selectedPeriod) return [];
-    
-    const cardsMap = new Map(cards.map(c => [c.id, c]));
-
-    return allFetchedExpenses.filter(expense => {
-      const expenseDate = expense.date;
-      
-      if (expense.paymentMethod === 'debit' || !expense.cardId) {
-        return expenseDate >= selectedPeriod.startDate && expenseDate <= selectedPeriod.endDate;
-      }
-
-      const card = cardsMap.get(expense.cardId);
-      if (card) {
-        const year = selectedPeriod.startDate.getFullYear();
-        const month = selectedPeriod.startDate.getMonth();
-        
-        const closingDay = card.closingDay;
-        
-        const cycleStartDate = new Date(year, month - 1, closingDay + 1);
-        const cycleEndDate = new Date(year, month, closingDay);
-        cycleEndDate.setHours(23, 59, 59, 999);
-
-        return expenseDate >= cycleStartDate && expenseDate <= cycleEndDate;
-      }
-      
-      return false;
-    });
-  }, [allFetchedExpenses, selectedPeriod, cards]);
 
   const handleTogglePaidStatus = async () => {
     if (!user || !expenseToAction) return;
@@ -232,7 +227,6 @@ const Despesas: React.FC = () => {
     const docRef = doc(db, 'users', user.uid, 'transactions', expenseToAction.id);
     try {
       await updateDoc(docRef, { isPaid: !expenseToAction.isPaid });
-      // fetchExpenses(); // Removido
     } catch (error) {
       console.error("Erro ao atualizar status de pagamento:", error);
     }
@@ -249,10 +243,8 @@ const Despesas: React.FC = () => {
       const docRef = doc(db, 'users', user.uid, 'transactions', expense.id);
       batch.update(docRef, { isPaid: true });
     });
-
     try {
       await batch.commit();
-      // fetchExpenses(); // Removido
     } catch (error) {
       console.error("Erro ao pagar todas as contas:", error);
     }
@@ -278,34 +270,48 @@ const Despesas: React.FC = () => {
 
   const handleDeleteClick = () => {
     if (!expenseToAction) return;
-    setShowDeleteAlert(true);
-  };
-
-  const handleAnticipateClick = async () => {
-    if (!user || !expenseToAction) return;
-    const db = getFirestore(app);
-    const docRef = doc(db, 'users', user.uid, 'transactions', expenseToAction.id);
-    try {
-        await updateDoc(docRef, {
-            date: Timestamp.fromDate(new Date()),
-        });
-        // fetchExpenses(); // Removido
-    } catch (error) {
-        console.error("Erro ao antecipar parcela:", error);
+    if (expenseToAction.isInstallment) {
+      setShowInstallmentDeleteAlert(true);
+    } else {
+      setShowDeleteAlert(true);
     }
   };
 
   const confirmDelete = async () => {
     if (!user || !expenseToAction) return;
     const db = getFirestore(app);
-    const docRef = doc(db, 'users', user.uid, 'transactions', expenseToAction.id);
     try {
-        await deleteDoc(docRef);
-        // fetchExpenses(); // Removido
+      const docRef = doc(db, 'users', user.uid, 'transactions', expenseToAction.id);
+      await deleteDoc(docRef);
     } catch (error) {
-        console.error("Erro ao excluir gasto:", error);
+      console.error("Erro ao excluir gasto:", error);
     }
     setShowDeleteAlert(false);
+    setExpenseToAction(null);
+  };
+
+  const confirmDeleteSingleInstallment = async () => {
+    await confirmDelete();
+    setShowInstallmentDeleteAlert(false);
+  };
+
+  const confirmDeleteFutureInstallments = async () => {
+    if (!user || !expenseToAction?.installmentGroupId || typeof expenseToAction?.installmentNumber !== 'number') return;
+    const db = getFirestore(app);
+    try {
+      const batch = writeBatch(db);
+      const q = query(
+        collection(db, 'users', user.uid, 'transactions'),
+        where('installmentGroupId', '==', expenseToAction.installmentGroupId),
+        where('installmentNumber', '>=', expenseToAction.installmentNumber)
+      );
+      const querySnapshot = await getDocs(q);
+      querySnapshot.forEach(document => batch.delete(document.ref));
+      await batch.commit();
+    } catch (error) {
+      console.error("Erro ao excluir parcelas futuras:", error);
+    }
+    setShowInstallmentDeleteAlert(false);
     setExpenseToAction(null);
   };
 
@@ -323,19 +329,13 @@ const Despesas: React.FC = () => {
   };
 
   const displayedExpenses = useMemo(() => {
-    if (filterMode === 'all') {
-      return expensesForPeriod;
-    }
+    if (filterMode === 'all') return expensesForPeriod;
     return expensesForPeriod.filter(exp => exp.paymentMethod === filterMode);
   }, [expensesForPeriod, filterMode]);
 
   const unpaidExpenses = displayedExpenses.filter(exp => !exp.isPaid);
   const paidExpenses = displayedExpenses.filter(exp => exp.isPaid);
   const totalExpense = displayedExpenses.reduce((sum, item) => sum + item.amount, 0);
-
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const isFutureExpense = expenseToAction && expenseToAction.date > today;
 
   return (
     <IonPage>
@@ -469,16 +469,16 @@ const Despesas: React.FC = () => {
             </IonItem>
           </div>
           <div className="form-field-group">
-              <IonLabel style={{ paddingLeft: '16px', color: 'var(--ion-color-medium-shade)' }}>Forma de Pagamento</IonLabel>
-              <IonSegment value={paymentMethod} onIonChange={e => {
-                  const value = e.detail.value;
-                  if (value === 'credit' || value === 'debit') {
-                      setPaymentMethod(value);
-                  }
-              }}>
-                  <IonSegmentButton value="debit"><IonLabel>Débito</IonLabel></IonSegmentButton>
-                  <IonSegmentButton value="credit"><IonLabel>Crédito</IonLabel></IonSegmentButton>
-              </IonSegment>
+            <IonLabel style={{ paddingLeft: '16px', color: 'var(--ion-color-medium-shade)' }}>Forma de Pagamento</IonLabel>
+            <IonSegment value={paymentMethod} onIonChange={e => {
+                const value = e.detail.value;
+                if (value === 'credit' || value === 'debit') {
+                    setPaymentMethod(value);
+                }
+            }}>
+                <IonSegmentButton value="debit"><IonLabel>Débito</IonLabel></IonSegmentButton>
+                <IonSegmentButton value="credit"><IonLabel>Crédito</IonLabel></IonSegmentButton>
+            </IonSegment>
           </div>
 
           {paymentMethod === 'credit' && (
@@ -529,6 +529,28 @@ const Despesas: React.FC = () => {
           confirmButtonText="Excluir"
         />
 
+        <IonAlert
+            isOpen={showInstallmentDeleteAlert}
+            onDidDismiss={() => setShowInstallmentDeleteAlert(false)}
+            header={'Excluir Despesa Parcelada'}
+            message={'Você deseja excluir apenas esta parcela ou esta e todas as futuras?'}
+            buttons={[
+                {
+                    text: 'Apenas Esta',
+                    handler: confirmDeleteSingleInstallment
+                },
+                {
+                    text: 'Esta e as Próximas',
+                    cssClass: 'alert-button-danger',
+                    handler: confirmDeleteFutureInstallments
+                },
+                {
+                    text: 'Cancelar',
+                    role: 'cancel',
+                },
+            ]}
+        />
+
         <ActionAlert
           isOpen={showPayAllAlert}
           onDidDismiss={() => setShowPayAllAlert(false)}
@@ -564,12 +586,7 @@ const Despesas: React.FC = () => {
                   handler: handleEditClick,
                   cssClass: 'action-sheet-edit',
               },
-              ...(isFutureExpense ? [{
-                  text: 'Antecipar Gasto',
-                  icon: walletOutline,
-                  handler: handleAnticipateClick,
-                  cssClass: 'action-sheet-edit',
-              }] : []),
+              // A lógica para antecipar foi removida por simplicidade, pode ser adicionada depois se necessário
               {
                   text: 'Excluir',
                   role: 'destructive',

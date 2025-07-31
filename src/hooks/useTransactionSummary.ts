@@ -8,12 +8,10 @@ interface Period {
   endDate: Date;
 }
 
-// --- ALTERAÇÃO 1: Adicionada a propriedade 'totalReserved' ---
 export interface TransactionSummary {
   totalIncome: number;
   totalExpense: number;
-  totalReserved: number; // Valor total enviado para as reservas
-  // Dados individuais para o gráfico de família
+  totalReserved: number;
   user1Income?: number;
   user1Expense?: number;
   user1Reserved?: number;
@@ -24,7 +22,6 @@ export interface TransactionSummary {
 
 export const useTransactionSummary = (period: Period | null, memberIds: string[] = []) => {
   const { user } = useAuth();
-  // --- ALTERAÇÃO 2: Estado inicial atualizado ---
   const [summary, setSummary] = useState<TransactionSummary>({ totalIncome: 0, totalExpense: 0, totalReserved: 0 });
   const [loading, setLoading] = useState(true);
 
@@ -64,16 +61,19 @@ export const useTransactionSummary = (period: Period | null, memberIds: string[]
             totalExpense += amount;
             if (index === 0) user1Expense += amount;
             else user2Expense += amount;
-          // --- ALTERAÇÃO 3: Lógica para somar os valores de reserva ---
+          // --- CORREÇÃO: Lógica agora subtrai os resgates da reserva ---
           } else if (data.type === 'reserve_add') {
             totalReserved += amount;
             if (index === 0) user1Reserved += amount;
             else user2Reserved += amount;
+          } else if (data.type === 'reserve_withdraw') {
+            totalReserved -= amount;
+            if (index === 0) user1Reserved -= amount;
+            else user2Reserved -= amount;
           }
         });
       }
 
-      // --- ALTERAÇÃO 4: Novo objeto de resumo com o total da reserva ---
       setSummary({ 
         totalIncome, 
         totalExpense, 

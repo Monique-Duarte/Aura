@@ -30,10 +30,12 @@ interface ChartData {
   datasets: ChartDataset[];
 }
 
+// Interface do hook atualizada para incluir a nova informação
 interface ReserveHistory {
   totalChartData: ChartData;
   individualChartData: ChartData;
   transactions: ReserveTransaction[];
+  lastDailyYield: number; // NOVA PROPRIEDADE
   loading: boolean;
 }
 
@@ -52,6 +54,7 @@ export const useReserveHistory = (period: Period | null, goals: ReserveGoal[]): 
     totalChartData: { labels: [], datasets: [] },
     individualChartData: { labels: [], datasets: [] },
     transactions: [],
+    lastDailyYield: 0, // Adicionado ao estado inicial
   });
   const [loading, setLoading] = useState(true);
 
@@ -82,18 +85,19 @@ export const useReserveHistory = (period: Period | null, goals: ReserveGoal[]): 
       const transactionsInPeriod = allTransactions
         .filter(t => t.date >= period.startDate)
         .sort((a, b) => a.date.getTime() - b.date.getTime());
-
-      // --- REATORAÇÃO PRINCIPAL: A lógica de cálculo foi movida e é agora chamada aqui ---
       
-      // 1. Calcula o histórico para o total da reserva (usando um rendimento médio)
+      // 1. Calcula o histórico para o total da reserva
       const totalYieldRate = goals.reduce((sum, goal) => sum + (goal.yieldPercentage || 0), 0) / (goals.length || 1) / 100;
-      const totalHistoryPoints = calculateReserveHistory(allTransactions, period, totalYieldRate);
+      
+      // Captura o histórico E o rendimento diário da função de lógica
+      const { historyPoints: totalHistoryPoints, lastDailyYield } = calculateReserveHistory(allTransactions, period, totalYieldRate);
 
       // 2. Calcula o histórico para cada objetivo individualmente
       const individualDatasets: ChartDataset[] = goals.map((goal, index) => {
         const goalTransactions = allTransactions.filter(t => t.reserveId === goal.id);
         const yieldRate = (goal.yieldPercentage || 0) / 100;
-        const historyPoints = calculateReserveHistory(goalTransactions, period, yieldRate);
+        // Aqui só precisamos dos pontos do histórico, então podemos ignorar o rendimento individual
+        const { historyPoints } = calculateReserveHistory(goalTransactions, period, yieldRate);
         
         return {
           label: goal.name,
@@ -123,6 +127,7 @@ export const useReserveHistory = (period: Period | null, goals: ReserveGoal[]): 
           datasets: individualDatasets,
         },
         transactions: transactionsInPeriod,
+        lastDailyYield: lastDailyYield, // Guarda o novo valor no estado
       });
 
     } catch (error) {

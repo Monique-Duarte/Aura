@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   IonPage,
   IonHeader,
@@ -18,26 +18,28 @@ import {
   IonSpinner,
   IonActionSheet,
   IonToggle,
-  IonDatetime, // Adicionado
-  IonDatetimeButton, // Adicionado
-  IonModal, // Adicionado
+  IonDatetime,
+  IonDatetimeButton,
+  IonModal,
 } from '@ionic/react';
 import { add, close, pencil, trash, walletOutline, checkmarkCircleOutline, swapHorizontalOutline } from 'ionicons/icons';
 import { useAuth } from '../hooks/AuthContext';
+import { useDate } from '../hooks/DateContext';
+import { useReserveHistory } from '../hooks/useReserveHistory';
 import { 
     getFirestore, 
-   collection, 
-  addDoc, 
-  query, 
-  onSnapshot, 
-  Timestamp, 
-  doc, 
-  updateDoc, 
-  where,
-  getDocs,
-  writeBatch,
-  QueryDocumentSnapshot,
-  DocumentData
+    collection, 
+    addDoc, 
+    query, 
+    onSnapshot, 
+    Timestamp, 
+    doc, 
+    updateDoc, 
+    where,
+    getDocs,
+    writeBatch,
+    QueryDocumentSnapshot,
+    DocumentData
 } from 'firebase/firestore';
 import app from '../firebaseConfig';
 import AppModal from '../components/AppModal';
@@ -53,7 +55,7 @@ interface ReserveGoal {
   name: string;
   yieldPercentage?: number;
   targetAmount?: number;
-  balance: number;
+  balance: number; // Saldo calculado a partir de transações (sem rendimento)
 }
 
 interface ReserveTransaction {
@@ -66,6 +68,7 @@ interface ReserveTransaction {
 
 const Reserva: React.FC = () => {
   const { user } = useAuth();
+  const { currentPeriod } = useDate(); // Hook para obter o período global
   const [goals, setGoals] = useState<ReserveGoal[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'list' | 'chart'>('list');
@@ -80,8 +83,6 @@ const Reserva: React.FC = () => {
   const [transactionAmount, setTransactionAmount] = useState<number | undefined>();
   const [isRecurring, setIsRecurring] = useState(false);
   const [transactionMode, setTransactionMode] = useState<'add' | 'withdraw'>('add');
-  
-  // --- NOVOS ESTADOS PARA AS DATAS ---
   const [goalCreationDate, setGoalCreationDate] = useState(new Date().toISOString());
   const [transactionDate, setTransactionDate] = useState(new Date().toISOString());
 
@@ -95,6 +96,9 @@ const Reserva: React.FC = () => {
   // Lógica de busca de dados
   const [rawGoals, setRawGoals] = useState<Omit<ReserveGoal, 'balance'>[]>([]);
   const [reserveTransactions, setReserveTransactions] = useState<ReserveTransaction[]>([]);
+  
+  // Hook que calcula o histórico e os rendimentos para o gráfico
+  const { totalChartData, loading: historyLoading, lastDailyYield } = useReserveHistory(currentPeriod, rawGoals as ReserveGoal[]);
 
   useEffect(() => {
     if (!user) return;
@@ -140,6 +144,19 @@ const Reserva: React.FC = () => {
     setLoading(false);
   }, [rawGoals, reserveTransactions]);
 
+  // Total depositado (soma simples das transações)
+  const totalDeposited = useMemo(() => goals.reduce((sum, goal) => sum + goal.balance, 0), [goals]);
+
+  // Saldo final com rendimentos (pega o último valor do gráfico)
+  const finalBalanceWithYield = useMemo(() => {
+    const data = totalChartData.datasets[0]?.data;
+    if (data && data.length > 0) {
+      return data[data.length - 1];
+    }
+    return totalDeposited; // Fallback para o saldo simples se o gráfico não carregou
+  }, [totalChartData, totalDeposited]);
+
+  // Funções de manipulação (handleSaveGoal, handleDeleteGoal, etc. sem alterações)
   const handleSaveGoal = async () => {
     if (!user || !goalName) return;
     const db = getFirestore(app);
@@ -159,7 +176,7 @@ const Reserva: React.FC = () => {
           const initialTransaction = {
             description: `Depósito Inicial - ${goalName}`,
             amount: Math.abs(initialAmount),
-            date: Timestamp.fromDate(new Date(goalCreationDate)), // Usa a data selecionada
+            date: Timestamp.fromDate(new Date(goalCreationDate)),
             type: 'reserve_add',
             reserveId: newGoalRef.id,
             isRecurring: false,
@@ -215,7 +232,7 @@ const Reserva: React.FC = () => {
     const dataToSave = {
       description: `${transactionMode === 'add' ? 'Adicionar Valor' : 'Resgate'} - ${goalToAction.name}`,
       amount: Math.abs(transactionAmount),
-      date: Timestamp.fromDate(new Date(transactionDate)), // Usa a data selecionada
+      date: Timestamp.fromDate(new Date(transactionDate)),
       type: transactionMode === 'add' ? 'reserve_add' : 'reserve_withdraw',
       reserveId: goalToAction.id,
       isRecurring: transactionMode === 'add' ? isRecurring : false,
@@ -277,7 +294,6 @@ const Reserva: React.FC = () => {
     setTransactionDate(new Date().toISOString());
   };
 
-  const totalReserve = goals.reduce((sum, goal) => sum + goal.balance, 0);
 
   return (
     <IonPage>
@@ -289,10 +305,24 @@ const Reserva: React.FC = () => {
       </IonHeader>
       <IonContent className="ion-padding">
         <div className="summary-card">
-          <IonText><p>Total Guardado</p></IonText>
-          <IonText color="success">
-            <h2>{totalReserve.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</h2>
-          </IonText>
+          {viewMode === 'chart' ? (
+            <>
+              <IonText><p>Total com Rendimentos</p></IonText>
+              <IonText color="success">
+                <h2>{historyLoading ? <IonSpinner name="crescent" /> : finalBalanceWithYield.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</h2>
+              </IonText>
+              <IonText color="medium" style={{ fontSize: '0.8rem', marginTop: '4px' }}>
+                  <p>Rendimento do último dia: +{lastDailyYield.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+              </IonText>
+            </>
+          ) : (
+            <>
+              <IonText><p>Total Depositado</p></IonText>
+              <IonText color="success">
+                <h2>{totalDeposited.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</h2>
+              </IonText>
+            </>
+          )}
         </div>
 
         <div className="dashboard-chart-legend" style={{ justifyContent: 'center' }}>
@@ -312,7 +342,7 @@ const Reserva: React.FC = () => {
             </button>
         </div>
 
-        {loading ? (
+        {(loading || (viewMode === 'chart' && historyLoading)) ? (
           <div style={{ textAlign: 'center', marginTop: '20px' }}><IonSpinner /></div>
         ) : (
           <>

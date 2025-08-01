@@ -105,3 +105,17 @@
   font-size: 2.2rem;
   font-weight: 700;
 }
+
+/* No seu arquivo CSS */
+
+.dashboard-chart-legend {
+  display: flex; /* Garante que os itens internos sejam flexíveis */
+  gap: 10px;     /* Adiciona um espaço entre os botões */
+  max-width: 400px; /* Impede que os botões fiquem excessivamente largos em telas grandes */
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.dashboard-chart-legend .dashboard-legend-btn {
+  flex: 1; /* Faz cada botão crescer para ocupar o espaço disponível igualmente */
+}

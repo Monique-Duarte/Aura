@@ -75,8 +75,6 @@ export const DateProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   return <DateContext.Provider value={value}>{children}</DateContext.Provider>;
 };
 
-// Hook customizado (sem alteração)
-// eslint-disable-next-line react-refresh/only-export-components
 export const useDate = (): IDateContext => {
   const context = useContext(DateContext);
   if (context === undefined) {

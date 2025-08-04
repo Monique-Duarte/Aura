@@ -30,6 +30,7 @@ import {
 import { add, close, pencil, trash, checkmarkCircleOutline, closeCircleOutline } from 'ionicons/icons';
 import { useAuth } from '../hooks/AuthContext';
 import { getFirestore, collection, addDoc, query, where, Timestamp, doc, deleteDoc, updateDoc, writeBatch, onSnapshot, getDocs } from 'firebase/firestore';
+import { getInvoicePeriodForExpense } from '../logic/fatureLogic';
 import { v4 as uuidv4 } from 'uuid';
 import app from '../firebaseConfig';
 import CategorySelector from '../components/CategorySelector';
@@ -37,9 +38,9 @@ import PeriodSelector from '../components/PeriodSelector';
 import AppModal from '../components/AppModal';
 import ActionButton from '../components/ActionButton';
 import ActionAlert from '../components/ActionAlert';
+import CurrencyInput from '../components/CurrencyInput';
 import '../styles/Lancamentos.css';
 import '../theme/variables.css';
-import { getInvoicePeriodForExpense } from '../logic/fatureLogic';
 
 // --- Interfaces ---
 interface Period {
@@ -453,12 +454,11 @@ const Despesas: React.FC = () => {
             />
           </div>
           <div className="form-field-group">
-            <IonItem>
-              <IonLabel position="floating">
-                {installments > 1 ? 'Valor Total (R$)' : 'Valor (R$)'}
-              </IonLabel>
-              <IonInput type="number" value={amount} onIonChange={e => setAmount(parseFloat(e.detail.value!))} placeholder="2000,00" />
-            </IonItem>
+            <CurrencyInput 
+              label={(installments || 1) > 1 || editingExpense?.isInstallment ? 'Valor Total (R$)' : 'Valor (R$)'}
+              value={amount}
+              onValueChange={setAmount}
+            />
           </div>
           <div className="form-field-group">
             <IonItem lines="none" className="date-item">
@@ -586,7 +586,6 @@ const Despesas: React.FC = () => {
                   handler: handleEditClick,
                   cssClass: 'action-sheet-edit',
               },
-              // A lógica para antecipar foi removida por simplicidade, pode ser adicionada depois se necessário
               {
                   text: 'Excluir',
                   role: 'destructive',

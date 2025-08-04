@@ -53,3 +53,28 @@
   height: auto;
   font-weight: bold;
 }
+
+.invoice-navigation {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--ion-color-step-150, #d7d8da);
+}
+
+.invoice-navigation ion-button {
+  flex-shrink: 0;
+}
+
+.invoice-navigation ion-text {
+  flex-grow: 1;
+  text-align: center;
+  font-size: 24px;
+}
+
+.invoice-navigation ion-text p {
+  margin: 0;
+  font-weight: 500;
+  font-size: 0.9em;
+}

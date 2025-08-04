@@ -1,0 +1,31 @@
+.export-modal-item {
+  --inner-padding-end: 16px;
+  --padding-start: 16px;
+  --border-width: 0 0 1px 0;
+  --border-color: var(--ion-color-step-150, #d7d8da);
+}
+
+.export-modal-item::part(native) {
+  display: flex;
+  align-items: center;
+}
+
+.export-modal-item ion-label {
+  flex: 1;
+  white-space: nowrap;
+}
+
+.export-modal-item ion-input {
+  text-align: right;
+}
+
+.button-download {
+  display: inline-block;
+  padding: 10px 20px;
+  margin-top: 8px;
+  background-color: var(--ion-color-primary);
+  color: var(--ion-color-primary-contrast);
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 500;
+}

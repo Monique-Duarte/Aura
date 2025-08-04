@@ -35,7 +35,6 @@ const menuOptions = [
   { title: 'Dashboard', icon: homeOutline, path: '/app/dashboard' },
   { title: 'Renda', icon: cashOutline, path: '/app/renda' },
   { title: 'Despesas', icon: receiptOutline, path: '/app/despesas' },
-  { title: 'Extrato', icon: receiptOutline, path: '/app/extrato' },
   { title: 'Cartão', icon: cardOutline, path: '/app/cartao' },
   { title: 'Faturas', icon: documentTextOutline, path: '/app/faturas' },
   { title: 'Reserva', icon: walletOutline, path: '/app/reserva' },

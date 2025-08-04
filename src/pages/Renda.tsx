@@ -1,28 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  IonPage,
-  IonHeader,
-  IonToolbar,
-  IonButtons,
-  IonMenuButton,
-  IonTitle,
-  IonContent,
-  IonFab,
-  IonFabButton,
-  IonIcon,
-  IonInput,
-  IonItem,
-  IonLabel,
-  IonList,
-  IonDatetime,
-  IonToggle,
-  IonText,
-  IonSpinner,
-  IonDatetimeButton,
-  IonActionSheet,
-  IonModal,
+  IonPage, IonHeader, IonToolbar, IonButtons, IonMenuButton, IonTitle, IonContent,
+  IonFab, IonFabButton, IonIcon, IonInput, IonItem, IonLabel, IonList, IonDatetime,
+  IonToggle, IonText, IonSpinner, IonDatetimeButton, IonActionSheet, IonModal, IonButton,
 } from '@ionic/react';
-import { add, close, pencil, trash } from 'ionicons/icons';
+import { add, close, pencil, trash, downloadOutline } from 'ionicons/icons';
 import { useAuth } from '../hooks/AuthContext';
 import { getFirestore, collection, addDoc, query, where, getDocs, Timestamp, doc, deleteDoc, updateDoc } from 'firebase/firestore';
 import app from '../firebaseConfig';
@@ -30,6 +12,7 @@ import PeriodSelector from '../components/PeriodSelector';
 import AppModal from '../components/AppModal';
 import ActionButton from '../components/ActionButton';
 import ActionAlert from '../components/ActionAlert';
+import ExportDataModal from '../components/ExportDataModal'; // Importa o novo componente
 import '../styles/Lancamentos.css';
 import '../theme/variables.css';
 
@@ -38,7 +21,6 @@ interface Period {
   startDate: Date;
   endDate: Date;
 }
-
 interface IncomeTransaction {
   id: string;
   description: string;
@@ -52,6 +34,9 @@ const Renda: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [incomes, setIncomes] = useState<IncomeTransaction[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // --- NOVO ESTADO PARA O MODAL DE EXPORTAÇÃO ---
+  const [showExportModal, setShowExportModal] = useState(false);
 
   // Estados do formulário
   const [description, setDescription] = useState('');
@@ -82,14 +67,12 @@ const Renda: React.FC = () => {
         where('date', '>=', selectedPeriod.startDate),
         where('date', '<=', selectedPeriod.endDate)
       );
-
       const querySnapshot = await getDocs(q);
       const fetchedIncomes = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
         date: (doc.data().date as Timestamp).toDate(),
       })).sort((a, b) => b.date.getTime() - a.date.getTime()) as IncomeTransaction[];
-
       setIncomes(fetchedIncomes);
     } catch (error) {
       console.error("Erro ao buscar rendas:", error);
@@ -105,7 +88,6 @@ const Renda: React.FC = () => {
   const handleSaveIncome = async () => {
     if (!user || !amount || !description) return;
     const db = getFirestore(app);
-
     const dataToSave = {
       amount: Math.abs(amount),
       description,
@@ -182,6 +164,11 @@ const Renda: React.FC = () => {
             <IonMenuButton />
           </IonButtons>
           <IonTitle>Renda</IonTitle>
+          <IonButtons slot="end">
+            <IonButton onClick={() => setShowExportModal(true)}>
+              <IonIcon slot="icon-only" icon={downloadOutline} />
+            </IonButton>
+          </IonButtons>
         </IonToolbar>
       </IonHeader>
       <IonContent className="ion-padding">
@@ -255,7 +242,7 @@ const Renda: React.FC = () => {
         </AppModal>
 
         <IonModal keepContentsMounted={true}>
-            <IonDatetime id="datetime-in-modal" value={date} onIonChange={e => { const value = e.detail.value; if (typeof value === 'string') { setDate(value); } }} presentation="date" />
+          <IonDatetime id="datetime-in-modal" value={date} onIonChange={e => { const value = e.detail.value; if (typeof value === 'string') { setDate(value); } }} presentation="date" />
         </IonModal>
 
         <ActionAlert
@@ -272,24 +259,15 @@ const Renda: React.FC = () => {
           onDidDismiss={() => setShowActionSheet(false)}
           header={incomeToAction?.description}
           buttons={[
-            {
-              text: 'Editar',
-              icon: pencil,
-              handler: handleEditClick,
-              cssClass: 'action-sheet-edit',
-            },
-            {
-              text: 'Excluir',
-              role: 'destructive',
-              icon: trash,
-              handler: handleDeleteClick
-            },
-            {
-              text: 'Cancelar',
-              icon: close,
-              role: 'cancel'
-            }
+            { text: 'Editar', icon: pencil, handler: handleEditClick, cssClass: 'action-sheet-edit' },
+            { text: 'Excluir', role: 'destructive', icon: trash, handler: handleDeleteClick },
+            { text: 'Cancelar', icon: close, role: 'cancel' }
           ]}
+        />
+
+        <ExportDataModal
+          isOpen={showExportModal}
+          onDidDismiss={() => setShowExportModal(false)}
         />
       </IonContent>
     </IonPage>

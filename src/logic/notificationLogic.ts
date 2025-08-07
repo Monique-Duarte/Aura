@@ -74,7 +74,6 @@ export const scheduleInvoiceNotifications = async (invoicesToSchedule: Invoice[]
 
     if (notifications.length > 0) {
       await LocalNotifications.schedule({ notifications });
-      console.log(`${notifications.length} notificações de fatura agendadas.`);
     }
   } catch (error) {
     console.error("Erro ao agendar notificações:", error);

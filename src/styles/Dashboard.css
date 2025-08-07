@@ -119,3 +119,8 @@
 .dashboard-chart-legend .dashboard-legend-btn {
   flex: 1; /* Faz cada botão crescer para ocupar o espaço disponível igualmente */
 }
+
+.text-family {
+  padding: 5px;
+  margin-left: 15px;
+}

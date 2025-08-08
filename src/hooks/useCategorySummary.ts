@@ -1,15 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
-import { getFirestore, collection, query, where, Timestamp, onSnapshot } from 'firebase/firestore'; // Importa o onSnapshot
+import { getFirestore, collection, query, where, Timestamp, onSnapshot } from 'firebase/firestore';
 import { useCategories } from './useCategories';
+import { useSpendingGoals } from './useSpendingGoals'; // 1. Importa o hook de metas
 import app from '../firebaseConfig';
 
-// Interfaces
+// 2. A interface agora inclui a meta (opcional)
 export interface CategorySummaryItem {
   name: string;
   total: number;
   percentage: number;
   color: string;
+  goalAmount?: number;
 }
 
 export interface ChartData {
@@ -27,12 +29,15 @@ export const useCategorySummary = (period: { startDate: Date; endDate: Date } | 
   const { user } = useAuth();
   const { availableCategories } = useCategories();
   
+  // 3. Busca as metas para o período atual
+  const periodString = period ? `${period.startDate.getFullYear()}-${String(period.startDate.getMonth() + 1).padStart(2, '0')}` : null;
+  const { goals, loading: goalsLoading } = useSpendingGoals(periodString);
+  
   const [chartData, setChartData] = useState<ChartData | null>(null);
   const [summaryList, setSummaryList] = useState<CategorySummaryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalExpense, setTotalExpense] = useState(0);
 
-  // --- ALTERAÇÃO PRINCIPAL: O hook agora usa onSnapshot para atualizações em tempo real ---
   useEffect(() => {
     const idsToFetch = memberIds.length > 0 ? memberIds : (user ? [user.uid] : []);
     if (idsToFetch.length === 0 || !period || availableCategories.length === 0) {
@@ -40,7 +45,12 @@ export const useCategorySummary = (period: { startDate: Date; endDate: Date } | 
       return;
     }
 
-    setLoading(true);
+    // O estado de loading agora considera o carregamento das metas
+    if (goalsLoading) {
+      setLoading(true);
+      return;
+    }
+
     const db = getFirestore(app);
     const unsubscribes = idsToFetch.map(userId => {
       const transactionsRef = collection(db, 'users', userId, 'transactions');
@@ -73,26 +83,28 @@ export const useCategorySummary = (period: { startDate: Date; endDate: Date } | 
         const grandTotal = Array.from(categoryTotals.values()).reduce((sum, totals) => sum + totals.reduce((a, b) => a + b, 0), 0);
         setTotalExpense(grandTotal);
 
-        const labels: string[] = [];
-        const dataSetsData = idsToFetch.map(() => [] as number[]);
-        const backgroundColor: string[] = [];
         const list: CategorySummaryItem[] = [];
+        const labels: string[] = [];
+        const backgroundColor: string[] = [];
+        const dataSetsData = idsToFetch.map(() => [] as number[]);
 
         categoryTotals.forEach((totals, categoryName) => {
-          labels.push(categoryName);
-          totals.forEach((total, index) => {
-            dataSetsData[index].push(total);
-          });
-          
           const categoryInfo = availableCategories.find(c => c.name === categoryName);
           const color = categoryInfo?.color || '#cccccc';
-          backgroundColor.push(color);
+          const goal = goals.find(g => g.categoryId === categoryInfo?.id);
 
           list.push({
             name: categoryName,
             total: totals.reduce((a, b) => a + b, 0),
             percentage: grandTotal > 0 ? (totals.reduce((a, b) => a + b, 0) / grandTotal) * 100 : 0,
             color: color,
+            goalAmount: goal?.amount,
+          });
+
+          labels.push(categoryName);
+          backgroundColor.push(color);
+          totals.forEach((total, index) => {
+            dataSetsData[index].push(total);
           });
         });
 
@@ -112,7 +124,7 @@ export const useCategorySummary = (period: { startDate: Date; endDate: Date } | 
 
     return () => unsubscribes.forEach(unsub => unsub());
 
-  }, [user, period, availableCategories, memberIds]);
+  }, [user, period, availableCategories, memberIds, goals, goalsLoading]);
 
   return { chartData, summaryList, loading, totalExpense };
 };

@@ -27,26 +27,20 @@ import {
   IonSelectOption,
   IonAlert,
 } from '@ionic/react';
-import { add, close, pencil, trash, checkmarkCircleOutline, closeCircleOutline } from 'ionicons/icons';
+
+import { add, close, pencil, trash } from 'ionicons/icons';
 import { useAuth } from '../hooks/AuthContext';
 import { getFirestore, collection, addDoc, query, where, Timestamp, doc, deleteDoc, updateDoc, writeBatch, onSnapshot, getDocs } from 'firebase/firestore';
-import { getInvoicePeriodForExpense } from '../logic/fatureLogic';
 import { v4 as uuidv4 } from 'uuid';
 import app from '../firebaseConfig';
 import CategorySelector from '../components/CategorySelector';
-import PeriodSelector from '../components/PeriodSelector';
+import PeriodSelector, { Period } from '../components/PeriodSelector';
 import AppModal from '../components/AppModal';
 import ActionButton from '../components/ActionButton';
 import ActionAlert from '../components/ActionAlert';
 import CurrencyInput from '../components/CurrencyInput';
 import '../styles/Lancamentos.css';
 import '../theme/variables.css';
-
-// --- Interfaces ---
-interface Period {
-  startDate: Date;
-  endDate: Date;
-}
 
 interface CreditCard {
   id: string;
@@ -61,7 +55,6 @@ interface ExpenseTransaction {
   amount: number;
   date: Date;
   isRecurring: boolean;
-  isPaid?: boolean;
   categories?: string[];
   paymentMethod?: 'credit' | 'debit';
   isInstallment?: boolean;
@@ -85,8 +78,6 @@ const Despesas: React.FC = () => {
   const [allFetchedExpenses, setAllFetchedExpenses] = useState<ExpenseTransaction[]>([]);
   const [cards, setCards] = useState<CreditCard[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // --- Estados do formulário ---
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState<number | undefined>();
   const [date, setDate] = useState(new Date().toISOString());
@@ -96,15 +87,10 @@ const Despesas: React.FC = () => {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedCardId, setSelectedCardId] = useState<string | undefined>();
   const [editingExpense, setEditingExpense] = useState<ExpenseTransaction | null>(null);
-
-  // --- Estados de Alertas e Menus ---
   const [showDeleteAlert, setShowDeleteAlert] = useState(false);
-  const [showPayAllAlert, setShowPayAllAlert] = useState(false);
   const [expenseToAction, setExpenseToAction] = useState<ExpenseTransaction | null>(null);
   const [showActionSheet, setShowActionSheet] = useState(false);
   const [showInstallmentDeleteAlert, setShowInstallmentDeleteAlert] = useState(false);
-
-  // --- Estados de Filtro ---
   const [selectedPeriod, setSelectedPeriod] = useState<Period | null>(null);
   const [filterMode, setFilterMode] = useState<FilterMode>('all');
 
@@ -128,7 +114,7 @@ const Despesas: React.FC = () => {
     const db = getFirestore(app);
     const transactionsRef = collection(db, 'users', user.uid, 'transactions');
     const q = query(transactionsRef, where('type', '==', 'expense'));
-    
+
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const fetchedExpenses = querySnapshot.docs.map(doc => ({
         id: doc.id,
@@ -143,25 +129,11 @@ const Despesas: React.FC = () => {
 
   const expensesForPeriod = useMemo(() => {
     if (!selectedPeriod) return [];
-    
+
     return allFetchedExpenses.filter(expense => {
-      if (expense.paymentMethod !== 'credit' || !expense.cardId) {
-        return expense.date >= selectedPeriod.startDate && expense.date <= selectedPeriod.endDate;
-      }
-
-      const card = cards.find(c => c.id === expense.cardId);
-      if (!card) {
-        return expense.date >= selectedPeriod.startDate && expense.date <= selectedPeriod.endDate;
-      }
-
-      const invoicePeriod = getInvoicePeriodForExpense(expense.date, card);
-      
-      return (
-        invoicePeriod.endDate.getMonth() === selectedPeriod.startDate.getMonth() &&
-        invoicePeriod.endDate.getFullYear() === selectedPeriod.startDate.getFullYear()
-      );
+      return expense.date >= selectedPeriod.startDate && expense.date <= selectedPeriod.endDate;
     });
-  }, [allFetchedExpenses, selectedPeriod, cards]);
+  }, [allFetchedExpenses, selectedPeriod]);
 
   const handleSaveExpense = async () => {
     if (!user || !amount || !description) return;
@@ -177,7 +149,7 @@ const Despesas: React.FC = () => {
           const installmentDate = new Date(date);
           installmentDate.setMonth(installmentDate.getMonth() + i);
           const newDocRef = doc(collection(db, 'users', user.uid, 'transactions'));
-          
+
           const data = {
             type: 'expense',
             amount: installmentAmount,
@@ -219,35 +191,6 @@ const Despesas: React.FC = () => {
       closeModalAndReset();
     } catch (error) {
       console.error("Erro ao salvar gasto:", error);
-    }
-  };
-
-  const handleTogglePaidStatus = async () => {
-    if (!user || !expenseToAction) return;
-    const db = getFirestore(app);
-    const docRef = doc(db, 'users', user.uid, 'transactions', expenseToAction.id);
-    try {
-      await updateDoc(docRef, { isPaid: !expenseToAction.isPaid });
-    } catch (error) {
-      console.error("Erro ao atualizar status de pagamento:", error);
-    }
-  };
-
-  const handlePayAll = async () => {
-    if (!user) return;
-    const unpaidExpenses = expensesForPeriod.filter(exp => !exp.isPaid);
-    if (unpaidExpenses.length === 0) return;
-
-    const db = getFirestore(app);
-    const batch = writeBatch(db);
-    unpaidExpenses.forEach(expense => {
-      const docRef = doc(db, 'users', user.uid, 'transactions', expense.id);
-      batch.update(docRef, { isPaid: true });
-    });
-    try {
-      await batch.commit();
-    } catch (error) {
-      console.error("Erro ao pagar todas as contas:", error);
     }
   };
 
@@ -330,12 +273,12 @@ const Despesas: React.FC = () => {
   };
 
   const displayedExpenses = useMemo(() => {
-    if (filterMode === 'all') return expensesForPeriod;
-    return expensesForPeriod.filter(exp => exp.paymentMethod === filterMode);
+    const filtered = filterMode === 'all'
+      ? expensesForPeriod
+      : expensesForPeriod.filter(exp => exp.paymentMethod === filterMode);
+    return filtered.sort((a, b) => a.date.getTime() - b.date.getTime());
   }, [expensesForPeriod, filterMode]);
 
-  const unpaidExpenses = displayedExpenses.filter(exp => !exp.isPaid);
-  const paidExpenses = displayedExpenses.filter(exp => exp.isPaid);
   const totalExpense = displayedExpenses.reduce((sum, item) => sum + item.amount, 0);
 
   return (
@@ -343,12 +286,12 @@ const Despesas: React.FC = () => {
       <IonHeader>
         <IonToolbar color="primary">
           <IonButtons slot="start"><IonMenuButton /></IonButtons>
-          <IonTitle>Despesas</IonTitle>
+          <IonTitle>Lançamentos de Despesas</IonTitle>
         </IonToolbar>
       </IonHeader>
       <IonContent className="ion-padding">
         <div className="summary-card">
-          <IonText><p>Despesas totais no período</p></IonText>
+          <IonText><p>Total gasto no período</p></IonText>
           <IonText color="danger">
             <h2>{totalExpense.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</h2>
           </IonText>
@@ -371,65 +314,30 @@ const Despesas: React.FC = () => {
           ))}
         </div>
 
-        {unpaidExpenses.length > 0 && (
-          <div className="pay-all-container">
-            <ActionButton fill="outline" onClick={() => setShowPayAllAlert(true)} icon={checkmarkCircleOutline}>
-              Pagar Todas as Contas Pendentes
-            </ActionButton>
-          </div>
-        )}
-
         {loading ? (
           <div style={{ textAlign: 'center', marginTop: '20px' }}><IonSpinner /></div>
         ) : (
-          <>
-            <IonList>
-              {unpaidExpenses.map(expense => (
-                <IonItem key={expense.id} lines="inset" button onClick={() => handleItemClick(expense)} className="item-unpaid">
-                  <IonLabel>
-                    <h2>{expense.description}</h2>
-                    <p>{expense.date.toLocaleDateString('pt-BR')}</p>
-                  </IonLabel>
-                  <div slot="end" className="item-details-end">
-                    <IonText color="danger">
-                      <p>{expense.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
-                    </IonText>
-                    {expense.paymentMethod && (
-                      <div className={`payment-method-tag ${expense.paymentMethod}`}>
-                        {expense.paymentMethod === 'credit' ? 'CRÉD' : 'DÉB'}
-                      </div>
-                    )}
-                  </div>
-                </IonItem>
-              ))}
-            </IonList>
 
-            {paidExpenses.length > 0 && (
-              <div className="paid-section">
-                <div className="divider"><span>Contas Pagas</span></div>
-                <IonList>
-                  {paidExpenses.map(expense => (
-                    <IonItem key={expense.id} lines="inset" button onClick={() => handleItemClick(expense)} className="item-paid">
-                      <IonLabel>
-                        <h2>{expense.description}</h2>
-                        <p>{expense.date.toLocaleDateString('pt-BR')}</p>
-                      </IonLabel>
-                      <div slot="end" className="item-details-end">
-                        <IonText color="danger">
-                          <p>{expense.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
-                        </IonText>
-                        {expense.paymentMethod && (
-                          <div className={`payment-method-tag ${expense.paymentMethod}`}>
-                            {expense.paymentMethod === 'credit' ? 'CRÉD' : 'DÉB'}
-                          </div>
-                        )}
-                      </div>
-                    </IonItem>
-                  ))}
-                </IonList>
-              </div>
-            )}
-          </>
+          <IonList>
+            {displayedExpenses.map(expense => (
+              <IonItem key={expense.id} lines="inset" button onClick={() => handleItemClick(expense)}>
+                <IonLabel>
+                  <h2>{expense.description}</h2>
+                  <p>{expense.date.toLocaleDateString('pt-BR')}</p>
+                </IonLabel>
+                <div slot="end" className="item-details-end">
+                  <IonText color="danger">
+                    <p>{expense.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+                  </IonText>
+                  {expense.paymentMethod && (
+                    <div className={`payment-method-tag ${expense.paymentMethod}`}>
+                      {expense.paymentMethod === 'credit' ? 'CRÉD' : 'DÉB'}
+                    </div>
+                  )}
+                </div>
+              </IonItem>
+            ))}
+          </IonList>
         )}
 
         <IonFab vertical="bottom" horizontal="end" slot="fixed">
@@ -448,13 +356,13 @@ const Despesas: React.FC = () => {
             </IonItem>
           </div>
           <div className="form-field-group">
-            <CategorySelector 
-              selectedCategories={selectedCategories} 
-              onCategoryChange={setSelectedCategories} 
+            <CategorySelector
+              selectedCategories={selectedCategories}
+              onCategoryChange={setSelectedCategories}
             />
           </div>
           <div className="form-field-group">
-            <CurrencyInput 
+            <CurrencyInput
               label={(installments || 1) > 1 || editingExpense?.isInstallment ? 'Valor Total (R$)' : 'Valor (R$)'}
               value={amount}
               onValueChange={setAmount}
@@ -471,13 +379,13 @@ const Despesas: React.FC = () => {
           <div className="form-field-group">
             <IonLabel style={{ paddingLeft: '16px', color: 'var(--ion-color-medium-shade)' }}>Forma de Pagamento</IonLabel>
             <IonSegment value={paymentMethod} onIonChange={e => {
-                const value = e.detail.value;
-                if (value === 'credit' || value === 'debit') {
-                    setPaymentMethod(value);
-                }
+              const value = e.detail.value;
+              if (value === 'credit' || value === 'debit') {
+                setPaymentMethod(value);
+              }
             }}>
-                <IonSegmentButton value="debit"><IonLabel>Débito</IonLabel></IonSegmentButton>
-                <IonSegmentButton value="credit"><IonLabel>Crédito</IonLabel></IonSegmentButton>
+              <IonSegmentButton value="debit"><IonLabel>Débito</IonLabel></IonSegmentButton>
+              <IonSegmentButton value="credit"><IonLabel>Crédito</IonLabel></IonSegmentButton>
             </IonSegment>
           </div>
 
@@ -516,10 +424,6 @@ const Despesas: React.FC = () => {
           </ActionButton>
         </AppModal>
 
-        <IonModal keepContentsMounted={true}>
-            <IonDatetime id="datetime-in-modal" value={date} onIonChange={e => { const value = e.detail.value; if (typeof value === 'string') { setDate(value); } }} presentation="date" />
-        </IonModal>
-
         <ActionAlert
           isOpen={showDeleteAlert}
           onDidDismiss={() => setShowDeleteAlert(false)}
@@ -530,75 +434,44 @@ const Despesas: React.FC = () => {
         />
 
         <IonAlert
-            isOpen={showInstallmentDeleteAlert}
-            onDidDismiss={() => setShowInstallmentDeleteAlert(false)}
-            header={'Excluir Despesa Parcelada'}
-            message={'Você deseja excluir apenas esta parcela ou esta e todas as futuras?'}
-            buttons={[
-                {
-                    text: 'Apenas Esta',
-                    handler: confirmDeleteSingleInstallment
-                },
-                {
-                    text: 'Esta e as Próximas',
-                    cssClass: 'alert-button-danger',
-                    handler: confirmDeleteFutureInstallments
-                },
-                {
-                    text: 'Cancelar',
-                    role: 'cancel',
-                },
-            ]}
+          isOpen={showInstallmentDeleteAlert}
+          onDidDismiss={() => setShowInstallmentDeleteAlert(false)}
+          header={'Excluir Despesa Parcelada'}
+          message={'Você deseja excluir apenas esta parcela ou esta e todas as futuras?'}
+          buttons={[
+            { text: 'Apenas Esta', handler: confirmDeleteSingleInstallment },
+            { text: 'Esta e as Próximas', cssClass: 'alert-button-danger', handler: confirmDeleteFutureInstallments },
+            { text: 'Cancelar', role: 'cancel' },
+          ]}
         />
 
-        <ActionAlert
-          isOpen={showPayAllAlert}
-          onDidDismiss={() => setShowPayAllAlert(false)}
-          header={'Confirmar Pagamento'}
-          message={'Deseja marcar todas as contas pendentes como pagas?'}
-          onConfirm={() => {
-            handlePayAll();
-            setShowPayAllAlert(false);
-          }}
-          confirmButtonText="Pagar Todas"
-        />
-        
         <IonActionSheet
           isOpen={showActionSheet}
           onDidDismiss={() => setShowActionSheet(false)}
           header={expenseToAction?.description}
           buttons={[
-              ...(expenseToAction && !expenseToAction.isPaid ? [{
-                  text: 'Pagar Conta',
-                  icon: checkmarkCircleOutline,
-                  handler: handleTogglePaidStatus,
-                  cssClass: 'action-sheet-edit',
-              }] : []),
-              ...(expenseToAction && expenseToAction.isPaid ? [{
-                  text: 'Marcar como não pago',
-                  icon: closeCircleOutline,
-                  handler: handleTogglePaidStatus,
-                  cssClass: 'action-sheet-edit',
-              }] : []),
-              {
-                  text: 'Editar',
-                  icon: pencil,
-                  handler: handleEditClick,
-                  cssClass: 'action-sheet-edit',
-              },
-              {
-                  text: 'Excluir',
-                  role: 'destructive',
-                  icon: trash,
-                  handler: handleDeleteClick
-              },
-              {
-                  text: 'Cancelar',
-                  icon: close,
-                  role: 'cancel'
-              }
+            {
+              text: 'Editar',
+              icon: pencil,
+              handler: handleEditClick,
+              cssClass: 'action-sheet-edit',
+            },
+            {
+              text: 'Excluir',
+              role: 'destructive',
+              icon: trash,
+              handler: handleDeleteClick
+            },
+            {
+              text: 'Cancelar',
+              icon: close,
+              role: 'cancel'
+            }
           ]}
         />
+        <IonModal keepContentsMounted={true}>
+          <IonDatetime id="datetime-in-modal" value={date} onIonChange={e => { const value = e.detail.value; if (typeof value === 'string') { setDate(value); } }} presentation="date" />
+        </IonModal>
       </IonContent>
     </IonPage>
   );

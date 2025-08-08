@@ -61,7 +61,6 @@ export const useTransactionSummary = (period: Period | null, memberIds: string[]
             totalExpense += amount;
             if (index === 0) user1Expense += amount;
             else user2Expense += amount;
-          // --- CORREÇÃO: Lógica agora subtrai os resgates da reserva ---
           } else if (data.type === 'reserve_add') {
             totalReserved += amount;
             if (index === 0) user1Reserved += amount;

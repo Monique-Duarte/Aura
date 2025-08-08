@@ -1,57 +1,57 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { IonSelect, IonSelectOption } from '@ionic/react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { IonSelect, IonSelectOption, IonSpinner } from '@ionic/react';
 import { useDate } from '../hooks/DateContext';
 import { generateFinancialPeriods } from '../logic/dateLogic';
 
-// Define a estrutura de um objeto de período que o componente vai comunicar
-interface Period {
+export interface Period {
+  value: string; // Ex: "2025-08"
+  label: string; // Ex: "Agosto / 2025"
   startDate: Date;
   endDate: Date;
 }
 
-// Define as propriedades que o componente espera receber
 interface PeriodSelectorProps {
   onPeriodChange: (period: Period) => void;
 }
 
 const PeriodSelector: React.FC<PeriodSelectorProps> = ({ onPeriodChange }) => {
   const { startDay, currentPeriod } = useDate();
+  const periodOptions = useMemo(() => {
+    return generateFinancialPeriods(startDay);
+  }, [startDay]);
+  
+  const [selectedValue, setSelectedValue] = useState<string | null>(null);
 
-  // Estado interno para controlar as opções e o valor selecionado
-  const [periodOptions, setPeriodOptions] = useState<ReturnType<typeof generateFinancialPeriods>>([]);
-  const [selectedPeriodValue, setSelectedPeriodValue] = useState<string>('');
-
-  // Gera as opções do seletor e define o valor inicial
   useEffect(() => {
-    const options = generateFinancialPeriods(startDay);
-    setPeriodOptions(options);
 
-    if (currentPeriod) {
-      const currentOption = options.find(
+    if (periodOptions.length > 0 && currentPeriod && selectedValue === null) {
+      const currentOption = periodOptions.find(
         p => p.startDate.getTime() === currentPeriod.startDate.getTime()
       );
+
       if (currentOption) {
-        setSelectedPeriodValue(currentOption.value);
+        setSelectedValue(currentOption.value);
+        onPeriodChange(currentOption);
       }
     }
-  }, [startDay, currentPeriod]);
+  }, [periodOptions, currentPeriod, selectedValue, onPeriodChange]);
 
-  const notifyParentOfChange = useCallback(() => {
-    const selected = periodOptions.find(p => p.value === selectedPeriodValue);
-    if (selected) {
-      onPeriodChange({ startDate: selected.startDate, endDate: selected.endDate });
+  const handleChange = (newValue: string) => {
+    const selectedOption = periodOptions.find(p => p.value === newValue);
+    if (selectedOption) {
+      setSelectedValue(selectedOption.value);
+      onPeriodChange(selectedOption);
     }
-  }, [selectedPeriodValue, periodOptions, onPeriodChange]);
+  };
 
-  useEffect(() => {
-    notifyParentOfChange();
-  }, [notifyParentOfChange]);
+  if (!selectedValue) {
+    return <IonSpinner name="dots" style={{'--color': 'var(--ion-color-medium)'}}/>;
+  }
 
   return (
     <IonSelect
-      value={selectedPeriodValue}
-      placeholder="Selecione o Mês"
-      onIonChange={e => setSelectedPeriodValue(e.detail.value)}
+      value={selectedValue}
+      onIonChange={e => handleChange(e.detail.value)}
       interface="popover"
       className="month-selector"
     >

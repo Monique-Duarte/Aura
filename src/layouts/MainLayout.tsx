@@ -7,6 +7,7 @@ import Dashboard from '../pages/Dashboard';
 import Renda from '../pages/Renda';
 import Despesa from '../pages/Despesa';
 import Reserva from '../pages/Reserva';
+import Metas from '../pages/DefinitMetas';
 import Cartao from '../pages/Cartao';
 import Faturas from '../pages/Faturas';
 import Configuracao from '../pages/Configuracao';
@@ -21,6 +22,7 @@ const MainLayout: React.FC = () => {
           <PrivateRoute path="/app/renda" component={Renda} exact />
           <PrivateRoute path="/app/despesas" component={Despesa} exact />
           <PrivateRoute path="/app/reserva" component={Reserva} exact />
+          <PrivateRoute path="/app/metas" component={Metas} exact />
           <PrivateRoute path="/app/cartao" component={Cartao} exact />
           <PrivateRoute path="/app/faturas" component={Faturas} exact />
           <PrivateRoute path="/app/configuracao" component={Configuracao} exact />

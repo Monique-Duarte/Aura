@@ -1,6 +1,17 @@
 import React, { useState, useMemo } from 'react';
-import { IonPage, IonHeader, IonToolbar, IonButtons, IonMenuButton, IonTitle, IonContent, IonSpinner, IonText } from '@ionic/react';
-import PeriodSelector from '../components/PeriodSelector';
+import { 
+  IonPage, 
+  IonHeader, 
+  IonToolbar, 
+  IonButtons, 
+  IonMenuButton, 
+  IonTitle, 
+  IonContent, 
+  IonSpinner, 
+  IonText 
+} from '@ionic/react';
+
+import PeriodSelector, { Period } from '../components/PeriodSelector';
 import BalanceChart from '../components/BalanceChart';
 import CategoryChart from '../components/CategoryChart';
 import CategorySummaryList from '../components/CategorySummaryList';
@@ -17,17 +28,13 @@ const chartOptions = [
   { key: 'family', label: 'Gráfico Conjunto' },
 ] as const;
 
-interface Period {
-  startDate: Date;
-  endDate: Date;
-}
-
 const Dashboard: React.FC = () => {
   const [activeChart, setActiveChart] = useState<'balance' | 'category' | 'family'>('balance');
-  const [selectedPeriod, setSelectedPeriod] = useState<Period | null>(null);
+  const [activePeriodObject, setActivePeriodObject] = useState<Period | null>(null);
+  
   const memberIds = useMemo(() => [], []);
-  const { summary: balanceSummary, loading: balanceLoading } = useTransactionSummary(selectedPeriod);
-  const { chartData: categoryChartData, summaryList: categorySummaryList, loading: categoryLoading, totalExpense } = useCategorySummary(selectedPeriod, memberIds);
+  const { summary: balanceSummary, loading: balanceLoading } = useTransactionSummary(activePeriodObject);
+  const { chartData: categoryChartData, summaryList: categorySummaryList, loading: categoryLoading, totalExpense } = useCategorySummary(activePeriodObject, memberIds);
   const { balance: currentBalance, loading: accountBalanceLoading } = useAccountBalance();
 
   return (
@@ -57,7 +64,7 @@ const Dashboard: React.FC = () => {
 
         <div className="dashboard-header-row">
           <h2 className="dashboard-title">Resumo Mensal</h2>
-          <PeriodSelector onPeriodChange={setSelectedPeriod} />
+          <PeriodSelector onPeriodChange={setActivePeriodObject} />
         </div>
 
         <div className="dashboard-chart-legend">
@@ -93,7 +100,7 @@ const Dashboard: React.FC = () => {
             )}
           </div>
           <div className={`chart-container ${activeChart === 'family' ? 'active' : ''}`}>
-            <FamilyChartManager period={selectedPeriod} />
+            <FamilyChartManager period={activePeriodObject} />
           </div>
         </div>
 

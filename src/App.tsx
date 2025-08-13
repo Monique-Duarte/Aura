@@ -35,7 +35,7 @@ const App: React.FC = () => {
         await StatusBar.setStyle({ style: Style.Dark });
         
         // Definir cor de fundo da status bar (ajuste conforme seu tema)
-        await StatusBar.setBackgroundColor({ color: '#ffffff' });
+        await StatusBar.setBackgroundColor({ color: '#000' });
         
         // Garantir que a status bar seja exibida
         await StatusBar.show();

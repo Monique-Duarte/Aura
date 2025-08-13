@@ -1,18 +1,21 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   IonPage, IonHeader, IonToolbar, IonButtons, IonMenuButton, IonTitle, IonContent,
   IonFab, IonFabButton, IonIcon, IonInput, IonItem, IonLabel, IonList, IonDatetime,
   IonToggle, IonText, IonSpinner, IonDatetimeButton, IonActionSheet, IonModal, IonButton,
+  IonSelect, IonSelectOption, IonAlert,
 } from '@ionic/react';
 import { add, close, pencil, trash, downloadOutline } from 'ionicons/icons';
 import { useAuth } from '../hooks/AuthContext';
-import { getFirestore, collection, addDoc, query, where, getDocs, Timestamp, doc, deleteDoc, updateDoc } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, query, where, Timestamp, doc, deleteDoc, updateDoc, onSnapshot } from 'firebase/firestore';
 import app from '../firebaseConfig';
 import PeriodSelector from '../components/PeriodSelector';
 import AppModal from '../components/AppModal';
 import ActionButton from '../components/ActionButton';
 import ActionAlert from '../components/ActionAlert';
-import ExportDataModal from '../components/ExportDataModal'; // Importa o novo componente
+import ExportDataModal from '../components/ExportDataModal';
+import CurrencyInput from '../components/CurrencyInput';
+import { useIncomeCategories } from '../hooks/useIncomeCategories';
 import '../styles/Lancamentos.css';
 import '../theme/variables.css';
 
@@ -21,12 +24,14 @@ interface Period {
   startDate: Date;
   endDate: Date;
 }
+// 2. Interface atualizada para incluir a categoria
 interface IncomeTransaction {
   id: string;
   description: string;
   amount: number;
   date: Date;
   isRecurring: boolean;
+  categoryId?: string; 
 }
 
 const Renda: React.FC = () => {
@@ -34,15 +39,17 @@ const Renda: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [incomes, setIncomes] = useState<IncomeTransaction[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // --- NOVO ESTADO PARA O MODAL DE EXPORTAÇÃO ---
   const [showExportModal, setShowExportModal] = useState(false);
+
+  // 3. Usa o novo hook para buscar e adicionar categorias de renda
+  const { categories: incomeCategories, addCategory: addIncomeCategory } = useIncomeCategories();
 
   // Estados do formulário
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState<number | undefined>();
   const [date, setDate] = useState(new Date().toISOString());
   const [isRecurring, setIsRecurring] = useState(false);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | undefined>(); // Estado para a categoria selecionada
 
   // Estados de controle
   const [editingIncome, setEditingIncome] = useState<IncomeTransaction | null>(null);
@@ -50,41 +57,39 @@ const Renda: React.FC = () => {
   const [incomeToAction, setIncomeToAction] = useState<IncomeTransaction | null>(null);
   const [showActionSheet, setShowActionSheet] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState<Period | null>(null);
+  const [showAddCategoryAlert, setShowAddCategoryAlert] = useState(false); // Estado para o alerta de nova categoria
 
-  const fetchIncomes = useCallback(async () => {
+  // Lógica de busca de rendas (alterada para usar onSnapshot)
+  useEffect(() => {
     if (!user || !selectedPeriod) {
       setIncomes([]);
       setLoading(false);
       return;
     }
     setLoading(true);
-    try {
-      const db = getFirestore(app);
-      const transactionsRef = collection(db, 'users', user.uid, 'transactions');
-      const q = query(
-        transactionsRef,
-        where('type', '==', 'income'),
-        where('date', '>=', selectedPeriod.startDate),
-        where('date', '<=', selectedPeriod.endDate)
-      );
-      const querySnapshot = await getDocs(q);
+    const db = getFirestore(app);
+    const transactionsRef = collection(db, 'users', user.uid, 'transactions');
+    const q = query(
+      transactionsRef,
+      where('type', '==', 'income'),
+      where('date', '>=', selectedPeriod.startDate),
+      where('date', '<=', selectedPeriod.endDate)
+    );
+
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const fetchedIncomes = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
         date: (doc.data().date as Timestamp).toDate(),
       })).sort((a, b) => b.date.getTime() - a.date.getTime()) as IncomeTransaction[];
       setIncomes(fetchedIncomes);
-    } catch (error) {
-      console.error("Erro ao buscar rendas:", error);
-    } finally {
       setLoading(false);
-    }
+    });
+
+    return () => unsubscribe();
   }, [user, selectedPeriod]);
 
-  useEffect(() => {
-    fetchIncomes();
-  }, [fetchIncomes]);
-
+  // Função de salvar atualizada para incluir a categoria
   const handleSaveIncome = async () => {
     if (!user || !amount || !description) return;
     const db = getFirestore(app);
@@ -93,6 +98,7 @@ const Renda: React.FC = () => {
       description,
       date: Timestamp.fromDate(new Date(date)),
       isRecurring,
+      categoryId: selectedCategoryId || null, // Salva o ID da categoria
       ...(isRecurring && { recurringDay: new Date(date).getDate() }),
     };
 
@@ -105,7 +111,6 @@ const Renda: React.FC = () => {
         await addDoc(transactionsRef, { ...dataToSave, type: 'income' });
       }
       closeModalAndReset();
-      fetchIncomes();
     } catch (error) {
       console.error("Erro ao salvar renda:", error);
     }
@@ -123,6 +128,7 @@ const Renda: React.FC = () => {
     setAmount(incomeToAction.amount);
     setDate(incomeToAction.date.toISOString());
     setIsRecurring(incomeToAction.isRecurring);
+    setSelectedCategoryId(incomeToAction.categoryId); // Popula a categoria ao editar
     setShowModal(true);
   };
 
@@ -137,7 +143,6 @@ const Renda: React.FC = () => {
     const docRef = doc(db, 'users', user.uid, 'transactions', incomeToAction.id);
     try {
       await deleteDoc(docRef);
-      fetchIncomes();
     } catch (error) {
       console.error("Erro ao excluir renda:", error);
     }
@@ -152,6 +157,17 @@ const Renda: React.FC = () => {
     setAmount(undefined);
     setDate(new Date().toISOString());
     setIsRecurring(false);
+    setSelectedCategoryId(undefined); // Limpa a categoria
+  };
+
+  // Função para lidar com a seleção de categoria
+  const handleCategoryChange = (e: CustomEvent) => {
+    const value = e.detail.value;
+    if (value === 'add_new') {
+      setShowAddCategoryAlert(true);
+    } else {
+      setSelectedCategoryId(value);
+    }
   };
 
   const totalIncome = incomes.reduce((sum, item) => sum + item.amount, 0);
@@ -187,17 +203,21 @@ const Renda: React.FC = () => {
           <div style={{ textAlign: 'center', marginTop: '20px' }}><IonSpinner /></div>
         ) : (
           <IonList>
-            {incomes.map(income => (
-              <IonItem key={income.id} lines="inset" button onClick={() => handleItemClick(income)}>
-                <IonLabel>
-                  <h2>{income.description}</h2>
-                  <p>{income.date.toLocaleDateString('pt-BR')}</p>
-                </IonLabel>
-                <IonText color="success" slot="end">
-                  <p>{income.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
-                </IonText>
-              </IonItem>
-            ))}
+            {incomes.map(income => {
+              const category = incomeCategories.find(c => c.id === income.categoryId);
+              return (
+                <IonItem key={income.id} lines="inset" button onClick={() => handleItemClick(income)}>
+                  <IonLabel>
+                    <h2>{income.description}</h2>
+                    {/* Exibe o nome da categoria se ela existir */}
+                    <p>{income.date.toLocaleDateString('pt-BR')} {category ? `· ${category.name}` : ''}</p>
+                  </IonLabel>
+                  <IonText color="success" slot="end">
+                    <p>{income.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+                  </IonText>
+                </IonItem>
+              );
+            })}
           </IonList>
         )}
 
@@ -218,11 +238,26 @@ const Renda: React.FC = () => {
               <IonInput value={description} onIonChange={e => setDescription(e.detail.value!)} placeholder="Ex: Salário, Freelance" />
             </IonItem>
           </div>
+          {/* 4. NOVO CAMPO DE CATEGORIA */}
           <div className="form-field-group">
             <IonItem>
-              <IonLabel position="floating">Valor (R$)</IonLabel>
-              <IonInput type="number" value={amount} onIonChange={e => setAmount(parseFloat(e.detail.value!))} placeholder="1500,00" />
+              <IonLabel>Categoria</IonLabel>
+              <IonSelect
+                value={selectedCategoryId}
+                placeholder="Selecione (Opcional)"
+                onIonChange={handleCategoryChange}
+              >
+                {incomeCategories.map(cat => (
+                  <IonSelectOption key={cat.id} value={cat.id}>{cat.name}</IonSelectOption>
+                ))}
+                <IonSelectOption value="add_new" style={{ color: 'var(--ion-color-primary)' }}>
+                  + Adicionar Categoria
+                </IonSelectOption>
+              </IonSelect>
             </IonItem>
+          </div>
+          <div className="form-field-group">
+            <CurrencyInput label="Valor (R$)" value={amount} onValueChange={setAmount} />
           </div>
           <div className="form-field-group">
             <IonItem lines="none" className="date-item">
@@ -268,6 +303,26 @@ const Renda: React.FC = () => {
         <ExportDataModal
           isOpen={showExportModal}
           onDidDismiss={() => setShowExportModal(false)}
+        />
+
+        {/* Alerta para adicionar nova categoria */}
+        <IonAlert
+          isOpen={showAddCategoryAlert}
+          onDidDismiss={() => setShowAddCategoryAlert(false)}
+          header={'Nova Categoria de Renda'}
+          message={'Digite o nome da nova categoria.'}
+          inputs={[{ name: 'categoryName', type: 'text', placeholder: 'Ex: Freelance' }]}
+          buttons={[
+            { text: 'Cancelar', role: 'cancel' },
+            { 
+              text: 'Salvar', 
+              handler: (data) => {
+                if (data.categoryName) {
+                  addIncomeCategory(data.categoryName);
+                }
+              }
+            }
+          ]}
         />
       </IonContent>
     </IonPage>

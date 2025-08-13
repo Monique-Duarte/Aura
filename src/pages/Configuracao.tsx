@@ -16,10 +16,11 @@ import {
   IonSpinner,
   IonListHeader,
   IonActionSheet,
-  IonNote, // Adicionado para o subtítulo
+  IonNote,
 } from '@ionic/react';
 import { add, pencil, trash, warningOutline, close } from 'ionicons/icons';
-import { useCategories, Category } from '../hooks/useCategories';
+import { useCategories, Category as ExpenseCategory } from '../hooks/useCategories';
+import { useIncomeCategories, IncomeCategory } from '../hooks/useIncomeCategories';
 import { getAuth, deleteUser } from 'firebase/auth';
 import AppModal from '../components/AppModal';
 import ActionButton from '../components/ActionButton';
@@ -28,24 +29,41 @@ import '../styles/Configuracao.css';
 
 const Configuracao: React.FC = () => {
   const { 
-    userCategories, 
-    loading, 
-    addCategory, 
-    updateCategory, 
-    deleteCategory 
+    userCategories: expenseCategories, 
+    loading: expenseLoading, 
+    addCategory: addExpenseCategory, 
+    updateCategory: updateExpenseCategory, 
+    deleteCategory: deleteExpenseCategory 
   } = useCategories();
 
+  const {
+    categories: incomeCategories,
+    loading: incomeLoading,
+    addCategory: addIncomeCategory,
+    updateCategory: updateIncomeCategory,
+    deleteCategory: deleteIncomeCategory
+  } = useIncomeCategories();
+
+  // 3. Estados unificados para controlar os modais e ações
   const [showModal, setShowModal] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<ExpenseCategory | IncomeCategory | null>(null);
+  const [categoryType, setCategoryType] = useState<'expense' | 'income' | null>(null);
+  
   const [categoryName, setCategoryName] = useState('');
   const [categoryColor, setCategoryColor] = useState('#ffffff');
-  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-  const [categoryToAction, setCategoryToAction] = useState<Category | null>(null);
-  const [showDeleteCategoryAlert, setShowDeleteCategoryAlert] = useState(false);
+  
+  const [categoryToAction, setCategoryToAction] = useState<ExpenseCategory | IncomeCategory | null>(null);
+  const [showDeleteAlert, setShowDeleteAlert] = useState(false);
   const [showDeleteAccountAlert, setShowDeleteAccountAlert] = useState(false);
   const [showCategoryActionSheet, setShowCategoryActionSheet] = useState(false);
+  const [showAddActionSheet, setShowAddActionSheet] = useState(false);
 
-  const openAddModal = () => {
+  const loading = expenseLoading || incomeLoading;
+
+  // Funções para abrir os modais
+  const openAddModal = (type: 'expense' | 'income') => {
     setEditingCategory(null);
+    setCategoryType(type);
     setCategoryName('');
     setCategoryColor('#ffffff');
     setShowModal(true);
@@ -54,55 +72,70 @@ const Configuracao: React.FC = () => {
   const openEditModal = () => {
     if (!categoryToAction) return;
     setEditingCategory(categoryToAction);
-    setCategoryName(categoryToAction.name);
-    setCategoryColor(categoryToAction.color);
+    // Verifica o tipo da categoria para saber se tem cor
+    if ('color' in categoryToAction) {
+      setCategoryType('expense');
+      setCategoryName(categoryToAction.name);
+      setCategoryColor(categoryToAction.color);
+    } else {
+      setCategoryType('income');
+      setCategoryName(categoryToAction.name);
+    }
     setShowModal(true);
   };
 
+  // Função de salvar unificada
   const handleSaveCategory = async () => {
-    if (!categoryName) {
-      alert("O nome da categoria é obrigatório.");
-      return;
-    }
+    if (!categoryName) return;
 
-    if (editingCategory) {
-      await updateCategory(editingCategory.id, categoryName, categoryColor);
-    } else {
-      await addCategory(categoryName, categoryColor);
+    if (editingCategory) { // Editando
+      if (categoryType === 'expense') {
+        await updateExpenseCategory(editingCategory.id, categoryName, categoryColor);
+      } else {
+        await updateIncomeCategory(editingCategory.id, categoryName);
+      }
+    } else { // Adicionando
+      if (categoryType === 'expense') {
+        await addExpenseCategory(categoryName, categoryColor);
+      } else {
+        await addIncomeCategory(categoryName);
+      }
     }
     setShowModal(false);
   };
 
+  // Funções de exclusão unificadas
   const handleDeleteClick = () => {
     if (!categoryToAction) return;
-    setShowDeleteCategoryAlert(true);
+    setShowDeleteAlert(true);
   };
 
   const confirmDeleteCategory = async () => {
     if (categoryToAction) {
-      await deleteCategory(categoryToAction.id);
+      if ('color' in categoryToAction) {
+        await deleteExpenseCategory(categoryToAction.id);
+      } else {
+        await deleteIncomeCategory(categoryToAction.id);
+      }
       setCategoryToAction(null);
     }
-    setShowDeleteCategoryAlert(false);
+    setShowDeleteAlert(false);
   };
 
   const confirmDeleteAccount = async () => {
     const authUser = getAuth().currentUser;
     if (authUser) {
       try {
-        // AVISO: Isto apaga o utilizador, mas não os seus dados no Firestore.
-        // A exclusão completa de dados deve ser feita por uma Cloud Function no Firebase.
         await deleteUser(authUser);
         window.location.href = '/login';
       } catch (error) {
         console.error("Erro ao excluir a conta:", error);
-        alert("Erro ao excluir a conta. Pode ser necessário fazer logout e login novamente.");
       }
     }
     setShowDeleteAccountAlert(false);
   };
 
-  const handleCategoryClick = (category: Category) => {
+  const handleCategoryClick = (category: ExpenseCategory | IncomeCategory) => {
     setCategoryToAction(category);
     setShowCategoryActionSheet(true);
   };
@@ -122,24 +155,32 @@ const Configuracao: React.FC = () => {
           <div style={{ textAlign: 'center' }}><IonSpinner /></div>
         ) : (
           <>
+            {/* 4. Secção para Categorias de Despesa */}
             <IonListHeader className="category-header">
-              <IonLabel>Minhas Categorias</IonLabel>
+              <IonLabel>Categorias de Despesa</IonLabel>
               <IonNote slot="end">Toque para editar</IonNote>
             </IonListHeader>
-
             <div className="category-grid">
-              {userCategories.length > 0 ? userCategories.map(cat => (
+              {expenseCategories.map(cat => (
                 <div key={cat.id} className="category-grid-item" onClick={() => handleCategoryClick(cat)}>
                   <div className="category-color-dot" style={{ backgroundColor: cat.color }}></div>
                   <IonLabel>{cat.name}</IonLabel>
                 </div>
-              )) : (
-                <IonItem lines="none" style={{ gridColumn: '1 / -1' }}>
-                  <IonLabel color="medium" className="ion-text-center">
-                    <p>Ainda não criou nenhuma categoria. Use o botão '+' para adicionar.</p>
-                  </IonLabel>
-                </IonItem>
-              )}
+              ))}
+            </div>
+
+            {/* 5. NOVA Secção para Categorias de Renda */}
+            <IonListHeader className="category-header">
+              <IonLabel>Categorias de Renda</IonLabel>
+              <IonNote slot="end">Toque para editar</IonNote>
+            </IonListHeader>
+            <div className="category-grid">
+              {incomeCategories.map(cat => (
+                <div key={cat.id} className="category-grid-item" onClick={() => handleCategoryClick(cat)}>
+                  {/* Sem o ponto de cor */}
+                  <IonLabel>{cat.name}</IonLabel>
+                </div>
+              ))}
             </div>
 
             <div className="danger-zone">
@@ -154,11 +195,13 @@ const Configuracao: React.FC = () => {
         )}
 
         <IonFab vertical="bottom" horizontal="end" slot="fixed">
-          <IonFabButton onClick={openAddModal}>
+          {/* O FAB agora abre um menu de escolha */}
+          <IonFabButton onClick={() => setShowAddActionSheet(true)}>
             <IonIcon icon={add} />
           </IonFabButton>
         </IonFab>
 
+        {/* Modal unificado para adicionar/editar */}
         <AppModal
           title={editingCategory ? 'Editar Categoria' : 'Nova Categoria'}
           isOpen={showModal}
@@ -168,28 +211,31 @@ const Configuracao: React.FC = () => {
             <IonLabel position="floating">Nome da Categoria</IonLabel>
             <IonInput value={categoryName} onIonChange={e => setCategoryName(e.detail.value!)} />
           </IonItem>
-          <IonItem lines="none" className="color-picker-item">
-            <IonLabel>Cor</IonLabel>
-            <div className="color-input-wrapper">
-              <input 
-                type="color" 
-                value={categoryColor} 
-                onChange={e => setCategoryColor(e.target.value)}
-              />
-              <input 
-                type="text" 
-                value={categoryColor.toUpperCase()} 
-                onChange={e => setCategoryColor(e.target.value)}
-              />
-            </div>
-          </IonItem>
+          {/* O seletor de cor só aparece para categorias de despesa */}
+          {categoryType === 'expense' && (
+            <IonItem lines="none" className="color-picker-item">
+              <IonLabel>Cor</IonLabel>
+              <div className="color-input-wrapper">
+                <input 
+                  type="color" 
+                  value={categoryColor} 
+                  onChange={e => setCategoryColor(e.target.value)}
+                />
+                <input 
+                  type="text" 
+                  value={categoryColor.toUpperCase()} 
+                  readOnly
+                />
+              </div>
+            </IonItem>
+          )}
           <ActionButton onClick={handleSaveCategory}>
             {editingCategory ? 'Salvar Alterações' : 'Criar Categoria'}
           </ActionButton>
         </AppModal>
 
         <ActionAlert
-          isOpen={showDeleteCategoryAlert}
+          isOpen={showDeleteAlert}
           onDidDismiss={() => setCategoryToAction(null)}
           header="Confirmar Exclusão"
           message={`Tem a certeza que deseja excluir a categoria "${categoryToAction?.name}"?`}
@@ -201,9 +247,21 @@ const Configuracao: React.FC = () => {
           isOpen={showDeleteAccountAlert}
           onDidDismiss={() => setShowDeleteAccountAlert(false)}
           header="Excluir Conta Permanentemente"
-          message="Tem a certeza ABSOLUTA? Esta ação não pode ser desfeita. Todos os seus dados de autenticação serão apagados."
+          message="Tem a certeza ABSOLUTA? Esta ação não pode ser desfeita."
           onConfirm={confirmDeleteAccount}
           confirmButtonText="Sim, Excluir Tudo"
+        />
+        
+        {/* ActionSheet para escolher qual categoria adicionar */}
+        <IonActionSheet
+          isOpen={showAddActionSheet}
+          onDidDismiss={() => setShowAddActionSheet(false)}
+          header="Adicionar Nova Categoria"
+          buttons={[
+            { text: 'Categoria de Renda', handler: () => openAddModal('income') },
+            { text: 'Categoria de Despesa', handler: () => openAddModal('expense') },
+            { text: 'Cancelar', role: 'cancel' }
+          ]}
         />
 
         <IonActionSheet
@@ -211,23 +269,9 @@ const Configuracao: React.FC = () => {
           onDidDismiss={() => setShowCategoryActionSheet(false)}
           header={categoryToAction?.name}
           buttons={[
-            {
-              text: 'Editar',
-              icon: pencil,
-              handler: openEditModal,
-              cssClass: 'action-sheet-edit',
-            },
-            {
-              text: 'Excluir',
-              role: 'destructive',
-              icon: trash,
-              handler: handleDeleteClick
-            },
-            {
-              text: 'Cancelar',
-              icon: close,
-              role: 'cancel'
-            }
+            { text: 'Editar', icon: pencil, handler: openEditModal, cssClass: 'action-sheet-edit' },
+            { text: 'Excluir', role: 'destructive', icon: trash, handler: handleDeleteClick },
+            { text: 'Cancelar', icon: close, role: 'cancel' }
           ]}
         />
       </IonContent>

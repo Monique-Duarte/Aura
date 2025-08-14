@@ -31,16 +31,13 @@ const App: React.FC = () => {
   useEffect(() => {
     const configureStatusBar = async () => {
       try {
-        // Configurar estilo da status bar (Dark = ícones escuros, Light = ícones claros)
-        await StatusBar.setStyle({ style: Style.Dark });
+
+        await StatusBar.setStyle({ style: Style.Light });
         
-        // Definir cor de fundo da status bar (ajuste conforme seu tema)
-        await StatusBar.setBackgroundColor({ color: '#000' });
+        await StatusBar.setBackgroundColor({ color: '#00000000' });
         
-        // Garantir que a status bar seja exibida
         await StatusBar.show();
         
-        // Evitar sobreposição com o conteúdo
         await StatusBar.setOverlaysWebView({ overlay: false });
         
       } catch (error) {

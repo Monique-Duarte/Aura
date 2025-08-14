@@ -32,6 +32,13 @@ ion-header ion-toolbar {
   --ion-color-danger-tint: #ff735a;
 }
 
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ion-color-primary: #FFD600;
+    --ion-background-color: #202023;
+  }
+}
+
 body {
   background: var(--aura-bg);
   color: var(--ion-text-color);

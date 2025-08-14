@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "733656810098",
+    "project_id": "aura-e6045",
+    "storage_bucket": "aura-e6045.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:733656810098:android:faf4b2b0bc7b27d03f78eb",
+        "android_client_info": {
+          "package_name": "br.com.controle.aura"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "733656810098-lkn3kjn0d23216b3543mg3t82r0748cg.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "br.com.controle.aura",
+            "certificate_hash": "3a60abd8315845a30c374487ef71e2db9ceae753"
+          }
+        },
+        {
+          "client_id": "733656810098-4c4tcf7sq8eoa7qms0r296hjk1vgnm5d.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBvbHy1mTKOccK4dKlqOK6hAZ1YaIU1bWA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "733656810098-4c4tcf7sq8eoa7qms0r296hjk1vgnm5d.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

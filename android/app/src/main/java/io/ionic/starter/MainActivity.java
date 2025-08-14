@@ -1,4 +1,4 @@
-package io.ionic.starter;
+package br.com.controle.aura;
 
 import com.getcapacitor.BridgeActivity;
 

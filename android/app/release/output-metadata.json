@@ -4,7 +4,7 @@
     "type": "APK",
     "kind": "Directory"
   },
-  "applicationId": "io.ionic.starter",
+  "applicationId": "br.com.controle.aura",
   "variantName": "release",
   "elements": [
     {

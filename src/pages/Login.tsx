@@ -1,9 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { IonPage, IonContent, IonButton, IonText, IonSpinner, IonCheckbox, IonItem, IonLabel } from '@ionic/react';
 import { Link, useHistory } from 'react-router-dom';
-import { getAuth, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, getAdditionalUserInfo } from 'firebase/auth';
+import { 
+  getAuth, 
+  signInWithEmailAndPassword, 
+  signInWithPopup, 
+  GoogleAuthProvider, 
+  getAdditionalUserInfo,
+  getRedirectResult,
+  signInWithRedirect
+} from 'firebase/auth';
 import { getFirestore, doc, setDoc, getDoc, Timestamp } from 'firebase/firestore';
 import { FirebaseError } from 'firebase/app';
+import { Capacitor } from '@capacitor/core';
 import app from '../firebaseConfig';
 import logo from '/logo.png';
 import '../theme/variables.css';
@@ -15,6 +24,7 @@ const Login: React.FC = () => {
   const [erro, setErro] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingGoogle, setLoadingGoogle] = useState(false);
+  const [checkingRedirect, setCheckingRedirect] = useState(true);
   const history = useHistory();
 
   useEffect(() => {
@@ -23,7 +33,54 @@ const Login: React.FC = () => {
       setEmail(rememberedEmail);
       setRememberMe(true);
     }
+
+    // Verificar se há resultado de redirect (mobile)
+    checkForRedirectResult();
   }, []);
+
+  const checkForRedirectResult = async () => {
+    if (!Capacitor.isNativePlatform()) {
+      setCheckingRedirect(false);
+      return;
+    }
+
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    try {
+      const result = await getRedirectResult(auth);
+      
+      if (result) {
+        const user = result.user;
+        const additionalUserInfo = getAdditionalUserInfo(result);
+        
+        if (additionalUserInfo?.isNewUser) {
+          const userDocRef = doc(db, 'users', user.uid);
+          
+          const docSnap = await getDoc(userDocRef);
+          if (!docSnap.exists()) {
+            await setDoc(userDocRef, {
+              displayName: user.displayName,
+              email: user.email,
+              createdAt: Timestamp.fromDate(new Date()),
+            });
+
+            const settingsDocRef = doc(db, 'users', user.uid, 'settings', 'preferences');
+            await setDoc(settingsDocRef, {
+              financialStartDay: 1,
+            });
+          }
+        }
+
+        history.push('/app/dashboard');
+      }
+    } catch (error) {
+      console.error("Erro ao verificar redirect result:", error);
+      setErro('Erro ao completar login com Google.');
+    } finally {
+      setCheckingRedirect(false);
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,36 +119,42 @@ const Login: React.FC = () => {
     const auth = getAuth(app);
     const db = getFirestore(app);
     const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({
+      prompt: 'select_account'
+    });
 
     try {
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-      
-      // 1. Verificamos se o utilizador é novo
-      const additionalUserInfo = getAdditionalUserInfo(result);
-      
-      if (additionalUserInfo?.isNewUser) {
-        // Se for novo, criamos os seus documentos no Firestore,
-        const userDocRef = doc(db, 'users', user.uid);
+      if (Capacitor.isNativePlatform()) {
+        // No mobile, usar redirect
+        await signInWithRedirect(auth, provider);
+        // O usuário será redirecionado e o resultado será capturado pelo useEffect
+      } else {
+        // Na web, usar popup
+        const result = await signInWithPopup(auth, provider);
+        const user = result.user;
         
-        const docSnap = await getDoc(userDocRef);
-        if (!docSnap.exists()) {
+        const additionalUserInfo = getAdditionalUserInfo(result);
+        
+        if (additionalUserInfo?.isNewUser) {
+          const userDocRef = doc(db, 'users', user.uid);
+          
+          const docSnap = await getDoc(userDocRef);
+          if (!docSnap.exists()) {
             await setDoc(userDocRef, {
               displayName: user.displayName,
               email: user.email,
               createdAt: Timestamp.fromDate(new Date()),
             });
 
-            // Criamos também as configurações padrão
             const settingsDocRef = doc(db, 'users', user.uid, 'settings', 'preferences');
             await setDoc(settingsDocRef, {
               financialStartDay: 1,
             });
+          }
         }
-      }
 
-      // 2. Agora, com a certeza de que o utilizador (novo ou antigo) tem os documentos necessários, redirecionamos.
-      history.push('/app/dashboard');
+        history.push('/app/dashboard');
+      }
     } catch (error) {
       if (error instanceof FirebaseError && error.code === 'auth/popup-closed-by-user') {
         setErro('');
@@ -103,6 +166,19 @@ const Login: React.FC = () => {
       setLoadingGoogle(false);
     }
   };
+
+  // Mostrar spinner enquanto verifica redirect result no mobile
+  if (checkingRedirect) {
+    return (
+      <IonPage>
+        <IonContent className="ion-padding">
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+            <IonSpinner name="crescent" />
+          </div>
+        </IonContent>
+      </IonPage>
+    );
+  }
 
   return (
     <IonPage>
@@ -148,11 +224,23 @@ const Login: React.FC = () => {
           <div className="aura-separator">
             <span>ou entre com</span>
           </div>
-          <button type="button" className="aura-btn-google-clean" onClick={handleGoogleLogin} disabled={loadingGoogle}>
+          <button 
+            type="button" 
+            className="aura-btn-google-clean" 
+            onClick={handleGoogleLogin} 
+            disabled={loadingGoogle}
+          >
             {loadingGoogle ? (
               <IonSpinner name="crescent" color="dark" />
             ) : (
-              <span><img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" style={{width: 22, verticalAlign: 'middle', marginRight: 8}} />Entrar com Google</span>
+              <span>
+                <img 
+                  src="https://www.svgrepo.com/show/475656/google-color.svg" 
+                  alt="Google" 
+                  style={{width: 22, verticalAlign: 'middle', marginRight: 8}} 
+                />
+                Entrar com Google
+              </span>
             )}
           </button>
           <div className="aura-links-clean">

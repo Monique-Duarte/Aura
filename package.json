@@ -18,6 +18,7 @@
     "@capacitor/core": "7.4.2",
     "@capacitor/filesystem": "^7.1.4",
     "@capacitor/haptics": "7.0.1",
+    "@capacitor/ios": "^7.4.2",
     "@capacitor/keyboard": "7.0.1",
     "@capacitor/local-notifications": "^7.0.1",
     "@capacitor/share": "^7.0.1",

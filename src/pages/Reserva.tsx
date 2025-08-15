@@ -41,7 +41,7 @@ import {
     QueryDocumentSnapshot,
     DocumentData
 } from 'firebase/firestore';
-import app from '../firebaseConfig';
+import { app }  from '../firebaseConfig';
 import AppModal from '../components/AppModal';
 import ActionButton from '../components/ActionButton';
 import ActionAlert from '../components/ActionAlert';

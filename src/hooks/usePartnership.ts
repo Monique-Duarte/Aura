@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from './AuthContext'; // Ajuste o caminho se necessário
+import { useAuth } from './AuthContext'; 
 import {
   getFirestore,
   collection,
@@ -15,7 +15,7 @@ import {
   Timestamp,
   onSnapshot,
 } from 'firebase/firestore';
-import app from '../firebaseConfig'; // Ajuste o caminho se necessário
+import { app }  from '../firebaseConfig';
 
 export interface PartnershipDoc {
   members: string[];

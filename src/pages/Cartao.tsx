@@ -21,7 +21,7 @@ import {
 import { add, close, pencil, trash, cardOutline } from 'ionicons/icons';
 import { useAuth } from '../hooks/AuthContext';
 import { getFirestore, collection, addDoc, query, onSnapshot, doc, deleteDoc, updateDoc } from 'firebase/firestore';
-import app from '../firebaseConfig';
+import { app }  from '../firebaseConfig';
 import '../styles/Lancamentos.css';
 import AppModal from '../components/AppModal';
 import ActionButton from '../components/ActionButton';

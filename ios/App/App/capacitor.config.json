@@ -45,6 +45,7 @@
 		"KeyboardPlugin",
 		"LocalNotificationsPlugin",
 		"SharePlugin",
-		"StatusBarPlugin"
+		"StatusBarPlugin",
+		"GoogleAuth"
 	]
 }

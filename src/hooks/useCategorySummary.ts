@@ -3,7 +3,7 @@ import { useAuth } from './AuthContext';
 import { getFirestore, collection, query, where, Timestamp, onSnapshot } from 'firebase/firestore';
 import { useCategories } from './useCategories';
 import { useSpendingGoals } from './useSpendingGoals'; // 1. Importa o hook de metas
-import app from '../firebaseConfig';
+import { app }  from '../firebaseConfig';
 
 // 2. A interface agora inclui a meta (opcional)
 export interface CategorySummaryItem {

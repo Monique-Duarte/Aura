@@ -7,7 +7,7 @@ import {
 import { getFirestore, collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
 import { useAuth } from '../hooks/AuthContext';
 import { exportToCsv } from '../logic/exportLogic';
-import app from '../firebaseConfig';
+import { app } from '../firebaseConfig';
 import Papa from 'papaparse';
 import { Capacitor } from '@capacitor/core';
 import '../styles/ExportDataModal.css';

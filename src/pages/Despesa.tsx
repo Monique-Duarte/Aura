@@ -32,7 +32,7 @@ import { add, close, pencil, trash } from 'ionicons/icons';
 import { useAuth } from '../hooks/AuthContext';
 import { getFirestore, collection, addDoc, query, where, Timestamp, doc, deleteDoc, updateDoc, writeBatch, onSnapshot, getDocs } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
-import app from '../firebaseConfig';
+import { app }  from '../firebaseConfig';
 import CategorySelector from '../components/CategorySelector';
 import PeriodSelector, { Period } from '../components/PeriodSelector';
 import AppModal from '../components/AppModal';

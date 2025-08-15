@@ -1,9 +1,10 @@
+// src/services/AuthService.ts
+
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 import { 
   signInWithCredential, 
   GoogleAuthProvider, 
   User, 
-  getAdditionalUserInfo,
   createUserWithEmailAndPassword,
   updateProfile,
   sendPasswordResetEmail
@@ -25,25 +26,21 @@ export class AuthService {
   async initialize() {
     if (this.initialized) return;
     
-    if (Capacitor.isNativePlatform()) {
-      try {
-        await GoogleAuth.initialize({
-          clientId: '733656810098-4c4tcf7sq8eoa7qms0r296hjk1vgnm5d.apps.googleusercontent.com',
-          scopes: ['profile', 'email'],
-          grantOfflineAccess: true,
-        });
-        this.initialized = true;
-        console.log('Capacitor Google Auth inicializado com sucesso.');
-      } catch (error) {
-        console.error('Erro ao inicializar o Capacitor Google Auth:', error);
-      }
-    } else {
+    try {
+      // 1. CORREÇÃO: O plugin agora é inicializado em todas as plataformas (web e mobile).
+      // Isso resolve o erro 'grantOfflineAccess' que acontecia na web.
+      await GoogleAuth.initialize({
+        clientId: '733656810098-4c4tcf7sq8eoa7qms0r296hjk1vgnm5d.apps.googleusercontent.com',
+        scopes: ['profile', 'email'],
+        grantOfflineAccess: true,
+      });
       this.initialized = true;
-      console.log('Plataforma Web: Usando o fluxo de autenticação do Firebase Web SDK.');
+      console.log('Capacitor Google Auth inicializado com sucesso.');
+    } catch (error) {
+      console.error('Erro ao inicializar o Capacitor Google Auth:', error);
     }
   }
 
-  // **NOVA FUNÇÃO PARA RECUPERAR SENHA**
   async sendPasswordReset(email: string): Promise<void> {
     try {
       await sendPasswordResetEmail(auth, email);
@@ -118,27 +115,29 @@ export class AuthService {
       const result = await signInWithCredential(auth, credential);
       const user = result.user;
 
-      const additionalUserInfo = getAdditionalUserInfo(result);
-      if (additionalUserInfo?.isNewUser) {
-        console.log('Novo usuário detectado. Criando documentos no Firestore...');
-        const db = getFirestore(app);
-        const userDocRef = doc(db, 'users', user.uid);
-        
-        const docSnap = await getDoc(userDocRef);
-        if (!docSnap.exists()) {
-            await setDoc(userDocRef, {
-              displayName: user.displayName,
-              email: user.email,
-              photoURL: user.photoURL,
-              createdAt: Timestamp.fromDate(new Date()),
-            });
-            const settingsDocRef = doc(db, 'users', user.uid, 'settings', 'preferences');
-            await setDoc(settingsDocRef, {
-              financialStartDay: 1,
-            });
-            console.log('Documentos do novo usuário criados com sucesso.');
-        }
+      // 2. LÓGICA CORRIGIDA: Verifica diretamente no Firestore se o usuário já tem
+      // um documento, em vez de usar a flag 'isNewUser'.
+      // Isso impede a criação de novos dados a cada login.
+      const db = getFirestore(app);
+      const userDocRef = doc(db, 'users', user.uid);
+      const docSnap = await getDoc(userDocRef);
+
+      if (!docSnap.exists()) {
+        // Se o documento não existe, nós o criamos.
+        console.log('Documento do usuário não encontrado no Firestore. Criando...');
+        await setDoc(userDocRef, {
+          displayName: user.displayName,
+          email: user.email,
+          photoURL: user.photoURL,
+          createdAt: Timestamp.fromDate(new Date()),
+        });
+        const settingsDocRef = doc(db, 'users', user.uid, 'settings', 'preferences');
+        await setDoc(settingsDocRef, {
+          financialStartDay: 1,
+        });
+        console.log('Documentos do novo usuário criados com sucesso.');
       }
+      
       return result.user;
     } catch (error) {
       console.error('Erro completo durante o processo de login:', error);

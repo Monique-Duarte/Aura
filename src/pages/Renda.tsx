@@ -8,7 +8,7 @@ import {
 import { add, close, pencil, trash, downloadOutline } from 'ionicons/icons';
 import { useAuth } from '../hooks/AuthContext';
 import { getFirestore, collection, addDoc, query, where, Timestamp, doc, deleteDoc, updateDoc, onSnapshot } from 'firebase/firestore';
-import app from '../firebaseConfig';
+import { app }  from '../firebaseConfig';
 import PeriodSelector from '../components/PeriodSelector';
 import AppModal from '../components/AppModal';
 import ActionButton from '../components/ActionButton';

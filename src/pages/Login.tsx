@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { IonPage, IonContent, IonButton, IonText, IonSpinner, IonCheckbox, IonItem, IonLabel } from '@ionic/react';
 import { Link, useHistory } from 'react-router-dom';
-import { getAuth, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, getAdditionalUserInfo } from 'firebase/auth';
-import { getFirestore, doc, setDoc, getDoc, Timestamp } from 'firebase/firestore';
+import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
 import { FirebaseError } from 'firebase/app';
-import app from '../firebaseConfig';
+import { authService } from '../service/auth.service';
+import { app } from '../firebaseConfig';
 import logo from '/logo.png';
 import '../theme/variables.css';
 
@@ -18,6 +18,8 @@ const Login: React.FC = () => {
   const history = useHistory();
 
   useEffect(() => {
+    authService.initialize();
+    
     const rememberedEmail = localStorage.getItem('rememberedEmail');
     if (rememberedEmail) {
       setEmail(rememberedEmail);
@@ -56,47 +58,22 @@ const Login: React.FC = () => {
     }
   };
 
+  // Função de login com Google com tratamento de erro type-safe
   const handleGoogleLogin = async () => {
     setErro('');
     setLoadingGoogle(true);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-    const provider = new GoogleAuthProvider();
-
     try {
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-      
-      // 1. Verificamos se o utilizador é novo
-      const additionalUserInfo = getAdditionalUserInfo(result);
-      
-      if (additionalUserInfo?.isNewUser) {
-        // Se for novo, criamos os seus documentos no Firestore,
-        const userDocRef = doc(db, 'users', user.uid);
-        
-        const docSnap = await getDoc(userDocRef);
-        if (!docSnap.exists()) {
-            await setDoc(userDocRef, {
-              displayName: user.displayName,
-              email: user.email,
-              createdAt: Timestamp.fromDate(new Date()),
-            });
-
-            // Criamos também as configurações padrão
-            const settingsDocRef = doc(db, 'users', user.uid, 'settings', 'preferences');
-            await setDoc(settingsDocRef, {
-              financialStartDay: 1,
-            });
-        }
-      }
-
-      // 2. Agora, com a certeza de que o utilizador (novo ou antigo) tem os documentos necessários, redirecionamos.
-      history.push('/app/dashboard');
-    } catch (error) {
-      if (error instanceof FirebaseError && error.code === 'auth/popup-closed-by-user') {
-        setErro('');
+      const user = await authService.signInWithGoogle();
+      if (user) {
+        history.push('/app/dashboard');
       } else {
-        setErro('Erro ao entrar com o Google.');
+        throw new Error('Usuário não foi retornado pelo serviço de login.');
+      }
+    } catch (error) {
+      if (error instanceof Error) {
+        setErro(error.message);
+      } else {
+        setErro('Ocorreu um erro desconhecido ao entrar com o Google.');
       }
       console.error("Erro no login com Google:", error);
     } finally {

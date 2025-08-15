@@ -1,6 +1,6 @@
 import { getFirestore, collection, addDoc, doc, updateDoc, writeBatch, Timestamp } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
-import app from '../firebaseConfig';
+import { app }  from '../firebaseConfig';
 
 // Interface para os dados que a função de salvar espera receber
 interface SaveExpenseData {

@@ -6,7 +6,7 @@ import {
 import { checkmarkCircleOutline, closeCircleOutline, cardOutline, chevronBackOutline, chevronForwardOutline } from 'ionicons/icons';
 import { useAuth } from '../hooks/AuthContext';
 import { getFirestore, collection, query, where, onSnapshot, Timestamp, writeBatch, doc } from 'firebase/firestore';
-import app from '../firebaseConfig';
+import { app }  from '../firebaseConfig';
 import '../styles/Faturas.css';
 import { scheduleInvoiceNotifications } from '../logic/notificationLogic';
 import { getInvoicePeriodForExpense } from '../logic/fatureLogic';

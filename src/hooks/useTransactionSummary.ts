@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import { getFirestore, collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
-import app from '../firebaseConfig';
+import { app }  from '../firebaseConfig';
 
 interface Period {
   startDate: Date;

@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { calculateFinancialPeriod } from '../logic/dateLogic';
 import { getAuth, onAuthStateChanged, User } from 'firebase/auth';
 import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
-import app from '../firebaseConfig';
+import { app }  from '../firebaseConfig';
 
 interface IDatePeriod {
   startDate: Date;

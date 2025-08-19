@@ -400,11 +400,15 @@ const Despesas: React.FC = () => {
             </div>
           )}
 
-          {paymentMethod === 'credit' && !editingExpense && (
+          {paymentMethod === 'credit' && !editingExpense && !isRecurring && (
             <div className="form-field-group">
               <IonItem>
                 <IonLabel position="floating">Nº de Parcelas</IonLabel>
-                <IonInput type="number" value={installments} onIonChange={e => setInstallments(parseInt(e.detail.value!, 10) || 1)} />
+                <IonInput
+                  type="number"
+                  value={installments}
+                  onIonChange={e => setInstallments(parseInt(e.detail.value!, 10) || 1)}
+                />
               </IonItem>
               {installments > 1 && amount && (
                 <IonText color="medium" style={{ paddingLeft: '16px', fontSize: '0.8rem' }}>
@@ -413,12 +417,17 @@ const Despesas: React.FC = () => {
               )}
             </div>
           )}
-          <div className="form-field-group">
-            <IonItem lines="none" className="toggle-item">
-              <IonLabel>Gasto Fixo Mensal?</IonLabel>
-              <IonToggle checked={isRecurring} onIonChange={e => setIsRecurring(e.detail.checked)} />
-            </IonItem>
-          </div>
+          {installments <= 1 && (
+            <div className="form-field-group">
+              <IonItem lines="none" className="toggle-item">
+                <IonLabel>Gasto Fixo Mensal?</IonLabel>
+                <IonToggle
+                  checked={isRecurring}
+                  onIonChange={e => setIsRecurring(e.detail.checked)}
+                />
+              </IonItem>
+            </div>
+          )}
           <ActionButton onClick={handleSaveExpense}>
             {editingExpense ? 'Salvar Alterações' : 'Salvar Gasto'}
           </ActionButton>

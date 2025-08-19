@@ -1,5 +1,3 @@
-// src/services/AuthService.ts
-
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 import { 
   signInWithCredential, 
@@ -7,7 +5,9 @@ import {
   User, 
   createUserWithEmailAndPassword,
   updateProfile,
-  sendPasswordResetEmail
+  sendPasswordResetEmail,
+  linkWithPopup,
+  AuthError,
 } from 'firebase/auth';
 import { 
   doc, 
@@ -27,8 +27,7 @@ export class AuthService {
     if (this.initialized) return;
     
     try {
-      // 1. CORREÇÃO: O plugin agora é inicializado em todas as plataformas (web e mobile).
-      // Isso resolve o erro 'grantOfflineAccess' que acontecia na web.
+
       await GoogleAuth.initialize({
         clientId: '733656810098-4c4tcf7sq8eoa7qms0r296hjk1vgnm5d.apps.googleusercontent.com',
         scopes: ['profile', 'email'],
@@ -115,15 +114,11 @@ export class AuthService {
       const result = await signInWithCredential(auth, credential);
       const user = result.user;
 
-      // 2. LÓGICA CORRIGIDA: Verifica diretamente no Firestore se o usuário já tem
-      // um documento, em vez de usar a flag 'isNewUser'.
-      // Isso impede a criação de novos dados a cada login.
       const db = getFirestore(app);
       const userDocRef = doc(db, 'users', user.uid);
       const docSnap = await getDoc(userDocRef);
 
       if (!docSnap.exists()) {
-        // Se o documento não existe, nós o criamos.
         console.log('Documento do usuário não encontrado no Firestore. Criando...');
         await setDoc(userDocRef, {
           displayName: user.displayName,
@@ -146,12 +141,39 @@ export class AuthService {
           throw new Error('Login cancelado pelo usuário.');
         }
         if (error.message.includes('DEVELOPER_ERROR')) {
-           throw new Error('Erro de configuração. Verifique o clientId, SHA-1 e o nome do pacote.');
+            throw new Error('Erro de configuração. Verifique o clientId, SHA-1 e o nome do pacote.');
         }
       }
       throw new Error('Ocorreu um erro inesperado durante o login.');
     }
   }
+
+  /**
+   * Vincula a conta do Google ao usuário atualmente logado.
+   * @returns Um objeto indicando sucesso ou falha com uma mensagem de erro.
+   */
+  async linkGoogleAccount(): Promise<{ success: boolean; error?: string }> {
+    const user = auth.currentUser;
+    if (!user) {
+      return { success: false, error: 'Nenhum usuário logado para vincular.' };
+    }
+
+    try {
+      const provider = new GoogleAuthProvider();
+      await linkWithPopup(user, provider);
+      return { success: true };
+    } catch (error) {
+      const authError = error as AuthError;
+      console.error("Erro ao vincular a conta do Google:", authError.code);
+      
+      if (authError.code === 'auth/credential-already-in-use') {
+        return { success: false, error: 'Esta conta do Google já está associada a outro usuário.' };
+      }
+
+      return { success: false, error: 'Ocorreu um erro ao tentar vincular a conta do Google.' };
+    }
+  }
+
 
   async signOut() {
     try {

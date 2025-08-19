@@ -1,29 +1,50 @@
-/* --- ESTILOS PARA A PÁGINA DE CONFIGURAÇÕES --- */
+/* Centraliza o spinner de carregamento na tela */
+.spinner-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+}
 
-/* Cabeçalho da secção "Minhas Categorias" */
-.category-header {
-  --color: var(--ion-color-primary);
+/* Títulos das seções (Gerenciamento, Personalização) */
+ion-list-header {
   font-size: 1rem;
   font-weight: bold;
+  text-transform: none;
+  --color: var(--ion-color-medium-shade);
 }
 
-/* Subtítulo de ajuda */
-.category-header ion-note {
-  font-size: 0.8rem;
-  font-weight: normal;
+/* Wrapper para as grades de categoria dentro da lista */
+.category-grid-wrapper {
+  padding: 16px;
+  background: var(--ion-item-background);
 }
 
-/* Grelha para as categorias personalizadas */
+/* Mensagem para quando não há categorias */
+.empty-note {
+  display: block;
+  width: 100%;
+  text-align: center;
+  padding: 8px;
+}
+
+/* Divisor dentro da lista de personalização */
+ion-item-divider {
+  --background: rgba(var(--ion-color-step-150-rgb), 0.5); /* Fundo sutil */
+  --padding-start: 16px;
+  --padding-end: 16px;
+}
+
+/* Grelha para as categorias */
 .category-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr; /* Duas colunas */
-  gap: 12px; /* Espaçamento entre os cards */
-  margin-top: 12px;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
 }
 
 /* Card individual de cada categoria */
 .category-grid-item {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--ion-color-step-100);
   border-radius: 12px;
   padding: 16px;
   display: flex;
@@ -31,39 +52,41 @@
   gap: 12px;
   cursor: pointer;
   border: 1px solid transparent;
-  transition: border-color 0.2s ease-in-out;
+  transition: border-color 0.2s ease-in-out, background-color 0.2s ease-in-out;
 }
 
-.category-grid-item:hover {
-  border-color: var(--ion-color-primary-tint);
+.category-grid-item:active {
+  background-color: var(--ion-color-step-200);
 }
 
-/* Bolinha de cor da categoria */
 .category-color-dot {
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  flex-shrink: 0; /* Impede que a bolinha encolha */
+  flex-shrink: 0;
 }
 
-/* Nome da categoria */
 .category-grid-item ion-label {
   font-weight: 500;
   white-space: normal;
+  font-size: 0.9rem;
 }
 
-/* Estilo para o seletor de cor no modal */
+/* Estilo para o item de exclusão de conta */
+.delete-account-item ion-label {
+  font-weight: 500;
+}
+
+/* Estilos do Modal (permanecem os mesmos) */
 .color-picker-item {
   --inner-padding-end: 0;
 }
-
 .color-picker-item .color-input-wrapper {
   display: flex;
   align-items: center;
   gap: 16px;
   width: 100%;
 }
-
 .color-picker-item input[type="color"] {
   width: 48px;
   height: 48px;
@@ -73,7 +96,6 @@
   background-color: transparent;
   cursor: pointer;
 }
-
 .color-picker-item input[type="text"] {
   flex: 1;
   background: transparent;
@@ -82,22 +104,4 @@
   font-size: 1rem;
   font-weight: bold;
   text-transform: uppercase;
-}
-
-/* Zona de Perigo */
-.danger-zone {
-  margin-top: 48px;
-  padding: 16px;
-  border: 1px solid var(--ion-color-danger);
-  border-radius: 12px;
-}
-
-.danger-zone h3 {
-  color: var(--ion-color-danger);
-  margin-top: 0;
-}
-
-.danger-zone p {
-  color: var(--ion-color-medium);
-  font-size: 0.9rem;
 }

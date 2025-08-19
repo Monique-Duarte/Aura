@@ -55,7 +55,7 @@ interface ReserveGoal {
   name: string;
   yieldPercentage?: number;
   targetAmount?: number;
-  balance: number; // Saldo calculado a partir de transações (sem rendimento)
+  balance: number;
 }
 
 interface ReserveTransaction {
@@ -68,7 +68,7 @@ interface ReserveTransaction {
 
 const Reserva: React.FC = () => {
   const { user } = useAuth();
-  const { currentPeriod } = useDate(); // Hook para obter o período global
+  const { currentPeriod } = useDate();
   const [goals, setGoals] = useState<ReserveGoal[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'list' | 'chart'>('list');
@@ -147,23 +147,28 @@ const Reserva: React.FC = () => {
   // Total depositado (soma simples das transações)
   const totalDeposited = useMemo(() => goals.reduce((sum, goal) => sum + goal.balance, 0), [goals]);
 
-  // Saldo final com rendimentos (pega o último valor do gráfico)
+  // <-- CORREÇÃO 1: Lógica do Saldo Final com Rendimentos
+  // Adicionado `historyLoading` como dependência para garantir que o valor seja recalculado
+  // quando o carregamento do gráfico terminar.
   const finalBalanceWithYield = useMemo(() => {
     const data = totalChartData.datasets[0]?.data;
-    if (data && data.length > 0) {
+    if (!historyLoading && data && data.length > 0) {
       return data[data.length - 1];
     }
-    return totalDeposited; // Fallback para o saldo simples se o gráfico não carregou
-  }, [totalChartData, totalDeposited]);
+    return totalDeposited; // Usa o total depositado como fallback enquanto carrega ou se não houver dados
+  }, [totalChartData, totalDeposited, historyLoading]);
 
-  // Funções de manipulação (handleSaveGoal, handleDeleteGoal, etc. sem alterações)
+  // Funções de manipulação
   const handleSaveGoal = async () => {
     if (!user || !goalName) return;
     const db = getFirestore(app);
+
+    // <-- CORREÇÃO 2: Salvando o valor do rendimento corretamente
+    // Garante que o valor seja um número e que `undefined` ou `NaN` se tornem 0.
     const dataToSave = { 
         name: goalName, 
-        yieldPercentage: yieldPercentage || 0,
-        targetAmount: targetAmount || 0,
+        yieldPercentage: Number(yieldPercentage) || 0,
+        targetAmount: Number(targetAmount) || 0,
     };
 
     try {
@@ -352,7 +357,13 @@ const Reserva: React.FC = () => {
                   <IonItem key={goal.id} lines="inset" button onClick={() => handleItemClick(goal)}>
                     <IonLabel>
                       <h2>{goal.name}</h2>
-                      {goal.yieldPercentage ? <p>Rendimento: {goal.yieldPercentage}% ao mês</p> : <p>Sem rendimento</p>}
+                      {/* <-- CORREÇÃO 3: Lógica de exibição do rendimento na lista */}
+                      {/* Verifica se a propriedade é um número, tratando o 0 como um valor válido. */}
+                      {typeof goal.yieldPercentage === 'number' ? 
+                        <p>Rendimento: {goal.yieldPercentage}% ao mês</p> 
+                        : 
+                        <p>Sem rendimento</p>
+                      }
                     </IonLabel>
                     <IonText color="success" slot="end">
                       <p>{goal.balance.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>

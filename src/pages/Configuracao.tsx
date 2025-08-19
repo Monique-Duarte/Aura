@@ -17,8 +17,14 @@ import {
   IonListHeader,
   IonActionSheet,
   IonNote,
+  IonList,
+  IonToast,
+  IonItemDivider,
 } from '@ionic/react';
-import { add, pencil, trash, warningOutline, close } from 'ionicons/icons';
+import { add, pencil, trash, close, logoGoogle } from 'ionicons/icons';
+import { useAuth } from '../hooks/AuthContext';
+import { authService } from '../service/auth.service'; 
+
 import { useCategories, Category as ExpenseCategory } from '../hooks/useCategories';
 import { useIncomeCategories, IncomeCategory } from '../hooks/useIncomeCategories';
 import { getAuth, deleteUser } from 'firebase/auth';
@@ -28,6 +34,11 @@ import ActionAlert from '../components/ActionAlert';
 import '../styles/Configuracao.css';
 
 const Configuracao: React.FC = () => {
+  const { user } = useAuth(); 
+  const [isLinking, setIsLinking] = useState(false);
+  const [linkError, setLinkError] = useState('');
+  const [showToast, setShowToast] = useState(false);
+
   const { 
     userCategories: expenseCategories, 
     loading: expenseLoading, 
@@ -43,15 +54,12 @@ const Configuracao: React.FC = () => {
     updateCategory: updateIncomeCategory,
     deleteCategory: deleteIncomeCategory
   } = useIncomeCategories();
-
-  // 3. Estados unificados para controlar os modais e ações
+  
   const [showModal, setShowModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState<ExpenseCategory | IncomeCategory | null>(null);
   const [categoryType, setCategoryType] = useState<'expense' | 'income' | null>(null);
-  
   const [categoryName, setCategoryName] = useState('');
   const [categoryColor, setCategoryColor] = useState('#ffffff');
-  
   const [categoryToAction, setCategoryToAction] = useState<ExpenseCategory | IncomeCategory | null>(null);
   const [showDeleteAlert, setShowDeleteAlert] = useState(false);
   const [showDeleteAccountAlert, setShowDeleteAccountAlert] = useState(false);
@@ -60,7 +68,6 @@ const Configuracao: React.FC = () => {
 
   const loading = expenseLoading || incomeLoading;
 
-  // Funções para abrir os modais
   const openAddModal = (type: 'expense' | 'income') => {
     setEditingCategory(null);
     setCategoryType(type);
@@ -72,7 +79,6 @@ const Configuracao: React.FC = () => {
   const openEditModal = () => {
     if (!categoryToAction) return;
     setEditingCategory(categoryToAction);
-    // Verifica o tipo da categoria para saber se tem cor
     if ('color' in categoryToAction) {
       setCategoryType('expense');
       setCategoryName(categoryToAction.name);
@@ -84,17 +90,15 @@ const Configuracao: React.FC = () => {
     setShowModal(true);
   };
 
-  // Função de salvar unificada
   const handleSaveCategory = async () => {
     if (!categoryName) return;
-
-    if (editingCategory) { // Editando
+    if (editingCategory) {
       if (categoryType === 'expense') {
         await updateExpenseCategory(editingCategory.id, categoryName, categoryColor);
       } else {
         await updateIncomeCategory(editingCategory.id, categoryName);
       }
-    } else { // Adicionando
+    } else {
       if (categoryType === 'expense') {
         await addExpenseCategory(categoryName, categoryColor);
       } else {
@@ -104,7 +108,6 @@ const Configuracao: React.FC = () => {
     setShowModal(false);
   };
 
-  // Funções de exclusão unificadas
   const handleDeleteClick = () => {
     if (!categoryToAction) return;
     setShowDeleteAlert(true);
@@ -140,6 +143,27 @@ const Configuracao: React.FC = () => {
     setShowCategoryActionSheet(true);
   };
 
+  const handleLinkGoogle = async () => {
+    setIsLinking(true);
+    setLinkError('');
+    try {
+      const result = await authService.linkGoogleAccount();
+      if (result.success) {
+        setShowToast(true);
+      } else {
+        setLinkError(result.error || 'Falha ao vincular conta.');
+      }
+    } catch (error) {
+      setLinkError('Ocorreu um erro inesperado.');
+    } finally {
+      setIsLinking(false);
+    }
+  };
+
+  const isEmailUser = user?.providerData.some(p => p.providerId === 'password');
+  const isGoogleUser = user?.providerData.some(p => p.providerId === 'google.com');
+  const showLinkButton = isEmailUser && !isGoogleUser;
+
   return (
     <IonPage>
       <IonHeader>
@@ -150,58 +174,81 @@ const Configuracao: React.FC = () => {
           <IonTitle>Configurações</IonTitle>
         </IonToolbar>
       </IonHeader>
-      <IonContent className="ion-padding">
+
+      <IonContent fullscreen>
         {loading ? (
-          <div style={{ textAlign: 'center' }}><IonSpinner /></div>
+          <div className="spinner-container"><IonSpinner /></div>
         ) : (
           <>
-            {/* 4. Secção para Categorias de Despesa */}
-            <IonListHeader className="category-header">
-              <IonLabel>Categorias de Despesa</IonLabel>
-              <IonNote slot="end">Toque para editar</IonNote>
-            </IonListHeader>
-            <div className="category-grid">
-              {expenseCategories.map(cat => (
-                <div key={cat.id} className="category-grid-item" onClick={() => handleCategoryClick(cat)}>
-                  <div className="category-color-dot" style={{ backgroundColor: cat.color }}></div>
-                  <IonLabel>{cat.name}</IonLabel>
-                </div>
-              ))}
-            </div>
+            <IonListHeader>Gerenciamento da Conta</IonListHeader>
+            <IonList inset={true}>
+              <IonItem>
+                <IonIcon icon={logoGoogle} slot="start" />
+                <IonLabel>Login com Google</IonLabel>
+                {showLinkButton && (
+                  <ActionButton onClick={handleLinkGoogle} disabled={isLinking} slot="end">
+                    {isLinking ? <IonSpinner name="crescent" /> : 'Vincular'}
+                  </ActionButton>
+                )}
+                {isGoogleUser && (
+                  <IonNote slot="end" color="success">Vinculado</IonNote>
+                )}
+              </IonItem>
+              {linkError && (
+                <IonItem lines="none">
+                   <IonLabel color="danger" className="ion-text-wrap ion-text-center">{linkError}</IonLabel>
+                </IonItem>
+              )}
+              <IonItem button={true} detail={false} onClick={() => setShowDeleteAccountAlert(true)} lines="none" className="delete-account-item">
+                <IonIcon icon={trash} slot="start" color="danger" />
+                <IonLabel color="danger">Excluir minha conta</IonLabel>
+              </IonItem>
+            </IonList>
 
-            {/* 5. NOVA Secção para Categorias de Renda */}
-            <IonListHeader className="category-header">
-              <IonLabel>Categorias de Renda</IonLabel>
-              <IonNote slot="end">Toque para editar</IonNote>
-            </IonListHeader>
-            <div className="category-grid">
-              {incomeCategories.map(cat => (
-                <div key={cat.id} className="category-grid-item" onClick={() => handleCategoryClick(cat)}>
-                  {/* Sem o ponto de cor */}
-                  <IonLabel>{cat.name}</IonLabel>
-                </div>
-              ))}
-            </div>
+            <IonListHeader>Personalização</IonListHeader>
+            <IonList inset={true}>
+              <IonItemDivider>
+                <IonLabel>Categorias de Despesa</IonLabel>
+                <IonNote slot="end">Toque para editar</IonNote>
+              </IonItemDivider>
+              <div className="category-grid-wrapper">
+                {expenseCategories.length > 0 ? (
+                  <div className="category-grid">
+                    {expenseCategories.map(cat => (
+                      <div key={cat.id} className="category-grid-item" onClick={() => handleCategoryClick(cat)}>
+                        <div className="category-color-dot" style={{ backgroundColor: cat.color }}></div>
+                        <IonLabel>{cat.name}</IonLabel>
+                      </div>
+                    ))}
+                  </div>
+                ) : <IonNote className="empty-note">Nenhuma categoria de despesa adicionada.</IonNote>}
+              </div>
 
-            <div className="danger-zone">
-              <h3>Zona de Perigo</h3>
-              <p>A exclusão da sua conta é uma ação permanente e irá apagar o seu perfil de autenticação.</p>
-              <ActionButton onClick={() => setShowDeleteAccountAlert(true)} fill="outline" color="danger">
-                <IonIcon slot="start" icon={warningOutline} />
-                Excluir Minha Conta
-              </ActionButton>
-            </div>
+              <IonItemDivider>
+                <IonLabel>Categorias de Renda</IonLabel>
+                <IonNote slot="end">Toque para editar</IonNote>
+              </IonItemDivider>
+              <div className="category-grid-wrapper">
+                {incomeCategories.length > 0 ? (
+                  <div className="category-grid">
+                    {incomeCategories.map(cat => (
+                      <div key={cat.id} className="category-grid-item" onClick={() => handleCategoryClick(cat)}>
+                        <IonLabel>{cat.name}</IonLabel>
+                      </div>
+                    ))}
+                  </div>
+                ) : <IonNote className="empty-note">Nenhuma categoria de renda adicionada.</IonNote>}
+              </div>
+            </IonList>
           </>
         )}
 
         <IonFab vertical="bottom" horizontal="end" slot="fixed">
-          {/* O FAB agora abre um menu de escolha */}
           <IonFabButton onClick={() => setShowAddActionSheet(true)}>
             <IonIcon icon={add} />
           </IonFabButton>
         </IonFab>
 
-        {/* Modal unificado para adicionar/editar */}
         <AppModal
           title={editingCategory ? 'Editar Categoria' : 'Nova Categoria'}
           isOpen={showModal}
@@ -211,7 +258,6 @@ const Configuracao: React.FC = () => {
             <IonLabel position="floating">Nome da Categoria</IonLabel>
             <IonInput value={categoryName} onIonChange={e => setCategoryName(e.detail.value!)} />
           </IonItem>
-          {/* O seletor de cor só aparece para categorias de despesa */}
           {categoryType === 'expense' && (
             <IonItem lines="none" className="color-picker-item">
               <IonLabel>Cor</IonLabel>
@@ -252,7 +298,6 @@ const Configuracao: React.FC = () => {
           confirmButtonText="Sim, Excluir Tudo"
         />
         
-        {/* ActionSheet para escolher qual categoria adicionar */}
         <IonActionSheet
           isOpen={showAddActionSheet}
           onDidDismiss={() => setShowAddActionSheet(false)}
@@ -273,6 +318,14 @@ const Configuracao: React.FC = () => {
             { text: 'Excluir', role: 'destructive', icon: trash, handler: handleDeleteClick },
             { text: 'Cancelar', icon: close, role: 'cancel' }
           ]}
+        />
+
+        <IonToast
+          isOpen={showToast}
+          onDidDismiss={() => setShowToast(false)}
+          message="Conta do Google vinculada com sucesso!"
+          duration={3000}
+          color="success"
         />
       </IonContent>
     </IonPage>

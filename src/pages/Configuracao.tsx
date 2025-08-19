@@ -154,6 +154,7 @@ const Configuracao: React.FC = () => {
         setLinkError(result.error || 'Falha ao vincular conta.');
       }
     } catch (error) {
+      console.error("Falha inesperada ao vincular conta:", error);
       setLinkError('Ocorreu um erro inesperado.');
     } finally {
       setIsLinking(false);
@@ -186,7 +187,7 @@ const Configuracao: React.FC = () => {
                 <IonIcon icon={logoGoogle} slot="start" />
                 <IonLabel>Login com Google</IonLabel>
                 {showLinkButton && (
-                  <ActionButton onClick={handleLinkGoogle} disabled={isLinking} slot="end">
+                  <ActionButton onClick={handleLinkGoogle} disabled={isLinking} slot="end" expand="block">
                     {isLinking ? <IonSpinner name="crescent" /> : 'Vincular'}
                   </ActionButton>
                 )}
@@ -275,7 +276,7 @@ const Configuracao: React.FC = () => {
               </div>
             </IonItem>
           )}
-          <ActionButton onClick={handleSaveCategory}>
+          <ActionButton onClick={handleSaveCategory} expand="block">
             {editingCategory ? 'Salvar Alterações' : 'Criar Categoria'}
           </ActionButton>
         </AppModal>

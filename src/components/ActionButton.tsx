@@ -1,30 +1,18 @@
 import React from 'react';
 import { IonButton, IonIcon } from '@ionic/react';
 
-// Pega os tipos de 'fill' diretamente do IonButton para garantir a consistência
 type IonButtonFill = React.ComponentProps<typeof IonButton>['fill'];
+type IonButtonExpand = React.ComponentProps<typeof IonButton>['expand'];
 
 interface ActionButtonProps {
-  /**
-   * A função a ser executada quando o botão for clicado.
-   */
   onClick: () => void;
-  /**
-   * O texto ou elemento a ser exibido dentro do botão.
-   */
   children: React.ReactNode;
-  /**
-   * Ícone opcional do ionicons a ser exibido no início do botão.
-   */
   icon?: string;
-  /**
-   * Desabilita o botão, útil durante o carregamento de formulários.
-   */
   disabled?: boolean;
-  /**
-   * O estilo do botão. Padrão é 'solid'.
-   */
   fill?: IonButtonFill;
+  slot?: string;
+  expand?: IonButtonExpand;
+  className?: string;
 }
 
 const ActionButton: React.FC<ActionButtonProps> = ({ 
@@ -32,16 +20,21 @@ const ActionButton: React.FC<ActionButtonProps> = ({
   children, 
   icon, 
   disabled, 
-  fill = "solid" // Define 'solid' como padrão
+  fill = "solid",
+  slot,
+  expand,
+  className
 }) => {
+  const buttonClasses = `ion-margin-top ${className || ''}`;
+
   return (
     <IonButton 
-      expand="block" 
+      expand={expand} 
       onClick={onClick} 
       disabled={disabled}
-      fill={fill} // Usa a propriedade 'fill'
-      // A classe 'save-button' pode ser removida se a estilização for geral
-      className={fill === 'solid' ? 'save-button' : ''} 
+      fill={fill}
+      slot={slot} 
+      className={buttonClasses} 
     >
       {icon && <IonIcon slot="start" icon={icon} />}
       {children}

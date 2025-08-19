@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   IonPage,
   IonHeader,
@@ -67,37 +67,36 @@ interface ReserveTransaction {
 }
 
 const Reserva: React.FC = () => {
+  // Estados para controlar os valores dos inputs (ainda necessários para o controle do formulário)
+  const [goalName, setGoalName] = useState('');
+  const [yieldPercentage, setYieldPercentage] = useState('');
+  const [initialAmount, setInitialAmount] = useState('');
+  const [targetAmount, setTargetAmount] = useState('');
+  const [transactionAmount, setTransactionAmount] = useState('');
+
+  // Criar refs para os inputs
+  const yieldInputRef = useRef<HTMLIonInputElement>(null);
+  const targetAmountInputRef = useRef<HTMLIonInputElement>(null);
+  const initialAmountInputRef = useRef<HTMLIonInputElement>(null);
+  
   const { user } = useAuth();
   const { currentPeriod } = useDate();
   const [goals, setGoals] = useState<ReserveGoal[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'list' | 'chart'>('list');
-  
-  // Estados dos modais e formulários
   const [showGoalModal, setShowGoalModal] = useState(false);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
-  const [goalName, setGoalName] = useState('');
-  const [yieldPercentage, setYieldPercentage] = useState<number | undefined>();
-  const [initialAmount, setInitialAmount] = useState<number | undefined>();
-  const [targetAmount, setTargetAmount] = useState<number | undefined>();
-  const [transactionAmount, setTransactionAmount] = useState<number | undefined>();
   const [isRecurring, setIsRecurring] = useState(false);
   const [transactionMode, setTransactionMode] = useState<'add' | 'withdraw'>('add');
   const [goalCreationDate, setGoalCreationDate] = useState(new Date().toISOString());
   const [transactionDate, setTransactionDate] = useState(new Date().toISOString());
-
-  // Estados de controle
   const [editingGoal, setEditingGoal] = useState<ReserveGoal | null>(null);
   const [goalToAction, setGoalToAction] = useState<ReserveGoal | null>(null);
   const [showDeleteAlert, setShowDeleteAlert] = useState(false);
   const [showActionSheet, setShowActionSheet] = useState(false);
   const [showAdjustBalanceAlert, setShowAdjustBalanceAlert] = useState(false);
-
-  // Lógica de busca de dados
   const [rawGoals, setRawGoals] = useState<Omit<ReserveGoal, 'balance'>[]>([]);
   const [reserveTransactions, setReserveTransactions] = useState<ReserveTransaction[]>([]);
-  
-  // Hook que calcula o histórico e os rendimentos para o gráfico
   const { totalChartData, loading: historyLoading, lastDailyYield } = useReserveHistory(currentPeriod, rawGoals as ReserveGoal[]);
 
   useEffect(() => {
@@ -144,31 +143,27 @@ const Reserva: React.FC = () => {
     setLoading(false);
   }, [rawGoals, reserveTransactions]);
 
-  // Total depositado (soma simples das transações)
   const totalDeposited = useMemo(() => goals.reduce((sum, goal) => sum + goal.balance, 0), [goals]);
-
-  // <-- CORREÇÃO 1: Lógica do Saldo Final com Rendimentos
-  // Adicionado `historyLoading` como dependência para garantir que o valor seja recalculado
-  // quando o carregamento do gráfico terminar.
   const finalBalanceWithYield = useMemo(() => {
     const data = totalChartData.datasets[0]?.data;
     if (!historyLoading && data && data.length > 0) {
       return data[data.length - 1];
     }
-    return totalDeposited; // Usa o total depositado como fallback enquanto carrega ou se não houver dados
+    return totalDeposited;
   }, [totalChartData, totalDeposited, historyLoading]);
 
-  // Funções de manipulação
   const handleSaveGoal = async () => {
     if (!user || !goalName) return;
     const db = getFirestore(app);
 
-    // <-- CORREÇÃO 2: Salvando o valor do rendimento corretamente
-    // Garante que o valor seja um número e que `undefined` ou `NaN` se tornem 0.
+    // LER VALORES DIRETAMENTE DAS REFS NO MOMENTO DO SALVAMENTO
+    const yieldValue = yieldInputRef.current?.value;
+    const targetAmountValue = targetAmountInputRef.current?.value;
+
     const dataToSave = { 
         name: goalName, 
-        yieldPercentage: Number(yieldPercentage) || 0,
-        targetAmount: Number(targetAmount) || 0,
+        yieldPercentage: parseFloat(yieldValue as string) || 0,
+        targetAmount: parseFloat(targetAmountValue as string) || 0,
     };
 
     try {
@@ -177,10 +172,12 @@ const Reserva: React.FC = () => {
         await updateDoc(docRef, dataToSave);
       } else {
         const newGoalRef = await addDoc(collection(db, 'users', user.uid, 'reserves'), dataToSave);
-        if (initialAmount && initialAmount > 0) {
+        const initialAmountValue = initialAmountInputRef.current?.value;
+        const initialAmountNumber = parseFloat(initialAmountValue as string) || 0;
+        if (initialAmountNumber > 0) {
           const initialTransaction = {
             description: `Depósito Inicial - ${goalName}`,
-            amount: Math.abs(initialAmount),
+            amount: Math.abs(initialAmountNumber),
             date: Timestamp.fromDate(new Date(goalCreationDate)),
             type: 'reserve_add',
             reserveId: newGoalRef.id,
@@ -194,13 +191,13 @@ const Reserva: React.FC = () => {
       console.error("Erro ao salvar objetivo:", error);
     }
   };
-
+  
   const handleEditGoalClick = () => {
     if (!goalToAction) return;
     setEditingGoal(goalToAction);
     setGoalName(goalToAction.name);
-    setYieldPercentage(goalToAction.yieldPercentage);
-    setTargetAmount(goalToAction.targetAmount);
+    setYieldPercentage(goalToAction.yieldPercentage?.toString() || '');
+    setTargetAmount(goalToAction.targetAmount?.toString() || '');
     setShowGoalModal(true);
   };
 
@@ -234,9 +231,10 @@ const Reserva: React.FC = () => {
   const handleSaveTransaction = async () => {
     if (!user || !transactionAmount || !goalToAction) return;
     const db = getFirestore(app);
+    const transactionAmountNumber = parseFloat(transactionAmount) || 0;
     const dataToSave = {
       description: `${transactionMode === 'add' ? 'Adicionar Valor' : 'Resgate'} - ${goalToAction.name}`,
-      amount: Math.abs(transactionAmount),
+      amount: Math.abs(transactionAmountNumber),
       date: Timestamp.fromDate(new Date(transactionDate)),
       type: transactionMode === 'add' ? 'reserve_add' : 'reserve_withdraw',
       reserveId: goalToAction.id,
@@ -286,19 +284,18 @@ const Reserva: React.FC = () => {
     setShowGoalModal(false);
     setEditingGoal(null);
     setGoalName('');
-    setYieldPercentage(undefined);
-    setInitialAmount(undefined);
-    setTargetAmount(undefined);
+    setYieldPercentage('');
+    setInitialAmount('');
+    setTargetAmount('');
     setGoalCreationDate(new Date().toISOString());
   };
 
   const closeTransactionModal = () => {
     setShowTransactionModal(false);
-    setTransactionAmount(undefined);
+    setTransactionAmount('');
     setIsRecurring(false);
     setTransactionDate(new Date().toISOString());
   };
-
 
   return (
     <IonPage>
@@ -357,9 +354,7 @@ const Reserva: React.FC = () => {
                   <IonItem key={goal.id} lines="inset" button onClick={() => handleItemClick(goal)}>
                     <IonLabel>
                       <h2>{goal.name}</h2>
-                      {/* <-- CORREÇÃO 3: Lógica de exibição do rendimento na lista */}
-                      {/* Verifica se a propriedade é um número, tratando o 0 como um valor válido. */}
-                      {typeof goal.yieldPercentage === 'number' ? 
+                      {typeof goal.yieldPercentage === 'number' && goal.yieldPercentage > 0 ? 
                         <p>Rendimento: {goal.yieldPercentage}% ao mês</p> 
                         : 
                         <p>Sem rendimento</p>
@@ -401,7 +396,7 @@ const Reserva: React.FC = () => {
               <div className="form-field-group">
                 <IonItem>
                   <IonLabel position="floating">Valor Inicial (R$)</IonLabel>
-                  <IonInput type="number" value={initialAmount} onIonChange={e => setInitialAmount(parseFloat(e.detail.value!))} placeholder="Opcional. Ex: 500,00" />
+                  <IonInput ref={initialAmountInputRef} type="number" value={initialAmount} onIonChange={e => setInitialAmount(e.detail.value!)} placeholder="Opcional. Ex: 500,00" />
                 </IonItem>
               </div>
               <div className="form-field-group">
@@ -415,18 +410,20 @@ const Reserva: React.FC = () => {
           <div className="form-field-group">
             <IonItem>
               <IonLabel position="floating">Meta Final (R$)</IonLabel>
-              <IonInput type="number" value={targetAmount} onIonChange={e => setTargetAmount(parseFloat(e.detail.value!))} placeholder="Opcional. Ex: 10000,00" />
+              <IonInput ref={targetAmountInputRef} type="number" value={targetAmount} onIonChange={e => setTargetAmount(e.detail.value!)} placeholder="Opcional. Ex: 10000,00" />
             </IonItem>
           </div>
           <div className="form-field-group">
             <IonItem>
               <IonLabel position="floating">Rendimento Mensal (%)</IonLabel>
-              <IonInput type="number" value={yieldPercentage} onIonChange={e => setYieldPercentage(parseFloat(e.detail.value!))} placeholder="Opcional. Ex: 1.1" />
+              <IonInput ref={yieldInputRef} type="number" value={yieldPercentage} onIonChange={e => setYieldPercentage(e.detail.value!)} placeholder="Opcional. Ex: 1.1" />
             </IonItem>
           </div>
-          <ActionButton onClick={handleSaveGoal}>
-            {editingGoal ? 'Salvar Alterações' : 'Criar Objetivo'}
-          </ActionButton>
+          <div className="ion-padding-horizontal ion-padding-bottom">
+            <ActionButton onClick={handleSaveGoal} expand="block">
+              {editingGoal ? 'Salvar Alterações' : 'Criar Objetivo'}
+            </ActionButton>
+          </div>
         </AppModal>
 
         <AppModal
@@ -434,30 +431,34 @@ const Reserva: React.FC = () => {
           isOpen={showTransactionModal}
           onDidDismiss={closeTransactionModal}
         >
-          <p className="ion-text-center">Movimentar para <strong>{goalToAction?.name}</strong></p>
-          <div className="form-field-group">
-            <IonItem>
-              <IonLabel position="floating">Valor (R$)</IonLabel>
-              <IonInput type="number" value={transactionAmount} onIonChange={e => setTransactionAmount(parseFloat(e.detail.value!))} placeholder="100,00" />
-            </IonItem>
-          </div>
-          <div className="form-field-group">
-              <IonItem lines="none" className="date-item">
-                  <IonLabel>Data da Transação</IonLabel>
-                  <IonDatetimeButton datetime="datetime-transaction-modal"></IonDatetimeButton>
-              </IonItem>
-          </div>
-          {transactionMode === 'add' && (
+          <div className="ion-padding">
+            <p className="ion-text-center">Movimentar para <strong>{goalToAction?.name}</strong></p>
             <div className="form-field-group">
-              <IonItem lines="none" className="toggle-item">
-                <IonLabel>Adicionar todo mês?</IonLabel>
-                <IonToggle checked={isRecurring} onIonChange={e => setIsRecurring(e.detail.checked)} />
+              <IonItem>
+                <IonLabel position="floating">Valor (R$)</IonLabel>
+                <IonInput type="number" value={transactionAmount} onIonChange={e => setTransactionAmount(e.detail.value!)} placeholder="100,00" />
               </IonItem>
             </div>
-          )}
-          <ActionButton onClick={handleSaveTransaction}>
-            Confirmar
-          </ActionButton>
+            <div className="form-field-group">
+                <IonItem lines="none" className="date-item">
+                    <IonLabel>Data da Transação</IonLabel>
+                    <IonDatetimeButton datetime="datetime-transaction-modal"></IonDatetimeButton>
+                </IonItem>
+            </div>
+            {transactionMode === 'add' && (
+              <div className="form-field-group">
+                <IonItem lines="none" className="toggle-item">
+                  <IonLabel>Adicionar todo mês?</IonLabel>
+                  <IonToggle checked={isRecurring} onIonChange={e => setIsRecurring(e.detail.checked)} />
+                </IonItem>
+              </div>
+            )}
+            <div className="ion-padding-horizontal ion-padding-bottom">
+                <ActionButton onClick={handleSaveTransaction} expand="block">
+                  Confirmar
+                </ActionButton>
+            </div>
+          </div>
         </AppModal>
         
         <IonModal keepContentsMounted={true}>

@@ -44,8 +44,11 @@
 		"HapticsPlugin",
 		"KeyboardPlugin",
 		"LocalNotificationsPlugin",
+		"PushNotificationsPlugin",
+		"PreferencesPlugin",
 		"SharePlugin",
 		"StatusBarPlugin",
+		"SplashScreenPlugin",
 		"GoogleAuth"
 	]
 }

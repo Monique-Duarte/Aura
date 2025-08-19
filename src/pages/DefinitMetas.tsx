@@ -193,7 +193,7 @@ const DefinirMetasPage: React.FC = () => {
               clearInput
             />
           </IonItem>
-          <ActionButton onClick={handleSaveGoal} fill="solid" disabled={isSaving}>
+          <ActionButton onClick={handleSaveGoal} fill="solid" disabled={isSaving} expand="block">
             {isSaving ? <IonSpinner name="crescent" /> : 'Confirmar'}
           </ActionButton>
         </AppModal>

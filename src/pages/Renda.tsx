@@ -271,7 +271,7 @@ const Renda: React.FC = () => {
               <IonToggle checked={isRecurring} onIonChange={e => setIsRecurring(e.detail.checked)} />
             </IonItem>
           </div>
-          <ActionButton onClick={handleSaveIncome}>
+          <ActionButton onClick={handleSaveIncome} expand="block">
             {editingIncome ? 'Salvar Alterações' : 'Salvar Renda'}
           </ActionButton>
         </AppModal>

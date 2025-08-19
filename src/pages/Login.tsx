@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { IonPage, IonContent, IonButton, IonText, IonSpinner, IonCheckbox, IonItem, IonLabel } from '@ionic/react';
+import { IonPage, IonContent, IonButton, IonText, IonSpinner, IonCheckbox, IonItem, IonLabel, IonNote } from '@ionic/react';
 import { Link, useHistory } from 'react-router-dom';
 import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
 import { FirebaseError } from 'firebase/app';
@@ -7,6 +7,7 @@ import { authService } from '../service/auth.service';
 import { app } from '../firebaseConfig';
 import logo from '/logo.png';
 import '../theme/variables.css';
+import { APP_VERSION } from '../constants';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -137,6 +138,11 @@ const Login: React.FC = () => {
             <Link to="/reset-password" className="aura-link-clean">Esqueci minha senha</Link>
           </div>
         </div>
+
+        <div style={{ position: 'absolute', bottom: 0, width: '100%', left: 0 }} className="ion-text-center ion-padding-bottom">
+            <IonNote color="medium">{APP_VERSION}</IonNote>
+        </div>
+
       </IonContent>
     </IonPage>
   );

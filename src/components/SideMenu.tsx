@@ -15,22 +15,23 @@ import {
   IonSpinner
 } from '@ionic/react';
 
-import { 
-  cashOutline, 
-  cardOutline, 
-  walletOutline, 
-  homeOutline, 
-  receiptOutline, 
-  logOutOutline, 
+import {
+  cashOutline,
+  cardOutline,
+  walletOutline,
+  homeOutline,
+  receiptOutline,
+  logOutOutline,
   personCircleOutline,
-  settingsOutline, 
+  settingsOutline,
   documentTextOutline,
-  flagOutline 
+  flagOutline
 } from 'ionicons/icons';
 import { useLocation, useHistory } from 'react-router-dom';
 import { getAuth, signOut, onAuthStateChanged, User, updateProfile } from 'firebase/auth';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import '../theme/variables.css';
+import { APP_VERSION } from '../constants';
 
 const menuOptions = [
   { title: 'Dashboard', icon: homeOutline, path: '/app/dashboard' },
@@ -142,14 +143,17 @@ const SideMenu: React.FC<{ contentId: string }> = ({ contentId }) => {
       </IonContent>
 
       <IonFooter className="ion-no-border">
-         <IonList>
-           <IonMenuToggle autoHide={false}>
-             <IonItem button lines="none" onClick={handleLogout}>
-               <IonIcon slot="start" icon={logOutOutline} />
-               <IonLabel>Sair</IonLabel>
-             </IonItem>
-           </IonMenuToggle>
-         </IonList>
+        <IonList>
+          <IonMenuToggle autoHide={false}>
+            <IonItem button lines="none" onClick={handleLogout}>
+              <IonIcon slot="start" icon={logOutOutline} />
+              <IonLabel>Sair</IonLabel>
+            </IonItem>
+          </IonMenuToggle>
+        </IonList>
+        <div className="ion-text-center ion-padding-bottom">
+          <IonNote color="medium">{APP_VERSION}</IonNote>
+        </div>
       </IonFooter>
     </IonMenu>
   );

@@ -7,6 +7,7 @@ import {
   updateProfile,
   sendPasswordResetEmail,
   linkWithPopup,
+  linkWithCredential,
   AuthError,
 } from 'firebase/auth';
 import { 
@@ -148,9 +149,9 @@ export class AuthService {
     }
   }
 
-  /**
-   * Vincula a conta do Google ao usuário atualmente logado.
-   * @returns Um objeto indicando sucesso ou falha com uma mensagem de erro.
+/**
+   * Vincula a conta do Google ao usuário logado, usando o fluxo nativo no mobile
+   * e o popup na web.
    */
   async linkGoogleAccount(): Promise<{ success: boolean; error?: string }> {
     const user = auth.currentUser;
@@ -159,18 +160,33 @@ export class AuthService {
     }
 
     try {
-      const provider = new GoogleAuthProvider();
-      await linkWithPopup(user, provider);
+      if (Capacitor.isNativePlatform()) {
+        await this.initialize();
+        const googleUser = await GoogleAuth.signIn();
+        if (!googleUser?.authentication?.idToken) {
+          throw new Error('Não foi possível obter o token de autenticação do Google.');
+        }
+        const credential = GoogleAuthProvider.credential(googleUser.authentication.idToken);
+        await linkWithCredential(user, credential);
+      } else {
+        const provider = new GoogleAuthProvider();
+        await linkWithPopup(user, provider);
+      }
+      
       return { success: true };
+
     } catch (error) {
       const authError = error as AuthError;
-      console.error("Erro ao vincular a conta do Google:", authError.code);
+      console.error("Erro ao vincular a conta do Google:", authError.code, authError.message);
       
       if (authError.code === 'auth/credential-already-in-use') {
         return { success: false, error: 'Esta conta do Google já está associada a outro usuário.' };
       }
-
-      return { success: false, error: 'Ocorreu um erro ao tentar vincular a conta do Google.' };
+      if (authError.message.includes('12501')) {
+        return { success: false, error: 'Vinculação cancelada pelo usuário.' };
+      }
+      
+      return { success: false, error: 'Ocorreu um erro ao tentar vincular a conta.' };
     }
   }
 

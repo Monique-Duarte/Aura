@@ -73,27 +73,22 @@ const App: React.FC = () => {
       }
 
       try {
-        // Sua configuração original funcionando + ajuste para S23
         await StatusBar.setStyle({ style: Style.Light });
         await StatusBar.setBackgroundColor({ color: '#00000000' });
         await StatusBar.show();
         
-        // MUDANÇA PRINCIPAL: apenas para dispositivos Samsung
         if (isPlatform('android')) {
           const userAgent = navigator.userAgent;
           const isSamsung = userAgent.includes('SM-') || userAgent.includes('Samsung');
           
           if (isSamsung) {
-            // Para Samsung (incluindo S23), usar overlay true
             await StatusBar.setOverlaysWebView({ overlay: true });
             console.log('Configuração Samsung aplicada');
           } else {
-            // Para outros Android, manter overlay false (sua configuração original)
             await StatusBar.setOverlaysWebView({ overlay: false });
             console.log('Configuração Android padrão aplicada');
           }
         } else {
-          // iOS mantém overlay false
           await StatusBar.setOverlaysWebView({ overlay: false });
         }
         

@@ -12,11 +12,25 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:theme="@style/AppTheme.NoActionBarLaunch" >
+            android:theme="@style/AppTheme.NoActionBarLaunch"
+            android:windowSoftInputMode="adjustResize"
+            android:screenOrientation="portrait">
+            
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+            <!-- Meta-data para configuração da StatusBar -->
+            <meta-data 
+                android:name="android.support.PARENT_ACTIVITY" 
+                android:value=".MainActivity" />
+            
+            <!-- Configuração específica para dispositivos com notch/cutout -->
+            <meta-data
+                android:name="android.notch.config"
+                android:value="portrait|landscape" />
+                
         </activity>
 
         <provider
@@ -31,6 +45,9 @@
     </application>
 
     <!-- Permissions -->
-
     <uses-permission android:name="android.permission.INTERNET" />
+    
+    <!-- Permissão para controlar a StatusBar (algumas versões do Android exigem) -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
 </manifest>

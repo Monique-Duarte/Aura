@@ -1,8 +1,9 @@
 import React, { useEffect } from 'react';
-import { Redirect, Route, Switch } from 'react-router-dom';
-import { IonApp, setupIonicReact } from '@ionic/react';
+import { Redirect, Route, Switch, useHistory } from 'react-router-dom';
+import { IonApp, setupIonicReact, isPlatform } from '@ionic/react';
 import { IonReactRouter } from '@ionic/react-router';
 import { StatusBar, Style } from '@capacitor/status-bar';
+import { Capacitor } from '@capacitor/core';
 
 /* Core CSS e Tema */
 import '@ionic/react/css/core.css';
@@ -25,20 +26,76 @@ import MainLayout from './layouts/MainLayout';
 import { DateProvider } from './hooks/DateContext';
 import { AuthProvider } from './hooks/AuthContext';
 
-setupIonicReact();
+setupIonicReact({
+  mode: 'md'
+});
+
+// Componente para monitorar mudanças de rota e reconfigurar StatusBar
+const StatusBarManager: React.FC = () => {
+  const history = useHistory();
+
+  useEffect(() => {
+    const configureStatusBar = async () => {
+      if (!Capacitor.isNativePlatform()) return;
+
+      try {
+        await StatusBar.setStyle({ style: Style.Light });
+        await StatusBar.setBackgroundColor({ color: '#00000000' });
+        await StatusBar.show();
+        await StatusBar.setOverlaysWebView({ overlay: false });
+        console.log('StatusBar reconfigurada na rota:', history.location.pathname);
+      } catch (error) {
+        console.log('Erro ao configurar StatusBar:', error);
+      }
+    };
+
+    // Configura imediatamente
+    configureStatusBar();
+
+    // Reconfigura sempre que a rota mudar
+    const unlisten = history.listen(() => {
+      setTimeout(configureStatusBar, 100);
+    });
+
+    return unlisten;
+  }, [history]);
+
+  return null;
+};
 
 const App: React.FC = () => {
   useEffect(() => {
     const configureStatusBar = async () => {
-      try {
+      // Verifica se está rodando em um dispositivo nativo
+      if (!Capacitor.isNativePlatform()) {
+        console.log('StatusBar não disponível na web/browser');
+        return;
+      }
 
+      try {
+        // Sua configuração original funcionando + ajuste para S23
         await StatusBar.setStyle({ style: Style.Light });
-        
         await StatusBar.setBackgroundColor({ color: '#00000000' });
-        
         await StatusBar.show();
         
-        await StatusBar.setOverlaysWebView({ overlay: false });
+        // MUDANÇA PRINCIPAL: apenas para dispositivos Samsung
+        if (isPlatform('android')) {
+          const userAgent = navigator.userAgent;
+          const isSamsung = userAgent.includes('SM-') || userAgent.includes('Samsung');
+          
+          if (isSamsung) {
+            // Para Samsung (incluindo S23), usar overlay true
+            await StatusBar.setOverlaysWebView({ overlay: true });
+            console.log('Configuração Samsung aplicada');
+          } else {
+            // Para outros Android, manter overlay false (sua configuração original)
+            await StatusBar.setOverlaysWebView({ overlay: false });
+            console.log('Configuração Android padrão aplicada');
+          }
+        } else {
+          // iOS mantém overlay false
+          await StatusBar.setOverlaysWebView({ overlay: false });
+        }
         
       } catch (error) {
         console.log('StatusBar não disponível na web/browser:', error);
@@ -51,13 +108,13 @@ const App: React.FC = () => {
   return (
     <IonApp>
       <IonReactRouter>
+        <StatusBarManager />
         <AuthProvider>
           <DateProvider>
             <Switch>
               <Route path="/login" component={Login} exact />
               <Route path="/register" component={Register} exact />
               <Route path="/reset-password" component={ResetPassword} exact />
-
               <Route path="/app" component={MainLayout} />
               <Redirect exact from="/" to="/login" />
             </Switch>

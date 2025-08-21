@@ -5,9 +5,17 @@ interface Invoice {
   id: string;
   cardName: string;
   totalAmount: number;
-  endDate: Date; // Data de fecho
-  dueDate: Date;   // Data de vencimento
+  endDate: Date; 
+  dueDate: Date;   
   isPaid: boolean;
+}
+
+// Descreve os dados que a nova função de notificação precisa
+export interface SpendingSummary {
+  name: string;      // Nome da categoria (ex: "Alimentação")
+  total: number;     // Total gasto na categoria
+  goalAmount?: number; // Valor da meta para a categoria
+  categoryId: string;  
 }
 
 // Função de utilidade para gerar um ID numérico a partir de uma string
@@ -77,5 +85,63 @@ export const scheduleInvoiceNotifications = async (invoicesToSchedule: Invoice[]
     }
   } catch (error) {
     console.error("Erro ao agendar notificações:", error);
+  }
+};
+
+export const scheduleSpendingGoalNotifications = async (summaries: SpendingSummary[], period: { month: number, year: number }) => {
+  try {
+    const permissions = await LocalNotifications.checkPermissions();
+    if (permissions.display !== 'granted') {
+      const request = await LocalNotifications.requestPermissions();
+      if (request.display !== 'granted') return;
+    }
+    
+    const notificationsToSchedule: ScheduleOptions['notifications'] = [];
+    const periodKey = `${period.year}-${period.month}`;
+
+    for (const summary of summaries) {
+      if (!summary.goalAmount || summary.goalAmount <= 0) continue;
+
+      const percentage = (summary.total / summary.goalAmount) * 100;
+      
+      // Chaves únicas para controlar se a notificação já foi enviada neste período
+      const notificationKey50 = `notif_sent_${summary.categoryId}_${periodKey}_50`;
+      const notificationKey80 = `notif_sent_${summary.categoryId}_${periodKey}_80`;
+      
+      const hasSent50 = localStorage.getItem(notificationKey50) === 'true';
+      const hasSent80 = localStorage.getItem(notificationKey80) === 'true';
+      
+      const notificationTime = new Date();
+      notificationTime.setSeconds(notificationTime.getSeconds() + 5); // Agenda para 5 segundos no futuro
+
+      // Lógica para notificação de 80%
+      if (percentage >= 80 && !hasSent80) {
+        notificationsToSchedule.push({
+          id: hashCode(`${summary.categoryId}_${periodKey}_80`), // ID único para esta notificação
+          title: '⚠️ Atenção aos Gastos',
+          body: `Você já utilizou mais de 80% da sua meta para ${summary.name} este mês!`,
+          schedule: { at: notificationTime },
+        });
+        localStorage.setItem(notificationKey80, 'true');
+      }
+      // Lógica para notificação de 50% (só se a de 80% ainda não foi enviada)
+      else if (percentage >= 50 && !hasSent50 && !hasSent80) {
+        notificationsToSchedule.push({
+          id: hashCode(`${summary.categoryId}_${periodKey}_50`), // ID único
+          title: 'Alerta de Meta de Gastos',
+          body: `Você atingiu 50% da sua meta para ${summary.name}. Fique de olho!`,
+          schedule: { at: notificationTime },
+        });
+        localStorage.setItem(notificationKey50, 'true');
+      }
+    }
+
+    if (notificationsToSchedule.length > 0) {
+      await LocalNotifications.schedule({ notifications: notificationsToSchedule });
+      console.log('Notificações de metas de gastos agendadas:', notificationsToSchedule);
+    }
+
+  } catch (error) {
+    console.error("Erro ao agendar notificações de metas:", error);
   }
 };

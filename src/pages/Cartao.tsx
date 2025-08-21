@@ -218,7 +218,7 @@ const Cartao: React.FC = () => {
               />
             </IonItem>
           </div>
-          <ActionButton onClick={handleSaveCard}>
+          <ActionButton onClick={handleSaveCard} expand="block" color="primary">
             {editingCard ? 'Salvar Alterações' : 'Adicionar Cartão'}
           </ActionButton>
         </AppModal>

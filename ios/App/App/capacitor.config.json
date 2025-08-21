@@ -44,11 +44,11 @@
 		"HapticsPlugin",
 		"KeyboardPlugin",
 		"LocalNotificationsPlugin",
-		"PushNotificationsPlugin",
 		"PreferencesPlugin",
+		"PushNotificationsPlugin",
 		"SharePlugin",
-		"StatusBarPlugin",
 		"SplashScreenPlugin",
+		"StatusBarPlugin",
 		"GoogleAuth"
 	]
 }

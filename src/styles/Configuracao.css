@@ -105,3 +105,61 @@ ion-item-divider {
   font-weight: bold;
   text-transform: uppercase;
 }
+
+/* Contêiner principal do seletor de cor */
+.color-picker-container {
+  padding: 16px 16px 8px 16px;
+}
+
+.color-picker-container ion-label {
+  color: var(--ion-color-medium);
+  font-size: 0.9rem;
+  margin-bottom: 12px;
+  display: block;
+}
+
+.color-swatch-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+  gap: 12px;
+}
+
+.color-swatch {
+  width: 100%;
+  padding-bottom: 100%;
+  height: 0;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.color-swatch:hover {
+  transform: scale(1.1);
+}
+
+.color-swatch.selected {
+  border-color: var(--ion-color-primary);
+  box-shadow: 0 0 10px var(--ion-color-primary-tint);
+}
+
+/* Estilo para o botão de cor customizada */
+.color-swatch.custom {
+  background-color: transparent;
+  border-style: dashed;
+  border-color: var(--ion-color-medium);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.color-swatch.custom ion-icon {
+  font-size: 24px;
+  color: var(--ion-color-medium);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}

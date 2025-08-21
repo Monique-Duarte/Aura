@@ -210,7 +210,7 @@ const Faturas: React.FC = () => {
                   <h2>{invoice.totalAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</h2>
                 </IonText>
                 <IonText color="medium"><p>Fecha em: {invoice.endDate.toLocaleDateString('pt-BR')}</p></IonText>
-                <ActionButton onClick={() => openDetailsModal(invoice)} fill="clear" expand="block">Ver Detalhes</ActionButton>
+                <ActionButton onClick={() => openDetailsModal(invoice)} fill="clear" expand="block" color="primary">Ver Detalhes</ActionButton>
               </div>
             )) : <IonItem lines="none"><IonLabel color="medium">Nenhuma fatura aberta.</IonLabel></IonItem>}
 
@@ -264,9 +264,9 @@ const Faturas: React.FC = () => {
               <div className="invoice-summary">
                 <IonText><h3>Total: {selectedInvoice.totalAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</h3></IonText>
                 {!selectedInvoice.isPaid ? (
-                  <ActionButton expand="block" onClick={() => handlePaymentToggle(selectedInvoice, true)} icon={checkmarkCircleOutline}>Marcar como Paga</ActionButton>
+                  <ActionButton expand="block" color="primary" onClick={() => handlePaymentToggle(selectedInvoice, true)} icon={checkmarkCircleOutline}>Marcar como Paga</ActionButton>
                 ) : (
-                  <ActionButton expand="block" onClick={() => handlePaymentToggle(selectedInvoice, false)} fill="outline" icon={closeCircleOutline}>Marcar como Não Paga</ActionButton>
+                  <ActionButton expand="block" color="primary" onClick={() => handlePaymentToggle(selectedInvoice, false)} fill="outline" icon={closeCircleOutline}>Marcar como Não Paga</ActionButton>
                 )}
               </div>
             </>

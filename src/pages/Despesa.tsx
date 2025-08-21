@@ -428,7 +428,7 @@ const Despesas: React.FC = () => {
               </IonItem>
             </div>
           )}
-          <ActionButton onClick={handleSaveExpense} expand="block">
+          <ActionButton onClick={handleSaveExpense} expand="block" color="primary">
             {editingExpense ? 'Salvar Alterações' : 'Salvar Gasto'}
           </ActionButton>
         </AppModal>

@@ -1,42 +1,27 @@
 import React from 'react';
 import { IonButton, IonIcon } from '@ionic/react';
 
-type IonButtonFill = React.ComponentProps<typeof IonButton>['fill'];
-type IonButtonExpand = React.ComponentProps<typeof IonButton>['expand'];
-
-interface ActionButtonProps {
-  onClick: () => void;
+// ===================================================================================
+// CORREÇÃO AQUI: Em vez de importar 'IonButtonProps', usamos esta abordagem
+// que é o padrão do React para obter os tipos de um componente.
+// ===================================================================================
+interface ActionButtonProps extends React.ComponentProps<typeof IonButton> {
+  // Apenas garantimos que 'children' seja obrigatório, pois no tipo base ele pode ser opcional.
   children: React.ReactNode;
-  icon?: string;
-  disabled?: boolean;
-  fill?: IonButtonFill;
-  slot?: string;
-  expand?: IonButtonExpand;
-  className?: string;
 }
 
 const ActionButton: React.FC<ActionButtonProps> = ({ 
-  onClick, 
-  children, 
-  icon, 
-  disabled, 
-  fill = "solid",
-  slot,
-  expand,
-  className
+  children,
+  ...props // O '...props' agora contém TODOS os tipos corretos: color, fill, expand, className, etc.
 }) => {
-  const buttonClasses = `ion-margin-top ${className || ''}`;
-
   return (
     <IonButton 
-      expand={expand} 
-      onClick={onClick} 
-      disabled={disabled}
-      fill={fill}
-      slot={slot} 
-      className={buttonClasses} 
+      // A classe 'ion-margin-top' garante o espaçamento padrão.
+      className={`ion-margin-top ${props.className || ''}`}
+      {...props} // Repassamos todas as propriedades diretamente para o IonButton
     >
-      {icon && <IonIcon slot="start" icon={icon} />}
+      {/* O IonIcon não precisa ser passado como prop, ele pode ser usado como filho, 
+          mas manteremos assim por enquanto se for o seu padrão. */}
       {children}
     </IonButton>
   );

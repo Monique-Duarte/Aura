@@ -420,7 +420,7 @@ const Reserva: React.FC = () => {
             </IonItem>
           </div>
           <div className="ion-padding-horizontal ion-padding-bottom">
-            <ActionButton onClick={handleSaveGoal} expand="block">
+            <ActionButton onClick={handleSaveGoal} expand="block" color="primary">
               {editingGoal ? 'Salvar Alterações' : 'Criar Objetivo'}
             </ActionButton>
           </div>
@@ -454,7 +454,7 @@ const Reserva: React.FC = () => {
               </div>
             )}
             <div className="ion-padding-horizontal ion-padding-bottom">
-                <ActionButton onClick={handleSaveTransaction} expand="block">
+                <ActionButton onClick={handleSaveTransaction} expand="block" color="primary">
                   Confirmar
                 </ActionButton>
             </div>

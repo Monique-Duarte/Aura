@@ -141,7 +141,7 @@ const FamilyChartManager: React.FC<FamilyChartManagerProps> = ({ period }) => {
               </IonCardHeader>
               <IonCardContent>
                 <div style={{ display: 'flex', gap: '10px', marginTop: '10px', justifyContent: 'center' }}>
-                  <ActionButton expand="block" onClick={() => acceptInvitation(inv.id)}>Aceitar</ActionButton>
+                  <ActionButton expand="block" color="primary" onClick={() => acceptInvitation(inv.id)}>Aceitar</ActionButton>
                   <ActionButton expand="block" fill="outline" color="danger" onClick={() => cancelOrDecline(inv.id)}>Recusar</ActionButton>
                 </div>
               </IonCardContent>
@@ -183,7 +183,7 @@ const FamilyChartManager: React.FC<FamilyChartManagerProps> = ({ period }) => {
         <IonLabel position="floating">E-mail do parceiro(a)</IonLabel>
         <IonInput type="email" value={inviteEmail} onIonChange={e => setInviteEmail(e.detail.value!)} disabled={isSending} />
       </IonItem>
-      <ActionButton expand="block" onClick={handleSendInvite} className="ion-margin-top" disabled={isSending}>
+      <ActionButton expand="block" color="primary" onClick={handleSendInvite} className="ion-margin-top" disabled={isSending}>
         {isSending ? <IonSpinner name="crescent" /> : 'Enviar Convite'}
       </ActionButton>
       {error && <IonText color="danger"><p className="ion-text-center ion-padding-top">{error}</p></IonText>}

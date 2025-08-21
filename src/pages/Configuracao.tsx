@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   IonPage,
   IonHeader,
@@ -21,9 +21,9 @@ import {
   IonToast,
   IonItemDivider,
 } from '@ionic/react';
-import { add, pencil, trash, close, logoGoogle } from 'ionicons/icons';
+import { add, pencil, trash, close, logoGoogle, eyedropOutline } from 'ionicons/icons';
 import { useAuth } from '../hooks/AuthContext';
-import { authService } from '../service/auth.service'; 
+import { authService } from '../service/auth.service';
 
 import { useCategories, Category as ExpenseCategory } from '../hooks/useCategories';
 import { useIncomeCategories, IncomeCategory } from '../hooks/useIncomeCategories';
@@ -33,7 +33,15 @@ import ActionButton from '../components/ActionButton';
 import ActionAlert from '../components/ActionAlert';
 import '../styles/Configuracao.css';
 
+// Nossa paleta de cores customizada
+const PREDEFINED_COLORS = [
+  '#FF6B6B', '#4ECDC4', '#45B7D1', '#FED766', '#F7B2AD', 
+  '#8A63D2', '#2E933C', '#F4A261', '#E76F51', '#2A9D8F',
+  '#E9C46A', '#fefae0'
+];
+
 const Configuracao: React.FC = () => {
+  const colorInputRef = useRef<HTMLInputElement>(null); // Ref para o input de cor escondido
   const { user } = useAuth(); 
   const [isLinking, setIsLinking] = useState(false);
   const [linkError, setLinkError] = useState('');
@@ -59,7 +67,7 @@ const Configuracao: React.FC = () => {
   const [editingCategory, setEditingCategory] = useState<ExpenseCategory | IncomeCategory | null>(null);
   const [categoryType, setCategoryType] = useState<'expense' | 'income' | null>(null);
   const [categoryName, setCategoryName] = useState('');
-  const [categoryColor, setCategoryColor] = useState('#ffffff');
+  const [categoryColor, setCategoryColor] = useState('#FF6B6B');
   const [categoryToAction, setCategoryToAction] = useState<ExpenseCategory | IncomeCategory | null>(null);
   const [showDeleteAlert, setShowDeleteAlert] = useState(false);
   const [showDeleteAccountAlert, setShowDeleteAccountAlert] = useState(false);
@@ -72,7 +80,7 @@ const Configuracao: React.FC = () => {
     setEditingCategory(null);
     setCategoryType(type);
     setCategoryName('');
-    setCategoryColor('#ffffff');
+    setCategoryColor('#FF6B6B');
     setShowModal(true);
   };
 
@@ -165,6 +173,8 @@ const Configuracao: React.FC = () => {
   const isGoogleUser = user?.providerData.some(p => p.providerId === 'google.com');
   const showLinkButton = isEmailUser && !isGoogleUser;
 
+  const isCustomColorSelected = !PREDEFINED_COLORS.map(c => c.toUpperCase()).includes(categoryColor.toUpperCase());
+
   return (
     <IonPage>
       <IonHeader>
@@ -187,7 +197,7 @@ const Configuracao: React.FC = () => {
                 <IonIcon icon={logoGoogle} slot="start" />
                 <IonLabel>Login com Google</IonLabel>
                 {showLinkButton && (
-                  <ActionButton onClick={handleLinkGoogle} disabled={isLinking} slot="end" expand="block">
+                  <ActionButton onClick={handleLinkGoogle} disabled={isLinking} slot="end">
                     {isLinking ? <IonSpinner name="crescent" /> : 'Vincular'}
                   </ActionButton>
                 )}
@@ -260,23 +270,46 @@ const Configuracao: React.FC = () => {
             <IonInput value={categoryName} onIonChange={e => setCategoryName(e.detail.value!)} />
           </IonItem>
           {categoryType === 'expense' && (
-            <IonItem lines="none" className="color-picker-item">
+            <div className="color-picker-container">
               <IonLabel>Cor</IonLabel>
-              <div className="color-input-wrapper">
-                <input 
-                  type="color" 
-                  value={categoryColor} 
-                  onChange={e => setCategoryColor(e.target.value)}
-                />
-                <input 
-                  type="text" 
-                  value={categoryColor.toUpperCase()} 
-                  readOnly
-                />
+              <input 
+                ref={colorInputRef}
+                type="color" 
+                value={categoryColor} 
+                onChange={e => setCategoryColor(e.target.value)}
+                style={{ display: 'none' }}
+              />
+              <div className="color-swatch-grid">
+                {PREDEFINED_COLORS.map(color => (
+                  <button
+                    key={color}
+                    type="button"
+                    className={`color-swatch ${categoryColor.toUpperCase() === color.toUpperCase() ? 'selected' : ''}`}
+                    style={{ backgroundColor: color }}
+                    onClick={() => setCategoryColor(color)}
+                  />
+                ))}
+                
+                {isCustomColorSelected && (
+                  <button
+                    type="button"
+                    className="color-swatch selected"
+                    style={{ backgroundColor: categoryColor }}
+                    onClick={() => colorInputRef.current?.click()}
+                  />
+                )}
+
+                <button
+                  type="button"
+                  className="color-swatch custom"
+                  onClick={() => colorInputRef.current?.click()}
+                >
+                  <IonIcon icon={eyedropOutline} />
+                </button>
               </div>
-            </IonItem>
+            </div>
           )}
-          <ActionButton onClick={handleSaveCategory} expand="block">
+          <ActionButton onClick={handleSaveCategory} expand="block" color="primary">
             {editingCategory ? 'Salvar Alterações' : 'Criar Categoria'}
           </ActionButton>
         </AppModal>
@@ -285,11 +318,10 @@ const Configuracao: React.FC = () => {
           isOpen={showDeleteAlert}
           onDidDismiss={() => setCategoryToAction(null)}
           header="Confirmar Exclusão"
-          message={`Tem a certeza que deseja excluir a categoria "${categoryToAction?.name}"?`}
+          message={`Tem a certeza que deseja excluir la categoria "${categoryToAction?.name}"?`}
           onConfirm={confirmDeleteCategory}
           confirmButtonText="Excluir"
         />
-
         <ActionAlert
           isOpen={showDeleteAccountAlert}
           onDidDismiss={() => setShowDeleteAccountAlert(false)}
@@ -298,7 +330,6 @@ const Configuracao: React.FC = () => {
           onConfirm={confirmDeleteAccount}
           confirmButtonText="Sim, Excluir Tudo"
         />
-        
         <IonActionSheet
           isOpen={showAddActionSheet}
           onDidDismiss={() => setShowAddActionSheet(false)}
@@ -309,7 +340,6 @@ const Configuracao: React.FC = () => {
             { text: 'Cancelar', role: 'cancel' }
           ]}
         />
-
         <IonActionSheet
           isOpen={showCategoryActionSheet}
           onDidDismiss={() => setShowCategoryActionSheet(false)}
@@ -320,7 +350,6 @@ const Configuracao: React.FC = () => {
             { text: 'Cancelar', icon: close, role: 'cancel' }
           ]}
         />
-
         <IonToast
           isOpen={showToast}
           onDidDismiss={() => setShowToast(false)}

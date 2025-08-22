@@ -17,6 +17,7 @@ import {
   Timestamp, 
   getFirestore 
 } from 'firebase/firestore';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import { auth, app } from '../firebaseConfig';
 import { Capacitor } from '@capacitor/core';
 import { FirebaseError } from 'firebase/app';
@@ -28,7 +29,6 @@ export class AuthService {
     if (this.initialized) return;
     
     try {
-
       await GoogleAuth.initialize({
         clientId: '733656810098-4c4tcf7sq8eoa7qms0r296hjk1vgnm5d.apps.googleusercontent.com',
         scopes: ['profile', 'email'],
@@ -43,21 +43,31 @@ export class AuthService {
 
   async sendPasswordReset(email: string): Promise<void> {
     try {
-      await sendPasswordResetEmail(auth, email);
-      console.log('E-mail de recuperação enviado para:', email);
-    } catch (error) {
-      console.error("Falha ao enviar e-mail de recuperação:", error);
-      if (error instanceof FirebaseError) {
-        switch (error.code) {
-          case 'auth/user-not-found':
-            throw new Error('Nenhuma conta encontrada com este e-mail.');
-          case 'auth/invalid-email':
-            throw new Error('O formato do e-mail é inválido.');
-          default:
-            throw new Error('Erro ao enviar e-mail. Verifique o endereço e tente novamente.');
-        }
+      const functions = getFunctions(app);
+      const checkEmail = httpsCallable(functions, 'checkIfEmailExists');
+
+      const result = await checkEmail({ email });
+      const data = result.data as { exists: boolean };
+
+      if (!data.exists) {
+        // Este é o nosso erro "amigável" e customizado
+        throw new Error('E-mail não vinculado.');
       }
-      throw new Error('Ocorreu um erro inesperado. Tente novamente.');
+
+      await sendPasswordResetEmail(auth, email);
+
+    } catch (error: unknown) {
+      console.error("Erro no processo de recuperação de senha:", error);
+
+      // 1. Primeiro, verificamos se o erro é a nossa mensagem customizada.
+      //    Se for, nós a repassamos para a tela.
+      if (error instanceof Error && error.message === 'E-mail não vinculado.') {
+        throw error;
+      }
+
+      // 2. Para QUALQUER OUTRO TIPO de erro (seja o "internal" do backend,
+      //    um erro de rede, etc.), nós lançamos uma nova mensagem genérica e amigável.
+      throw new Error('Ocorreu um erro de comunicação. Tente novamente mais tarde.');
     }
   }
 
@@ -149,7 +159,7 @@ export class AuthService {
     }
   }
 
-/**
+  /**
    * Vincula a conta do Google ao usuário logado, usando o fluxo nativo no mobile
    * e o popup na web.
    */
@@ -189,7 +199,6 @@ export class AuthService {
       return { success: false, error: 'Ocorreu um erro ao tentar vincular a conta.' };
     }
   }
-
 
   async signOut() {
     try {

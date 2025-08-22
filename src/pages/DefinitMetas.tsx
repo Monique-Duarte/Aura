@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   IonPage,
   IonHeader,
@@ -22,7 +22,7 @@ import ActionButton from '../components/ActionButton';
 import PeriodSelector, { Period } from '../components/PeriodSelector';
 import CategorySummaryList from '../components/CategorySummaryList';
 import GoalsBarChart from '../components/GoalsBarChart';
-
+import { scheduleSpendingGoalNotifications } from '../logic/notificationLogic';
 import { useSpendingGoals } from '../hooks/useSpendingGoals';
 import { useCategories, Category } from '../hooks/useCategories';
 import { useCategorySummary } from '../hooks/useCategorySummary';
@@ -59,11 +59,23 @@ const DefinirMetasPage: React.FC = () => {
       return {
         ...summaryItem,
         goalAmount: goal?.amount,
+        categoryId: category?.id || '',
       };
     });
   }, [summaryList, goals, categories, loading]);
 
-  // Funções de manipulação para o input do modal - CORRIGIDAS
+  useEffect(() => {
+    if (!loading && activePeriod && summaryWithGoals.length > 0) {
+      const periodInfo = {
+        month: new Date(activePeriod.value).getMonth(),
+        year: new Date(activePeriod.value).getFullYear(),
+      };
+      const summariesWithDefinedGoals = summaryWithGoals.filter(s => s.goalAmount && s.goalAmount > 0);
+      
+      scheduleSpendingGoalNotifications(summariesWithDefinedGoals, periodInfo);
+    }
+  }, [summaryWithGoals, loading, activePeriod]);
+
   const formatForInput = (val?: number) => {
     if (val === undefined || val === null) return '';
     return val.toFixed(2).replace('.', ',');
@@ -189,11 +201,11 @@ const DefinirMetasPage: React.FC = () => {
               inputmode="decimal"
               placeholder="0,00"
               value={displayValue}
-              onIonInput={handleInputChange}  // MUDANÇA: usar onIonInput em vez de onIonChange
+              onIonInput={handleInputChange}
               clearInput
             />
           </IonItem>
-          <ActionButton onClick={handleSaveGoal} fill="solid" disabled={isSaving}>
+          <ActionButton onClick={handleSaveGoal} fill="solid" disabled={isSaving} expand="block" color="primary">
             {isSaving ? <IonSpinner name="crescent" /> : 'Confirmar'}
           </ActionButton>
         </AppModal>

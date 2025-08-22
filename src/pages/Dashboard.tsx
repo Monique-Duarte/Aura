@@ -1,15 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { 
-  IonPage, 
-  IonHeader, 
-  IonToolbar, 
-  IonButtons, 
-  IonMenuButton, 
-  IonTitle, 
-  IonContent, 
   IonSpinner, 
   IonText 
 } from '@ionic/react';
+
+import PageLayout from '../components/PageLayout';
 
 import PeriodSelector, { Period } from '../components/PeriodSelector';
 import BalanceChart from '../components/BalanceChart';
@@ -38,77 +33,70 @@ const Dashboard: React.FC = () => {
   const { balance: currentBalance, loading: accountBalanceLoading } = useAccountBalance();
 
   return (
-    <IonPage>
-      <IonHeader>
-        <IonToolbar color="primary">
-          <IonButtons slot="start">
-            <IonMenuButton />
-          </IonButtons>
-          <IonTitle>Dashboard</IonTitle>
-        </IonToolbar>
-      </IonHeader>
-      <IonContent className="ion-padding">
-        
-        <div className="summary-card">
-          {accountBalanceLoading ? (
-            <IonSpinner name="crescent" />
+    // 2. Substituímos toda a estrutura de Page, Header e Content pelo nosso PageLayout
+    <PageLayout pageTitle="Dashboard">
+      
+      {/* 3. Todo o conteúdo que antes estava dentro do <IonContent> agora fica aqui */}
+      <div className="summary-card">
+        {accountBalanceLoading ? (
+          <IonSpinner name="crescent" />
+        ) : (
+          <>
+            <IonText><p>Saldo Atual</p></IonText>
+            <IonText color="success">
+              <h2>{currentBalance.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</h2>
+            </IonText>
+          </>
+        )}
+      </div>
+
+      <div className="dashboard-header-row">
+        <h2 className="dashboard-title">Resumo Mensal</h2>
+        <PeriodSelector onPeriodChange={setActivePeriodObject} />
+      </div>
+
+      <div className="dashboard-chart-legend">
+        {chartOptions.map(opt => (
+          <button
+            key={opt.key}
+            className={`dashboard-legend-btn${activeChart === opt.key ? ' active' : ''}`}
+            onClick={() => setActiveChart(opt.key)}
+            type="button"
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="dashboard-chart-area chart-wrapper">
+        <div className={`chart-container ${activeChart === 'balance' ? 'active' : ''}`}>
+          {balanceLoading ? (
+            <div className="spinner-container"><IonSpinner /></div>
           ) : (
-            <>
-              <IonText><p>Saldo Atual</p></IonText>
-              <IonText color="success">
-                <h2>{currentBalance.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</h2>
-              </IonText>
-            </>
+            <BalanceChart 
+              totalIncome={balanceSummary.totalIncome} 
+              totalExpense={balanceSummary.totalExpense} 
+              totalReserved={balanceSummary.totalReserved} 
+            />
           )}
         </div>
-
-        <div className="dashboard-header-row">
-          <h2 className="dashboard-title">Resumo Mensal</h2>
-          <PeriodSelector onPeriodChange={setActivePeriodObject} />
+        <div className={`chart-container ${activeChart === 'category' ? 'active' : ''}`}>
+          {categoryLoading || !categoryChartData ? (
+            <div className="spinner-container"><IonSpinner /></div>
+          ) : (
+            <CategoryChart data={categoryChartData} totalAmount={totalExpense} />
+          )}
         </div>
-
-        <div className="dashboard-chart-legend">
-          {chartOptions.map(opt => (
-            <button
-              key={opt.key}
-              className={`dashboard-legend-btn${activeChart === opt.key ? ' active' : ''}`}
-              onClick={() => setActiveChart(opt.key)}
-              type="button"
-            >
-              {opt.label}
-            </button>
-          ))}
+        <div className={`chart-container ${activeChart === 'family' ? 'active' : ''}`}>
+          <FamilyChartManager period={activePeriodObject} />
         </div>
+      </div>
 
-        <div className="dashboard-chart-area chart-wrapper">
-          <div className={`chart-container ${activeChart === 'balance' ? 'active' : ''}`}>
-            {balanceLoading ? (
-              <div className="spinner-container"><IonSpinner /></div>
-            ) : (
-              <BalanceChart 
-                totalIncome={balanceSummary.totalIncome} 
-                totalExpense={balanceSummary.totalExpense} 
-                totalReserved={balanceSummary.totalReserved} 
-              />
-            )}
-          </div>
-          <div className={`chart-container ${activeChart === 'category' ? 'active' : ''}`}>
-            {categoryLoading || !categoryChartData ? (
-              <div className="spinner-container"><IonSpinner /></div>
-            ) : (
-              <CategoryChart data={categoryChartData} totalAmount={totalExpense} />
-            )}
-          </div>
-          <div className={`chart-container ${activeChart === 'family' ? 'active' : ''}`}>
-            <FamilyChartManager period={activePeriodObject} />
-          </div>
-        </div>
+      {activeChart === 'category' && !categoryLoading && categorySummaryList.length > 0 && (
+        <CategorySummaryList summary={categorySummaryList} />
+      )}
 
-        {activeChart === 'category' && !categoryLoading && categorySummaryList.length > 0 && (
-          <CategorySummaryList summary={categorySummaryList} />
-        )}
-      </IonContent>
-    </IonPage>
+    </PageLayout>
   );
 };
 

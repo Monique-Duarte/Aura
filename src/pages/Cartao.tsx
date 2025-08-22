@@ -1,12 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
-  IonPage,
-  IonHeader,
-  IonToolbar,
-  IonButtons,
-  IonMenuButton,
-  IonTitle,
-  IonContent,
+  // REMOVIDO: IonPage, IonHeader, IonToolbar, IonButtons, IonMenuButton, IonTitle, IonContent
+  // MANTIDO: Componentes que o conteúdo da página realmente usa
   IonFab,
   IonFabButton,
   IonIcon,
@@ -23,6 +18,9 @@ import { useAuth } from '../hooks/AuthContext';
 import { getFirestore, collection, addDoc, query, onSnapshot, doc, deleteDoc, updateDoc } from 'firebase/firestore';
 import { app }  from '../firebaseConfig';
 import '../styles/Lancamentos.css';
+
+// 1. Importamos nosso novo componente de layout
+import PageLayout from '../components/PageLayout';
 import AppModal from '../components/AppModal';
 import ActionButton from '../components/ActionButton';
 import ActionAlert from '../components/ActionAlert';
@@ -74,11 +72,12 @@ const Cartao: React.FC = () => {
   // Função para salvar (criar ou editar) um cartão
   const handleSaveCard = async () => {
     if (!user || !cardName || !closingDay || !dueDay) {
-      alert("Por favor, preencha todos os campos.");
+      // Usar um modal ou toast em vez de alert() é uma boa prática
+      console.error("Por favor, preencha todos os campos.");
       return;
     }
     if (closingDay < 1 || closingDay > 31 || dueDay < 1 || dueDay > 31) {
-      alert("Os dias de fechamento e vencimento devem ser entre 1 e 31.");
+      console.error("Os dias de fechamento e vencimento devem ser entre 1 e 31.");
       return;
     }
     const db = getFirestore(app);
@@ -143,121 +142,113 @@ const Cartao: React.FC = () => {
   };
 
   return (
-    <IonPage>
-      <IonHeader>
-        <IonToolbar color="primary">
-          <IonButtons slot="start">
-            <IonMenuButton />
-          </IonButtons>
-          <IonTitle>Meus Cartões</IonTitle>
-        </IonToolbar>
-      </IonHeader>
-      <IonContent className="ion-padding">
-        {loading ? (
-          <div style={{ textAlign: 'center', marginTop: '20px' }}><IonSpinner /></div>
-        ) : cards.length === 0 ? (
-            <div className="empty-state">
-                <IonIcon icon={cardOutline} className="empty-state-icon" />
-                <IonText>
-                    <p>Ainda não há cartões registados.</p>
-                </IonText>
-                <IonText color="medium">
-                    <p>Adicione os seus cartões de crédito para um melhor controle das suas despesas.</p>
-                </IonText>
-            </div>
-        ) : (
-          <IonList>
-            {cards.map(card => (
-              <IonItem key={card.id} lines="inset" button onClick={() => handleItemClick(card)}>
-                <IonIcon icon={cardOutline} slot="start" color="primary" />
-                <IonLabel>
-                  <h2>{card.name}</h2>
-                  <p>Fecha dia {card.closingDay} · Vence dia {card.dueDay}</p>
-                </IonLabel>
-              </IonItem>
-            ))}
-          </IonList>
-        )}
-
-        <IonFab vertical="bottom" horizontal="end" slot="fixed">
-          <IonFabButton onClick={() => setShowModal(true)}>
-            <IonIcon icon={add} />
-          </IonFabButton>
-        </IonFab>
-
-        <AppModal
-          title={editingCard ? 'Editar Cartão' : 'Novo Cartão'}
-          isOpen={showModal}
-          onDidDismiss={closeModalAndReset}
-        >
-          <div className="form-field-group">
-            <IonItem>
-              <IonLabel position="floating">Nome do Cartão</IonLabel>
-              <IonInput value={cardName} onIonChange={e => setCardName(e.detail.value!)} placeholder="Ex: Nubank, Inter, Visa" />
-            </IonItem>
+    // 2. Usamos o PageLayout, passando o título da página
+    <PageLayout pageTitle="Meus Cartões">
+      {/* 3. Todo o conteúdo que antes ficava dentro do <IonContent> agora fica aqui */}
+      {loading ? (
+        <div style={{ textAlign: 'center', marginTop: '20px' }}><IonSpinner /></div>
+      ) : cards.length === 0 ? (
+          <div className="empty-state">
+              <IonIcon icon={cardOutline} className="empty-state-icon" />
+              <IonText>
+                  <p>Ainda não há cartões registados.</p>
+              </IonText>
+              <IonText color="medium">
+                  <p>Adicione os seus cartões de crédito para um melhor controle das suas despesas.</p>
+              </IonText>
           </div>
-          <div className="form-field-group">
-            <IonItem>
-              <IonLabel position="floating">Dia do Fechamento da Fatura</IonLabel>
-              <IonInput 
-                type="number" 
-                value={closingDay} 
-                placeholder="Ex: 28"
-                onIonChange={e => setClosingDay(parseInt(e.detail.value!, 10))}
-              />
+      ) : (
+        <IonList>
+          {cards.map(card => (
+            <IonItem key={card.id} lines="inset" button onClick={() => handleItemClick(card)}>
+              <IonIcon icon={cardOutline} slot="start" color="primary" />
+              <IonLabel>
+                <h2>{card.name}</h2>
+                <p>Fecha dia {card.closingDay} · Vence dia {card.dueDay}</p>
+              </IonLabel>
             </IonItem>
-          </div>
-          <div className="form-field-group">
-            <IonItem>
-              <IonLabel position="floating">Dia do Vencimento da Fatura</IonLabel>
-              <IonInput 
-                type="number" 
-                value={dueDay} 
-                placeholder="Ex: 07"
-                onIonChange={e => setDueDay(parseInt(e.detail.value!, 10))}
-              />
-            </IonItem>
-          </div>
-          <ActionButton onClick={handleSaveCard} expand="block" color="primary">
-            {editingCard ? 'Salvar Alterações' : 'Adicionar Cartão'}
-          </ActionButton>
-        </AppModal>
+          ))}
+        </IonList>
+      )}
 
-        <ActionAlert
-          isOpen={showDeleteAlert}
-          onDidDismiss={() => setShowDeleteAlert(false)}
-          header={'Confirmar Exclusão'}
-          message={`Tem a certeza que deseja excluir o cartão "${cardToAction?.name}"?`}
-          onConfirm={confirmDelete}
-          confirmButtonText="Excluir"
-        />
-        
-        <IonActionSheet
-          isOpen={showActionSheet}
-          onDidDismiss={() => setShowActionSheet(false)}
-          header={cardToAction?.name}
-          buttons={[
-            {
-              text: 'Editar',
-              icon: pencil,
-              handler: handleEditClick,
-              cssClass: 'action-sheet-edit',
-            },
-            {
-              text: 'Excluir',
-              role: 'destructive',
-              icon: trash,
-              handler: handleDeleteClick
-            },
-            {
-              text: 'Cancelar',
-              icon: close,
-              role: 'cancel'
-            }
-          ]}
-        />
-      </IonContent>
-    </IonPage>
+      <IonFab vertical="bottom" horizontal="end" slot="fixed">
+        <IonFabButton onClick={() => setShowModal(true)}>
+          <IonIcon icon={add} />
+        </IonFabButton>
+      </IonFab>
+
+      <AppModal
+        title={editingCard ? 'Editar Cartão' : 'Novo Cartão'}
+        isOpen={showModal}
+        onDidDismiss={closeModalAndReset}
+      >
+        <div className="form-field-group">
+          <IonItem>
+            <IonLabel position="floating">Nome do Cartão</IonLabel>
+            <IonInput value={cardName} onIonChange={e => setCardName(e.detail.value!)} placeholder="Ex: Nubank, Inter, Visa" />
+          </IonItem>
+        </div>
+        <div className="form-field-group">
+          <IonItem>
+            <IonLabel position="floating">Dia do Fechamento da Fatura</IonLabel>
+            <IonInput 
+              type="number" 
+              value={closingDay} 
+              placeholder="Ex: 28"
+              onIonChange={e => setClosingDay(parseInt(e.detail.value!, 10))}
+            />
+          </IonItem>
+        </div>
+        <div className="form-field-group">
+          <IonItem>
+            <IonLabel position="floating">Dia do Vencimento da Fatura</IonLabel>
+            <IonInput 
+              type="number" 
+              value={dueDay} 
+              placeholder="Ex: 07"
+              onIonChange={e => setDueDay(parseInt(e.detail.value!, 10))}
+            />
+          </IonItem>
+        </div>
+        <ActionButton onClick={handleSaveCard} expand="block" color="primary">
+          {editingCard ? 'Salvar Alterações' : 'Adicionar Cartão'}
+        </ActionButton>
+      </AppModal>
+
+      <ActionAlert
+        isOpen={showDeleteAlert}
+        onDidDismiss={() => setShowDeleteAlert(false)}
+        header={'Confirmar Exclusão'}
+        message={`Tem a certeza que deseja excluir o cartão "${cardToAction?.name}"?`}
+        onConfirm={confirmDelete}
+        confirmButtonText="Excluir"
+      />
+      
+      <IonActionSheet
+        isOpen={showActionSheet}
+        onDidDismiss={() => setShowActionSheet(false)}
+        header={cardToAction?.name}
+        buttons={[
+          {
+            text: 'Editar',
+            icon: pencil,
+            handler: handleEditClick,
+            cssClass: 'action-sheet-edit',
+          },
+          {
+            text: 'Excluir',
+            role: 'destructive',
+            icon: trash,
+            handler: handleDeleteClick
+          },
+          {
+            text: 'Cancelar',
+            icon: close,
+            role: 'cancel'
+          }
+        ]}
+      />
+    </PageLayout>
   );
 };
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { IonPage, IonContent, IonButton, IonText, IonSpinner, IonCheckbox, IonItem, IonLabel, IonNote } from '@ionic/react';
+import { IonPage, IonContent, IonButton, IonText, IonSpinner, IonCheckbox, IonItem, IonLabel, IonNote, IonFooter } from '@ionic/react';
 import { Link, useHistory } from 'react-router-dom';
 import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
 import { FirebaseError } from 'firebase/app';
@@ -7,6 +7,7 @@ import { authService } from '../service/auth.service';
 import { app } from '../firebaseConfig';
 import logo from '/logo.png';
 import '../theme/variables.css';
+import '../styles/Login.css';
 import { APP_VERSION } from '../constants';
 
 const Login: React.FC = () => {
@@ -82,70 +83,75 @@ const Login: React.FC = () => {
     }
   };
 
-  return (
-    <IonPage>
-      <IonContent className="ion-padding aura-login-content">
-        <div className="aura-login-center">
-          <img src={logo} alt="Logo Aura" className="logo-aura" />
-          <h1 className="aura-title">Bem-vindo ao Aura!</h1>
-          <p className="aura-subtitle">Faça login para continuar</p>
-          <form className="aura-form-clean" onSubmit={handleLogin} autoComplete="on">
-            <input
-              className="aura-input-clean"
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              required
-              autoComplete="email"
-              placeholder="E-mail"
-            />
-            <input
-              className="aura-input-clean"
-              type="password"
-              value={senha}
-              onChange={e => setSenha(e.target.value)}
-              required
-              autoComplete="current-password"
-              placeholder="Senha"
-            />
+return (
+  <IonPage>
+    <IonContent fullscreen={true}>
+      <div className="aura-login-center">
+        <img src={logo} alt="Logo Aura" className="logo-aura" />
+        <h1 className="aura-title">Bem-vindo ao Aura!</h1>
+        <p className="aura-subtitle">Faça login para continuar</p>
+        
+        <form className="aura-form-clean" onSubmit={handleLogin} autoComplete="on">
+          <input
+            className="aura-input-clean"
+            type="email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            required
+            autoComplete="email"
+            placeholder="E-mail"
+          />
+          <input
+            className="aura-input-clean"
+            type="password"
+            value={senha}
+            onChange={e => setSenha(e.target.value)}
+            required
+            autoComplete="current-password"
+            placeholder="Senha"
+          />
 
-            <IonItem lines="none" style={{ '--background': 'transparent', marginTop: '8px' }}>
-              <IonLabel>Lembrar e-mail</IonLabel>
-              <IonCheckbox
-                slot="start"
-                checked={rememberMe}
-                onIonChange={e => setRememberMe(e.detail.checked)}
-              />
-            </IonItem>
+          <IonItem lines="none" style={{ '--background': 'transparent', marginTop: '8px' }}>
+            <IonLabel>Lembrar e-mail</IonLabel>
+            <IonCheckbox
+              slot="start"
+              checked={rememberMe}
+              onIonChange={e => setRememberMe(e.detail.checked)}
+            />
+          </IonItem>
 
-            {erro && <IonText color="danger" style={{ display: 'block', marginTop: 8, textAlign: 'center' }}>{erro}</IonText>}
-            <IonButton expand="block" type="submit" className="aura-btn-main-clean" disabled={loading}>
-              {loading ? <IonSpinner name="crescent" /> : 'Entrar'}
-            </IonButton>
-          </form>
-          <div className="aura-separator">
-            <span>ou entre com</span>
-          </div>
-          <button type="button" className="aura-btn-google-clean" onClick={handleGoogleLogin} disabled={loadingGoogle}>
-            {loadingGoogle ? (
-              <IonSpinner name="crescent" color="dark" />
-            ) : (
-              <span><img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" style={{width: 22, verticalAlign: 'middle', marginRight: 8}} />Entrar com Google</span>
-            )}
-          </button>
-          <div className="aura-links-clean">
-            <Link to="/register" className="aura-link-clean">Criar conta</Link>
-            <Link to="/reset-password" className="aura-link-clean">Esqueci minha senha</Link>
-          </div>
+          {erro && <IonText color="danger" style={{ display: 'block', marginTop: 8, textAlign: 'center' }}>{erro}</IonText>}
+          <IonButton expand="block" type="submit" className="aura-btn-main-clean" disabled={loading}>
+            {loading ? <IonSpinner name="crescent" /> : 'Entrar'}
+          </IonButton>
+        </form>
+
+        <div className="aura-separator">
+          <span>ou entre com</span>
         </div>
 
-        <div style={{ position: 'absolute', bottom: 0, width: '100%', left: 0 }} className="ion-text-center ion-padding-bottom">
-            <IonNote color="medium">{APP_VERSION}</IonNote>
-        </div>
+        <button type="button" className="aura-btn-google-clean" onClick={handleGoogleLogin} disabled={loadingGoogle}>
+          {loadingGoogle ? (
+            <IonSpinner name="crescent" color="dark" />
+          ) : (
+            <span><img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" style={{width: 22, verticalAlign: 'middle', marginRight: 8}} />Entrar com Google</span>
+          )}
+        </button>
 
-      </IonContent>
-    </IonPage>
-  );
+        <div className="aura-links-clean">
+          <Link to="/register" className="aura-link-clean">Criar conta</Link>
+          <Link to="/reset-password" className="aura-link-clean">Esqueci minha senha</Link>
+        </div>
+      </div>
+    </IonContent>
+
+    <IonFooter className="ion-no-border">
+      <div className="ion-text-center ion-padding-bottom">
+        <IonNote color="medium">{APP_VERSION}</IonNote>
+      </div>
+    </IonFooter>
+  </IonPage>
+);
 };
 
 export default Login;

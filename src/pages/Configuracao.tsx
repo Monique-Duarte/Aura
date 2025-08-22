@@ -1,12 +1,5 @@
 import React, { useState, useRef } from 'react';
 import {
-  IonPage,
-  IonHeader,
-  IonToolbar,
-  IonButtons,
-  IonMenuButton,
-  IonTitle,
-  IonContent,
   IonFab,
   IonFabButton,
   IonIcon,
@@ -24,7 +17,7 @@ import {
 import { add, pencil, trash, close, logoGoogle, eyedropOutline } from 'ionicons/icons';
 import { useAuth } from '../hooks/AuthContext';
 import { authService } from '../service/auth.service';
-
+import PageLayout from '../components/PageLayout';
 import { useCategories, Category as ExpenseCategory } from '../hooks/useCategories';
 import { useIncomeCategories, IncomeCategory } from '../hooks/useIncomeCategories';
 import { getAuth, deleteUser } from 'firebase/auth';
@@ -41,7 +34,7 @@ const PREDEFINED_COLORS = [
 ];
 
 const Configuracao: React.FC = () => {
-  const colorInputRef = useRef<HTMLInputElement>(null); // Ref para o input de cor escondido
+  const colorInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth(); 
   const [isLinking, setIsLinking] = useState(false);
   const [linkError, setLinkError] = useState('');
@@ -176,189 +169,180 @@ const Configuracao: React.FC = () => {
   const isCustomColorSelected = !PREDEFINED_COLORS.map(c => c.toUpperCase()).includes(categoryColor.toUpperCase());
 
   return (
-    <IonPage>
-      <IonHeader>
-        <IonToolbar color="primary">
-          <IonButtons slot="start">
-            <IonMenuButton />
-          </IonButtons>
-          <IonTitle>Configurações</IonTitle>
-        </IonToolbar>
-      </IonHeader>
-
-      <IonContent fullscreen>
-        {loading ? (
-          <div className="spinner-container"><IonSpinner /></div>
-        ) : (
-          <>
-            <IonListHeader>Gerenciamento da Conta</IonListHeader>
-            <IonList inset={true}>
-              <IonItem>
-                <IonIcon icon={logoGoogle} slot="start" />
-                <IonLabel>Login com Google</IonLabel>
-                {showLinkButton && (
-                  <ActionButton onClick={handleLinkGoogle} disabled={isLinking} slot="end">
-                    {isLinking ? <IonSpinner name="crescent" /> : 'Vincular'}
-                  </ActionButton>
-                )}
-                {isGoogleUser && (
-                  <IonNote slot="end" color="success">Vinculado</IonNote>
-                )}
-              </IonItem>
-              {linkError && (
-                <IonItem lines="none">
-                   <IonLabel color="danger" className="ion-text-wrap ion-text-center">{linkError}</IonLabel>
-                </IonItem>
+    // 2. Usamos o PageLayout, passando o título da página
+    <PageLayout pageTitle="Configurações">
+      {/* 3. Todo o conteúdo que antes ficava dentro do <IonContent> agora fica aqui */}
+      {loading ? (
+        <div className="spinner-container"><IonSpinner /></div>
+      ) : (
+        <>
+          <IonListHeader>Gerenciamento da Conta</IonListHeader>
+          <IonList inset={true}>
+            <IonItem>
+              <IonIcon icon={logoGoogle} slot="start" />
+              <IonLabel>Login com Google</IonLabel>
+              {showLinkButton && (
+                <ActionButton onClick={handleLinkGoogle} disabled={isLinking} slot="end">
+                  {isLinking ? <IonSpinner name="crescent" /> : 'Vincular'}
+                </ActionButton>
               )}
-              <IonItem button={true} detail={false} onClick={() => setShowDeleteAccountAlert(true)} lines="none" className="delete-account-item">
-                <IonIcon icon={trash} slot="start" color="danger" />
-                <IonLabel color="danger">Excluir minha conta</IonLabel>
+              {isGoogleUser && (
+                <IonNote slot="end" color="success">Vinculado</IonNote>
+              )}
+            </IonItem>
+            {linkError && (
+              <IonItem lines="none">
+                 <IonLabel color="danger" className="ion-text-wrap ion-text-center">{linkError}</IonLabel>
               </IonItem>
-            </IonList>
+            )}
+            <IonItem button={true} detail={false} onClick={() => setShowDeleteAccountAlert(true)} lines="none" className="delete-account-item">
+              <IonIcon icon={trash} slot="start" color="danger" />
+              <IonLabel color="danger">Excluir minha conta</IonLabel>
+            </IonItem>
+          </IonList>
 
-            <IonListHeader>Personalização</IonListHeader>
-            <IonList inset={true}>
-              <IonItemDivider>
-                <IonLabel>Categorias de Despesa</IonLabel>
-                <IonNote slot="end">Toque para editar</IonNote>
-              </IonItemDivider>
-              <div className="category-grid-wrapper">
-                {expenseCategories.length > 0 ? (
-                  <div className="category-grid">
-                    {expenseCategories.map(cat => (
-                      <div key={cat.id} className="category-grid-item" onClick={() => handleCategoryClick(cat)}>
-                        <div className="category-color-dot" style={{ backgroundColor: cat.color }}></div>
-                        <IonLabel>{cat.name}</IonLabel>
-                      </div>
-                    ))}
-                  </div>
-                ) : <IonNote className="empty-note">Nenhuma categoria de despesa adicionada.</IonNote>}
-              </div>
+          <IonListHeader>Personalização</IonListHeader>
+          <IonList inset={true}>
+            <IonItemDivider>
+              <IonLabel>Categorias de Despesa</IonLabel>
+              <IonNote slot="end">Toque para editar</IonNote>
+            </IonItemDivider>
+            <div className="category-grid-wrapper">
+              {expenseCategories.length > 0 ? (
+                <div className="category-grid">
+                  {expenseCategories.map(cat => (
+                    <div key={cat.id} className="category-grid-item" onClick={() => handleCategoryClick(cat)}>
+                      <div className="category-color-dot" style={{ backgroundColor: cat.color }}></div>
+                      <IonLabel>{cat.name}</IonLabel>
+                    </div>
+                  ))}
+                </div>
+              ) : <IonNote className="empty-note">Nenhuma categoria de despesa adicionada.</IonNote>}
+            </div>
 
-              <IonItemDivider>
-                <IonLabel>Categorias de Renda</IonLabel>
-                <IonNote slot="end">Toque para editar</IonNote>
-              </IonItemDivider>
-              <div className="category-grid-wrapper">
-                {incomeCategories.length > 0 ? (
-                  <div className="category-grid">
-                    {incomeCategories.map(cat => (
-                      <div key={cat.id} className="category-grid-item" onClick={() => handleCategoryClick(cat)}>
-                        <IonLabel>{cat.name}</IonLabel>
-                      </div>
-                    ))}
-                  </div>
-                ) : <IonNote className="empty-note">Nenhuma categoria de renda adicionada.</IonNote>}
-              </div>
-            </IonList>
-          </>
-        )}
+            <IonItemDivider>
+              <IonLabel>Categorias de Renda</IonLabel>
+              <IonNote slot="end">Toque para editar</IonNote>
+            </IonItemDivider>
+            <div className="category-grid-wrapper">
+              {incomeCategories.length > 0 ? (
+                <div className="category-grid">
+                  {incomeCategories.map(cat => (
+                    <div key={cat.id} className="category-grid-item" onClick={() => handleCategoryClick(cat)}>
+                      <IonLabel>{cat.name}</IonLabel>
+                    </div>
+                  ))}
+                </div>
+              ) : <IonNote className="empty-note">Nenhuma categoria de renda adicionada.</IonNote>}
+            </div>
+          </IonList>
+        </>
+      )}
 
-        <IonFab vertical="bottom" horizontal="end" slot="fixed">
-          <IonFabButton onClick={() => setShowAddActionSheet(true)}>
-            <IonIcon icon={add} />
-          </IonFabButton>
-        </IonFab>
+      <IonFab vertical="bottom" horizontal="end" slot="fixed">
+        <IonFabButton onClick={() => setShowAddActionSheet(true)}>
+          <IonIcon icon={add} />
+        </IonFabButton>
+      </IonFab>
 
-        <AppModal
-          title={editingCategory ? 'Editar Categoria' : 'Nova Categoria'}
-          isOpen={showModal}
-          onDidDismiss={() => setShowModal(false)}
-        >
-          <IonItem>
-            <IonLabel position="floating">Nome da Categoria</IonLabel>
-            <IonInput value={categoryName} onIonChange={e => setCategoryName(e.detail.value!)} />
-          </IonItem>
-          {categoryType === 'expense' && (
-            <div className="color-picker-container">
-              <IonLabel>Cor</IonLabel>
-              <input 
-                ref={colorInputRef}
-                type="color" 
-                value={categoryColor} 
-                onChange={e => setCategoryColor(e.target.value)}
-                style={{ display: 'none' }}
-              />
-              <div className="color-swatch-grid">
-                {PREDEFINED_COLORS.map(color => (
-                  <button
-                    key={color}
-                    type="button"
-                    className={`color-swatch ${categoryColor.toUpperCase() === color.toUpperCase() ? 'selected' : ''}`}
-                    style={{ backgroundColor: color }}
-                    onClick={() => setCategoryColor(color)}
-                  />
-                ))}
-                
-                {isCustomColorSelected && (
-                  <button
-                    type="button"
-                    className="color-swatch selected"
-                    style={{ backgroundColor: categoryColor }}
-                    onClick={() => colorInputRef.current?.click()}
-                  />
-                )}
-
+      <AppModal
+        title={editingCategory ? 'Editar Categoria' : 'Nova Categoria'}
+        isOpen={showModal}
+        onDidDismiss={() => setShowModal(false)}
+      >
+        <IonItem>
+          <IonLabel position="floating">Nome da Categoria</IonLabel>
+          <IonInput value={categoryName} onIonChange={e => setCategoryName(e.detail.value!)} />
+        </IonItem>
+        {categoryType === 'expense' && (
+          <div className="color-picker-container">
+            <IonLabel>Cor</IonLabel>
+            <input 
+              ref={colorInputRef}
+              type="color" 
+              value={categoryColor} 
+              onChange={e => setCategoryColor(e.target.value)}
+              style={{ display: 'none' }}
+            />
+            <div className="color-swatch-grid">
+              {PREDEFINED_COLORS.map(color => (
+                <button
+                  key={color}
+                  type="button"
+                  className={`color-swatch ${categoryColor.toUpperCase() === color.toUpperCase() ? 'selected' : ''}`}
+                  style={{ backgroundColor: color }}
+                  onClick={() => setCategoryColor(color)}
+                />
+              ))}
+              
+              {isCustomColorSelected && (
                 <button
                   type="button"
-                  className="color-swatch custom"
+                  className="color-swatch selected"
+                  style={{ backgroundColor: categoryColor }}
                   onClick={() => colorInputRef.current?.click()}
-                >
-                  <IonIcon icon={eyedropOutline} />
-                </button>
-              </div>
-            </div>
-          )}
-          <ActionButton onClick={handleSaveCategory} expand="block" color="primary">
-            {editingCategory ? 'Salvar Alterações' : 'Criar Categoria'}
-          </ActionButton>
-        </AppModal>
+                />
+              )}
 
-        <ActionAlert
-          isOpen={showDeleteAlert}
-          onDidDismiss={() => setCategoryToAction(null)}
-          header="Confirmar Exclusão"
-          message={`Tem a certeza que deseja excluir la categoria "${categoryToAction?.name}"?`}
-          onConfirm={confirmDeleteCategory}
-          confirmButtonText="Excluir"
-        />
-        <ActionAlert
-          isOpen={showDeleteAccountAlert}
-          onDidDismiss={() => setShowDeleteAccountAlert(false)}
-          header="Excluir Conta Permanentemente"
-          message="Tem a certeza ABSOLUTA? Esta ação não pode ser desfeita."
-          onConfirm={confirmDeleteAccount}
-          confirmButtonText="Sim, Excluir Tudo"
-        />
-        <IonActionSheet
-          isOpen={showAddActionSheet}
-          onDidDismiss={() => setShowAddActionSheet(false)}
-          header="Adicionar Nova Categoria"
-          buttons={[
-            { text: 'Categoria de Renda', handler: () => openAddModal('income') },
-            { text: 'Categoria de Despesa', handler: () => openAddModal('expense') },
-            { text: 'Cancelar', role: 'cancel' }
-          ]}
-        />
-        <IonActionSheet
-          isOpen={showCategoryActionSheet}
-          onDidDismiss={() => setShowCategoryActionSheet(false)}
-          header={categoryToAction?.name}
-          buttons={[
-            { text: 'Editar', icon: pencil, handler: openEditModal, cssClass: 'action-sheet-edit' },
-            { text: 'Excluir', role: 'destructive', icon: trash, handler: handleDeleteClick },
-            { text: 'Cancelar', icon: close, role: 'cancel' }
-          ]}
-        />
-        <IonToast
-          isOpen={showToast}
-          onDidDismiss={() => setShowToast(false)}
-          message="Conta do Google vinculada com sucesso!"
-          duration={3000}
-          color="success"
-        />
-      </IonContent>
-    </IonPage>
+              <button
+                type="button"
+                className="color-swatch custom"
+                onClick={() => colorInputRef.current?.click()}
+              >
+                <IonIcon icon={eyedropOutline} />
+              </button>
+            </div>
+          </div>
+        )}
+        <ActionButton onClick={handleSaveCategory} expand="block" color="primary">
+          {editingCategory ? 'Salvar Alterações' : 'Criar Categoria'}
+        </ActionButton>
+      </AppModal>
+
+      <ActionAlert
+        isOpen={showDeleteAlert}
+        onDidDismiss={() => setCategoryToAction(null)}
+        header="Confirmar Exclusão"
+        message={`Tem a certeza que deseja excluir la categoria "${categoryToAction?.name}"?`}
+        onConfirm={confirmDeleteCategory}
+        confirmButtonText="Excluir"
+      />
+      <ActionAlert
+        isOpen={showDeleteAccountAlert}
+        onDidDismiss={() => setShowDeleteAccountAlert(false)}
+        header="Excluir Conta Permanentemente"
+        message="Tem a certeza ABSOLUTA? Esta ação não pode ser desfeita."
+        onConfirm={confirmDeleteAccount}
+        confirmButtonText="Sim, Excluir Tudo"
+      />
+      <IonActionSheet
+        isOpen={showAddActionSheet}
+        onDidDismiss={() => setShowAddActionSheet(false)}
+        header="Adicionar Nova Categoria"
+        buttons={[
+          { text: 'Categoria de Renda', handler: () => openAddModal('income') },
+          { text: 'Categoria de Despesa', handler: () => openAddModal('expense') },
+          { text: 'Cancelar', role: 'cancel' }
+        ]}
+      />
+      <IonActionSheet
+        isOpen={showCategoryActionSheet}
+        onDidDismiss={() => setShowCategoryActionSheet(false)}
+        header={categoryToAction?.name}
+        buttons={[
+          { text: 'Editar', icon: pencil, handler: openEditModal, cssClass: 'action-sheet-edit' },
+          { text: 'Excluir', role: 'destructive', icon: trash, handler: handleDeleteClick },
+          { text: 'Cancelar', icon: close, role: 'cancel' }
+        ]}
+      />
+      <IonToast
+        isOpen={showToast}
+        onDidDismiss={() => setShowToast(false)}
+        message="Conta do Google vinculada com sucesso!"
+        duration={3000}
+        color="success"
+      />
+    </PageLayout>
   );
 };
 

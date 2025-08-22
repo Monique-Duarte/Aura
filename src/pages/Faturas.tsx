@@ -1,13 +1,20 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-  IonPage, IonHeader, IonToolbar, IonButtons, IonMenuButton, IonTitle, IonContent,
-  IonIcon, IonItem, IonLabel, IonList, IonText, IonSpinner, IonListHeader, IonButton,
+  IonIcon, 
+  IonItem, 
+  IonLabel, 
+  IonList, 
+  IonText, 
+  IonSpinner, 
+  IonListHeader, 
+  IonButton,
 } from '@ionic/react';
 import { checkmarkCircleOutline, closeCircleOutline, cardOutline, chevronBackOutline, chevronForwardOutline } from 'ionicons/icons';
 import { useAuth } from '../hooks/AuthContext';
 import { getFirestore, collection, query, where, onSnapshot, Timestamp, writeBatch, doc } from 'firebase/firestore';
 import { app }  from '../firebaseConfig';
 import '../styles/Faturas.css';
+import PageLayout from '../components/PageLayout';
 import { scheduleInvoiceNotifications } from '../logic/notificationLogic';
 import { getInvoicePeriodForExpense } from '../logic/fatureLogic';
 import AppModal from '../components/AppModal';
@@ -171,7 +178,6 @@ const Faturas: React.FC = () => {
     });
     try {
       await batch.commit();
-      // Não fecha mais o modal para permitir continuar a navegar
       setSelectedInvoice(prev => prev ? {...prev, isPaid: newStatus} : null);
     } catch (error) {
       console.error("Erro ao atualizar o estado da fatura:", error);
@@ -184,96 +190,88 @@ const Faturas: React.FC = () => {
   };
 
   return (
-    <IonPage>
-      <IonHeader>
-        <IonToolbar color="primary">
-          <IonButtons slot="start"><IonMenuButton /></IonButtons>
-          <IonTitle>Faturas</IonTitle>
-        </IonToolbar>
-      </IonHeader>
-      <IonContent className="ion-padding">
-        {loading ? (
-          <div className="spinner-container"><IonSpinner /></div>
-        ) : cards.length === 0 ? (
-          <div className="empty-state">
-            <IonIcon icon={cardOutline} className="empty-state-icon" />
-            <IonText><p>Nenhum cartão registado.</p></IonText>
-            <IonText color="medium"><p>Vá a "Meus Cartões" para adicionar um.</p></IonText>
-          </div>
-        ) : (
+    <PageLayout pageTitle="Faturas">
+      {loading ? (
+        <div className="spinner-container"><IonSpinner /></div>
+      ) : cards.length === 0 ? (
+        <div className="empty-state">
+          <IonIcon icon={cardOutline} className="empty-state-icon" />
+          <IonText><p>Nenhum cartão registado.</p></IonText>
+          <IonText color="medium"><p>Vá a "Meus Cartões" para adicionar um.</p></IonText>
+        </div>
+      ) : (
+        <>
+          <IonListHeader>Faturas Abertas</IonListHeader>
+          {openInvoices.length > 0 ? openInvoices.map(invoice => (
+            <div className="invoice-card open" key={invoice.id}>
+              <IonText><p className="card-name">{invoice.cardName}</p></IonText>
+              <IonText color="danger">
+                <h2>{invoice.totalAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</h2>
+              </IonText>
+              <IonText color="medium"><p>Fecha em: {invoice.endDate.toLocaleDateString('pt-BR')}</p></IonText>
+              <ActionButton onClick={() => openDetailsModal(invoice)} fill="clear" expand="block" color="primary">Ver Detalhes</ActionButton>
+            </div>
+          )) : <IonItem lines="none"><IonLabel color="medium">Nenhuma fatura aberta.</IonLabel></IonItem>}
+
+          <IonList>
+            <IonListHeader>Histórico de Faturas Fechadas</IonListHeader>
+            {closedInvoices.length > 0 ? closedInvoices.map(invoice => (
+              <IonItem key={invoice.id} button onClick={() => openDetailsModal(invoice)}>
+                <IonLabel>
+                  <h2>{invoice.cardName} - {invoice.dueDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric' })}</h2>
+                  <p>Vencimento em {invoice.dueDate.toLocaleDateString('pt-BR')}</p>
+                </IonLabel>
+                <IonText slot="end" color="dark"><p>{invoice.totalAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p></IonText>
+              </IonItem>
+            )) : <IonItem lines="none"><IonLabel color="medium">Nenhum histórico encontrado.</IonLabel></IonItem>}
+          </IonList>
+        </>
+      )}
+
+      <AppModal
+        title={`Fatura ${selectedInvoice?.cardName}`}
+        isOpen={showDetailsModal}
+        onDidDismiss={() => setShowDetailsModal(false)}
+      >
+        {selectedInvoice && (
           <>
-            <IonListHeader>Faturas Abertas</IonListHeader>
-            {openInvoices.length > 0 ? openInvoices.map(invoice => (
-              <div className="invoice-card open" key={invoice.id}>
-                <IonText><p className="card-name">{invoice.cardName}</p></IonText>
-                <IonText color="danger">
-                  <h2>{invoice.totalAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</h2>
-                </IonText>
-                <IonText color="medium"><p>Fecha em: {invoice.endDate.toLocaleDateString('pt-BR')}</p></IonText>
-                <ActionButton onClick={() => openDetailsModal(invoice)} fill="clear" expand="block" color="primary">Ver Detalhes</ActionButton>
-              </div>
-            )) : <IonItem lines="none"><IonLabel color="medium">Nenhuma fatura aberta.</IonLabel></IonItem>}
+            <div className="invoice-navigation">
+              <IonButton fill="clear" disabled={!canGoToPrevious} onClick={() => handleNavigate('previous')}>
+                <IonIcon slot="icon-only" icon={chevronBackOutline} />
+              </IonButton>
+
+              <IonText color="medium">
+                <p>{selectedInvoice.dueDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric' })}</p>
+              </IonText>
+
+              <IonButton fill="clear" disabled={!canGoToNext} onClick={() => handleNavigate('next')}>
+                <IonIcon slot="icon-only" icon={chevronForwardOutline} />
+              </IonButton>
+            </div>
 
             <IonList>
-              <IonListHeader>Histórico de Faturas Fechadas</IonListHeader>
-              {closedInvoices.length > 0 ? closedInvoices.map(invoice => (
-                <IonItem key={invoice.id} button onClick={() => openDetailsModal(invoice)}>
+              {selectedInvoice.transactions.map(trans => (
+                <IonItem key={trans.id}>
                   <IonLabel>
-                    <h2>{invoice.cardName} - {invoice.dueDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric' })}</h2>
-                    <p>Vencimento em {invoice.dueDate.toLocaleDateString('pt-BR')}</p>
+                    <h2>{trans.description}</h2>
+                    <p>{trans.date.toLocaleDateString('pt-BR')}</p>
                   </IonLabel>
-                  <IonText slot="end" color="dark"><p>{invoice.totalAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p></IonText>
+                  <IonText slot="end" color="danger"><p>{trans.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p></IonText>
                 </IonItem>
-              )) : <IonItem lines="none"><IonLabel color="medium">Nenhum histórico encontrado.</IonLabel></IonItem>}
+              ))}
             </IonList>
+            <div className="invoice-summary">
+              <IonText><h3>Total: {selectedInvoice.totalAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</h3></IonText>
+              {!selectedInvoice.isPaid ? (
+                <ActionButton expand="block" color="primary" onClick={() => handlePaymentToggle(selectedInvoice, true)} icon={checkmarkCircleOutline}>Marcar como Paga</ActionButton>
+              ) : (
+                <ActionButton expand="block" color="primary" onClick={() => handlePaymentToggle(selectedInvoice, false)} fill="outline" icon={closeCircleOutline}>Marcar como Não Paga</ActionButton>
+              )}
+            </div>
           </>
         )}
-
-        <AppModal
-          title={`Fatura ${selectedInvoice?.cardName}`}
-          isOpen={showDetailsModal}
-          onDidDismiss={() => setShowDetailsModal(false)}
-        >
-          {selectedInvoice && (
-            <>
-              <div className="invoice-navigation">
-                <IonButton fill="clear" disabled={!canGoToPrevious} onClick={() => handleNavigate('previous')}>
-                  <IonIcon slot="icon-only" icon={chevronBackOutline} />
-                </IonButton>
-
-                <IonText color="medium">
-                  <p>{selectedInvoice.dueDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric' })}</p>
-                </IonText>
-
-                <IonButton fill="clear" disabled={!canGoToNext} onClick={() => handleNavigate('next')}>
-                  <IonIcon slot="icon-only" icon={chevronForwardOutline} />
-                </IonButton>
-              </div>
-
-              <IonList>
-                {selectedInvoice.transactions.map(trans => (
-                  <IonItem key={trans.id}>
-                    <IonLabel>
-                      <h2>{trans.description}</h2>
-                      <p>{trans.date.toLocaleDateString('pt-BR')}</p>
-                    </IonLabel>
-                    <IonText slot="end" color="danger"><p>{trans.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p></IonText>
-                  </IonItem>
-                ))}
-              </IonList>
-              <div className="invoice-summary">
-                <IonText><h3>Total: {selectedInvoice.totalAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</h3></IonText>
-                {!selectedInvoice.isPaid ? (
-                  <ActionButton expand="block" color="primary" onClick={() => handlePaymentToggle(selectedInvoice, true)} icon={checkmarkCircleOutline}>Marcar como Paga</ActionButton>
-                ) : (
-                  <ActionButton expand="block" color="primary" onClick={() => handlePaymentToggle(selectedInvoice, false)} fill="outline" icon={closeCircleOutline}>Marcar como Não Paga</ActionButton>
-                )}
-              </div>
-            </>
-          )}
-        </AppModal>
-      </IonContent>
-    </IonPage>
+      </AppModal>
+    </PageLayout>
   );
 };
 

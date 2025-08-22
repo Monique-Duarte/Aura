@@ -13,6 +13,14 @@ ion-header ion-toolbar {
   padding-top: var(--ion-safe-area-top) !important;
 }
 
+/*
+  Ajuste para o botão FAB (o '+') não ficar colado
+  na barra de navegação inferior do celular.
+*/
+ion-fab[slot="fixed"] {
+  margin-bottom: calc(env(safe-area-inset-bottom) + 16px);
+}
+
 
 /* =========================
    TELA DE LOGIN
@@ -125,18 +133,7 @@ body {
   color: #FFD600 !important;
   text-decoration: underline !important;
 }
-@media (max-width: 500px) {
-  .aura-login-center {
-    max-width: 95vw;
-  }
-  .aura-title {
-    font-size: 1.5rem;
-  }
-  .logo-aura {
-    width: 48px;
-    height: 48px;
-  }
-}
+
 
 /* =========================
    INPUTS

@@ -8,7 +8,7 @@ interface CategorySelectorProps {
 }
 
 const CategorySelector: React.FC<CategorySelectorProps> = ({ selectedCategories, onCategoryChange }) => {
-  const { availableCategories, addCategory } = useCategories();
+ const { visibleCategories: availableCategories, addCategory } = useCategories();
   const [showNewCategoryAlert, setShowNewCategoryAlert] = useState(false);
 
   const handleSelectionChange = (e: CustomEvent) => {

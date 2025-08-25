@@ -27,7 +27,7 @@ export interface ChartData {
 
 export const useCategorySummary = (period: { startDate: Date; endDate: Date } | null, memberIds: string[] = []) => {
   const { user } = useAuth();
-  const { availableCategories } = useCategories();
+  const { visibleCategories: availableCategories } = useCategories();
   
   // 3. Busca as metas para o período atual
   const periodString = period ? `${period.startDate.getFullYear()}-${String(period.startDate.getMonth() + 1).padStart(2, '0')}` : null;

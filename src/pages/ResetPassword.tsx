@@ -34,7 +34,7 @@ const ResetPassword: React.FC = () => {
 
   return (
     <IonPage>
-      <IonContent className="ion-padding" style={{ '--background': 'var(--aura-bg)', color: 'var(--ion-text-color)' }}>
+      <IonContent fullscreen={true} className="ion-padding" style={{ '--background': 'var(--aura-bg)', color: 'var(--ion-text-color)' }}>
         <div style={{ maxWidth: 400, margin: '0 auto', display: 'flex', flexDirection: 'column', justifyContent: 'center', height: '100%' }}>
           <h1 style={{ color: 'var(--ion-color-primary)', textAlign: 'center', marginBottom: 32 }}>Recuperar Senha</h1>
           <form onSubmit={handleReset}>

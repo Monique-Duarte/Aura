@@ -78,7 +78,7 @@ const Register: React.FC = () => {
 
   return (
     <IonPage>
-      <IonContent className="ion-padding" style={{ '--background': 'var(--aura-bg)', color: 'var(--ion-text-color)' }}>
+      <IonContent fullscreen={true} className="ion-padding" style={{ '--background': 'var(--aura-bg)', color: 'var(--ion-text-color)' }}>
         <form onSubmit={handleRegister} style={{ maxWidth: 400, margin: '0 auto', marginTop: 60 }}>
           <h1 style={{ color: 'var(--ion-color-primary)', textAlign: 'center', marginBottom: 32 }}>Criar Conta</h1>
           <div className="aura-input-wrapper">

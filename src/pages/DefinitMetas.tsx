@@ -1,12 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import {
-  IonPage,
-  IonHeader,
-  IonToolbar,
-  IonButtons,
-  IonMenuButton,
-  IonTitle,
-  IonContent,
   IonSpinner,
   IonItem,
   IonLabel,
@@ -16,7 +9,7 @@ import {
   IonInput,
 } from '@ionic/react';
 
-// 1. Importa todos os componentes e hooks necessários
+import PageLayout from '../components/PageLayout';
 import AppModal from '../components/AppModal';
 import ActionButton from '../components/ActionButton';
 import PeriodSelector, { Period } from '../components/PeriodSelector';
@@ -39,16 +32,12 @@ const DefinirMetasPage: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [displayValue, setDisplayValue] = useState('');
 
-  // 2. A chamada ao hook useSpendingGoals agora passa o período
   const { goals, loading: goalsLoading, setGoal } = useSpendingGoals(activePeriod?.value ?? null);
-  
-  // Os outros hooks continuam a funcionar da mesma forma
   const { summaryList, loading: summaryLoading } = useCategorySummary(activePeriod);
-  const { availableCategories: categories, loading: categoriesLoading } = useCategories();
+  const { visibleCategories: categories, loading: categoriesLoading } = useCategories();
 
   const loading = summaryLoading || goalsLoading || categoriesLoading;
 
-  // 3. A lógica para combinar os dados é a mesma
   const summaryWithGoals = useMemo(() => {
     if (loading) return [];
     
@@ -94,28 +83,21 @@ const DefinirMetasPage: React.FC = () => {
     setDisplayValue('');
   };
 
-  // FUNÇÃO CORRIGIDA - mais permissiva e robusta
   const handleInputChange = (e: CustomEvent) => {
     let input = e.detail.value || '';
-    
-    // Remove caracteres que não são números ou vírgula
     input = input.replace(/[^0-9,]/g, '');
     
-    // Permite apenas uma vírgula
     const commaCount = (input.match(/,/g) || []).length;
     if (commaCount > 1) {
-      // Remove vírgulas extras, mantendo apenas a primeira
       const firstCommaIndex = input.indexOf(',');
       input = input.slice(0, firstCommaIndex + 1) + input.slice(firstCommaIndex + 1).replace(/,/g, '');
     }
     
-    // Limita a 2 casas decimais após a vírgula
     const parts = input.split(',');
     if (parts.length === 2 && parts[1].length > 2) {
       input = parts[0] + ',' + parts[1].slice(0, 2);
     }
     
-    // Evita começar com vírgula
     if (input.startsWith(',')) {
       input = '0' + input;
     }
@@ -127,11 +109,9 @@ const DefinirMetasPage: React.FC = () => {
     if (!selectedCategory || isSaving) return;
     setIsSaving(true);
     try {
-      // Limpa e converte o valor
       const cleaned = displayValue.replace(/[^0-9,]/g, '').replace(',', '.');
       const amount = parseFloat(cleaned) || 0;
       
-      // Valida se o valor é válido
       if (amount < 0) {
         console.error("Valor não pode ser negativo");
         return;
@@ -147,70 +127,62 @@ const DefinirMetasPage: React.FC = () => {
   };
 
   return (
-    <IonPage>
-      <IonHeader>
-        <IonToolbar color="primary">
-          <IonButtons slot="start"><IonMenuButton /></IonButtons>
-          <IonTitle>Metas de Gastos</IonTitle>
-        </IonToolbar>
-      </IonHeader>
-      <IonContent>
-        <div style={{ padding: '0 16px', marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
-          <PeriodSelector onPeriodChange={setActivePeriod} />
+    <PageLayout pageTitle="Metas de Gastos">
+      <div style={{ padding: '0 16px', marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
+        <PeriodSelector onPeriodChange={setActivePeriod} />
+      </div>
+
+      {loading ? (
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }}>
+          <IonSpinner />
         </div>
+      ) : (
+        <>
+          <GoalsBarChart summary={summaryWithGoals} />
+          <CategorySummaryList summary={summaryWithGoals.filter(item => item.goalAmount && item.goalAmount > 0)} />
 
-        {loading ? (
-          <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }}>
-            <IonSpinner />
-          </div>
-        ) : (
-          <>
-            <GoalsBarChart summary={summaryWithGoals} />
-            <CategorySummaryList summary={summaryWithGoals.filter(item => item.goalAmount && item.goalAmount > 0)} />
+          <IonListHeader>
+            <IonLabel color="primary">
+              <h2>Definir / Editar Metas</h2>
+            </IonLabel>
+          </IonListHeader>
+          <IonList inset={true}>
+            {categories.map((category: Category) => {
+              const goal = goals.find(g => g.categoryId === category.id);
+              return (
+                <IonItem key={category.id} button={true} detail={true} onClick={() => openGoalModal(category)}>
+                  <IonLabel>{category.name}</IonLabel>
+                  <IonNote slot="end" color={goal?.amount ? 'primary' : 'medium'}>
+                    {formatCurrency(goal?.amount)}
+                  </IonNote>
+                </IonItem>
+              );
+            })}
+          </IonList>
+        </>
+      )}
 
-            <IonListHeader>
-              <IonLabel color="primary">
-                <h2>Definir / Editar Metas</h2>
-              </IonLabel>
-            </IonListHeader>
-            <IonList inset={true}>
-              {categories.map((category: Category) => {
-                const goal = goals.find(g => g.categoryId === category.id);
-                return (
-                  <IonItem key={category.id} button={true} detail={true} onClick={() => openGoalModal(category)}>
-                    <IonLabel>{category.name}</IonLabel>
-                    <IonNote slot="end" color={goal?.amount ? 'primary' : 'medium'}>
-                      {formatCurrency(goal?.amount)}
-                    </IonNote>
-                  </IonItem>
-                );
-              })}
-            </IonList>
-          </>
-        )}
-
-        <AppModal
-          title={`Meta para ${selectedCategory?.name || ''}`}
-          isOpen={isModalOpen}
-          onDidDismiss={closeModal}
-        >
-          <IonItem>
-            <IonLabel position="stacked">Valor da Meta (R$)</IonLabel>
-            <IonInput
-              type="text"
-              inputmode="decimal"
-              placeholder="0,00"
-              value={displayValue}
-              onIonInput={handleInputChange}
-              clearInput
-            />
-          </IonItem>
-          <ActionButton onClick={handleSaveGoal} fill="solid" disabled={isSaving} expand="block" color="primary">
-            {isSaving ? <IonSpinner name="crescent" /> : 'Confirmar'}
-          </ActionButton>
-        </AppModal>
-      </IonContent>
-    </IonPage>
+      <AppModal
+        title={`Meta para ${selectedCategory?.name || ''}`}
+        isOpen={isModalOpen}
+        onDidDismiss={closeModal}
+      >
+        <IonItem>
+          <IonLabel position="stacked">Valor da Meta (R$)</IonLabel>
+          <IonInput
+            type="text"
+            inputmode="decimal"
+            placeholder="0,00"
+            value={displayValue}
+            onIonInput={handleInputChange}
+            clearInput
+          />
+        </IonItem>
+        <ActionButton onClick={handleSaveGoal} fill="solid" disabled={isSaving} expand="block" color="primary">
+          {isSaving ? <IonSpinner name="crescent" /> : 'Confirmar'}
+        </ActionButton>
+      </AppModal>
+    </PageLayout>
   );
 };
 

@@ -6,10 +6,10 @@
 		"androidScheme": "https"
 	},
 	"android": {
-		"backgroundColor": "#ffffff"
+		"backgroundColor": "#202023"
 	},
 	"ios": {
-		"backgroundColor": "#ffffff"
+		"backgroundColor": "#202023"
 	},
 	"plugins": {
 		"GoogleAuth": {
@@ -30,7 +30,7 @@
 		"StatusBar": {
 			"style": "DARK",
 			"overlaysWebView": false,
-			"backgroundColor": "#00000000"
+			"backgroundColor": "#202023"
 		},
 		"Keyboard": {
 			"resize": "body",

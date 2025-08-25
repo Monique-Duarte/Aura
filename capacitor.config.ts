@@ -11,10 +11,10 @@ const config: CapacitorConfig = {
   },
 
   android: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#202023',
   },
   ios: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#202023',
   },
 
   plugins: {
@@ -33,7 +33,7 @@ const config: CapacitorConfig = {
     StatusBar: {
       style: 'DARK',
       overlaysWebView: false,
-      backgroundColor: '#00000000',
+      backgroundColor: '#202023',
     },
     Keyboard: {
       resize: 'body',

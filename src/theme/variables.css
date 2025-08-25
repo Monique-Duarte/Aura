@@ -2,29 +2,22 @@
   Correção para a Sobreposição da Barra de Estado (Safe Area)
 */
 
-/*
-  Esta regra aplica um preenchimento (padding) na parte de cima
-  de todos os cabeçalhos (IonHeader) da sua aplicação.
-  A variável '--ion-safe-area-top' é fornecida automaticamente
-  pelo Ionic e tem o valor exato da altura da barra de estado
-  do dispositivo.
-*/
 ion-header ion-toolbar {
-  padding-top: var(--ion-safe-area-top) !important;
+  padding-top: calc(var(--ion-safe-area-top) + 20px);
+  --padding-start: 16px;
+  --padding-end: 16px;
 }
 
 /*
   Ajuste para o botão FAB (o '+') não ficar colado
   na barra de navegação inferior do celular.
 */
+
 ion-fab[slot="fixed"] {
-  margin-bottom: calc(env(safe-area-inset-bottom) + 16px);
+  bottom: calc(env(safe-area-inset-bottom, 16px) + 60px);
+  right: 20px;
 }
 
-
-/* =========================
-   TELA DE LOGIN
-   ========================= */
 :root {
   --ion-background-color: #202023;
   --ion-text-color: #FFD600;
@@ -277,7 +270,7 @@ ion-menu::part(container) {
 .user-profile ion-avatar {
   width: 64px;
   height: 64px;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   border: 2px solid var(--ion-color-primary); 
 }
 
@@ -298,15 +291,15 @@ ion-header {
 }
 
 #menu-list {
-  padding-top: 16px;
+  padding-top: 8px;
 }
 
 #menu-list ion-item, ion-footer ion-item {
-  --padding-start: 20px;
-  --inner-padding-end: 20px;
+  --padding-start: 8px;
+  --inner-padding-end: 8px;
   --background: transparent;
   --color: #ffffff;
-  margin: 4px 16px;
+  margin: 4px 8px;
   border-radius: 8px;
   font-weight: 500;
 }

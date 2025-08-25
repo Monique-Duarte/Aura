@@ -1,19 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   IonMenu, IonHeader, IonTitle, IonContent, IonList, IonItem,
-  IonMenuToggle, IonIcon, IonLabel, IonAvatar, IonFooter,
-  IonNote, IonSpinner, useIonToast, IonToolbar
+  IonMenuToggle, IonIcon, IonLabel, IonAvatar, IonNote, IonSpinner, useIonToast, IonToolbar
 } from '@ionic/react';
 import {
   cashOutline, cardOutline, walletOutline, homeOutline, receiptOutline,
   logOutOutline, personCircleOutline, settingsOutline, documentTextOutline, flagOutline
 } from 'ionicons/icons';
-// CORREÇÃO: Voltamos a usar useHistory, que é compatível com sua versão.
-import { useLocation, useHistory } from 'react-router-dom';
+import { useHistory } from 'react-router-dom';
 import { getAuth, signOut, onAuthStateChanged, User, updateProfile } from 'firebase/auth';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import '../theme/variables.css';
-import { APP_VERSION } from '../constants';
 
 const menuGroups = [
   {
@@ -37,13 +34,13 @@ const menuGroups = [
     groupName: 'Conta',
     options: [
       { title: 'Configurações', icon: settingsOutline, path: '/app/configuracao' },
+      { title: 'Sair', icon: logOutOutline, action: 'logout' }
     ]
   }
 ];
 
 const SideMenu: React.FC<{ contentId: string }> = ({ contentId }) => {
   const history = useHistory();
-  const location = useLocation();
   const [user, setUser] = useState<User | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [present] = useIonToast();
@@ -134,10 +131,13 @@ const SideMenu: React.FC<{ contentId: string }> = ({ contentId }) => {
                 <IonMenuToggle key={option.title} autoHide={false}>
                   <IonItem
                     button
-                    // CORREÇÃO: A chamada de navegação agora usa history.push()
-                    onClick={() => history.push(option.path)}
-                    className={location.pathname === option.path ? 'selected' : ''}
-                    lines="none"
+                   onClick={() => {
+                    if (option.path) {
+                      history.push(option.path);
+                    } else if (option.action === 'logout') {
+                      handleLogout();
+                    }
+                  }}
                   >
                     <IonIcon slot="start" icon={option.icon} />
                     <IonLabel>{option.title}</IonLabel>
@@ -148,20 +148,6 @@ const SideMenu: React.FC<{ contentId: string }> = ({ contentId }) => {
           ))}
         </IonList>
       </IonContent>
-
-      <IonFooter className="ion-no-border">
-        <IonList>
-          <IonMenuToggle autoHide={false}>
-            <IonItem button lines="none" onClick={handleLogout}>
-              <IonIcon slot="start" icon={logOutOutline} />
-              <IonLabel>Sair</IonLabel>
-            </IonItem>
-          </IonMenuToggle>
-        </IonList>
-        <div className="ion-text-center ion-padding-bottom">
-          <IonNote color="medium">{APP_VERSION}</IonNote>
-        </div>
-      </IonFooter>
     </IonMenu>
   );
 };

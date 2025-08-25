@@ -1,9 +1,9 @@
 import React, { useEffect } from 'react';
-import { Redirect, Route, Switch, useHistory } from 'react-router-dom';
-import { IonApp, setupIonicReact, isPlatform } from '@ionic/react';
+import { Redirect, Route, Switch } from 'react-router-dom';
+import { IonApp, setupIonicReact } from '@ionic/react';
 import { IonReactRouter } from '@ionic/react-router';
-import { StatusBar, Style } from '@capacitor/status-bar';
 import { Capacitor } from '@capacitor/core';
+import { StatusBar, Style } from '@capacitor/status-bar';
 
 /* Core CSS e Tema */
 import '@ionic/react/css/core.css';
@@ -30,80 +30,36 @@ setupIonicReact({
   mode: 'md'
 });
 
-// Componente para monitorar mudanças de rota e reconfigurar StatusBar
-const StatusBarManager: React.FC = () => {
-  const history = useHistory();
-
-  useEffect(() => {
-    const configureStatusBar = async () => {
-      if (!Capacitor.isNativePlatform()) return;
-
-      try {
-        await StatusBar.setStyle({ style: Style.Light });
-        await StatusBar.setBackgroundColor({ color: '#00000000' });
-        await StatusBar.show();
-        await StatusBar.setOverlaysWebView({ overlay: false });
-        console.log('StatusBar reconfigurada na rota:', history.location.pathname);
-      } catch (error) {
-        console.log('Erro ao configurar StatusBar:', error);
-      }
-    };
-
-    // Configura imediatamente
-    configureStatusBar();
-
-    // Reconfigura sempre que a rota mudar
-    const unlisten = history.listen(() => {
-      setTimeout(configureStatusBar, 100);
-    });
-
-    return unlisten;
-  }, [history]);
-
-  return null;
-};
-
 const App: React.FC = () => {
-  useEffect(() => {
-    const configureStatusBar = async () => {
-      // Verifica se está rodando em um dispositivo nativo
-      if (!Capacitor.isNativePlatform()) {
-        console.log('StatusBar não disponível na web/browser');
-        return;
-      }
 
-      try {
-        await StatusBar.setStyle({ style: Style.Light });
-        await StatusBar.setBackgroundColor({ color: '#00000000' });
-        await StatusBar.show();
-        
-        if (isPlatform('android')) {
-          const userAgent = navigator.userAgent;
-          const isSamsung = userAgent.includes('SM-') || userAgent.includes('Samsung');
-          
-          if (isSamsung) {
-            await StatusBar.setOverlaysWebView({ overlay: true });
-            console.log('Configuração Samsung aplicada');
-          } else {
-            await StatusBar.setOverlaysWebView({ overlay: false });
-            console.log('Configuração Android padrão aplicada');
-          }
-        } else {
-          await StatusBar.setOverlaysWebView({ overlay: false });
+  useEffect(() => {
+    // Esta função será chamada uma única vez quando o app iniciar.
+    const initializeApp = async () => {
+      // Só executa em dispositivos móveis.
+      if (Capacitor.isNativePlatform()) {
+        try {
+          // 1. Sobrepõe o app: Essencial para o nosso layout de tela cheia.
+          await StatusBar.setOverlaysWebView({ overlay: true });
+
+          // 2. Deixa o fundo da barra transparente para mostrar a cor do nosso header.
+          await StatusBar.setBackgroundColor({ color: '#00000000' }); // Transparente
+
+          // 3. Define os ícones (hora, bateria) para um tom escuro, que contrasta bem com seu header amarelo.
+          await StatusBar.setStyle({ style: Style.Dark });
+
+          console.log('Barra de Status configurada para o App.');
+        } catch (error) {
+          console.error('Erro ao configurar a Barra de Status:', error);
         }
-        
-      } catch (error) {
-        console.log('StatusBar não disponível na web/browser:', error);
       }
     };
 
-    configureStatusBar();
+    initializeApp();
   }, []);
 
   return (
     <IonApp>
       <IonReactRouter>
-        <StatusBarManager />
         <AuthProvider>
           <DateProvider>
             <Switch>

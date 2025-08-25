@@ -18,8 +18,8 @@ import ActionButton from '../components/ActionButton';
 import ActionAlert from '../components/ActionAlert';
 import InputAlert from '../components/InputAlert';
 import ReserveChartContainer from '../components/ReserveChartContainer';
-import '../theme/variables.css';
 import PageLayout from '../components/PageLayout';
+import '../theme/variables.css';
 
 // --- Interfaces ---
 interface ReserveGoal {
@@ -45,10 +45,13 @@ const Reserva: React.FC = () => {
   const [targetAmount, setTargetAmount] = useState('');
   const [transactionAmount, setTransactionAmount] = useState('');
 
-
   const yieldInputRef = useRef<HTMLIonInputElement>(null);
   const targetAmountInputRef = useRef<HTMLIonInputElement>(null);
   const initialAmountInputRef = useRef<HTMLIonInputElement>(null);
+
+  // Referências para os modais de calendário
+  const goalModalRef = useRef<HTMLIonModalElement>(null);
+  const transactionModalRef = useRef<HTMLIonModalElement>(null);
   
   const { user } = useAuth();
   const { currentPeriod } = useDate();
@@ -424,19 +427,27 @@ const Reserva: React.FC = () => {
         </div>
       </AppModal>
       
-      <IonModal keepContentsMounted={true}>
+      <IonModal ref={goalModalRef} keepContentsMounted={true}>
           <IonDatetime 
             id="datetime-goal-modal" 
             value={goalCreationDate} 
-            onIonChange={e => { const value = e.detail.value; if (typeof value === 'string') { setGoalCreationDate(value); } }} 
+            onIonChange={e => {
+                const value = e.detail.value;
+                if (typeof value === 'string') { setGoalCreationDate(value); }
+                goalModalRef.current?.dismiss();
+            }} 
             presentation="date" 
           />
       </IonModal>
-      <IonModal keepContentsMounted={true}>
+      <IonModal ref={transactionModalRef} keepContentsMounted={true}>
           <IonDatetime 
             id="datetime-transaction-modal" 
             value={transactionDate} 
-            onIonChange={e => { const value = e.detail.value; if (typeof value === 'string') { setTransactionDate(value); } }} 
+            onIonChange={e => {
+                const value = e.detail.value;
+                if (typeof value === 'string') { setTransactionDate(value); }
+                transactionModalRef.current?.dismiss();
+            }} 
             presentation="date" 
           />
       </IonModal>

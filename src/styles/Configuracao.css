@@ -38,7 +38,7 @@ ion-item-divider {
 /* Grelha para as categorias */
 .category-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap: 12px;
 }
 
@@ -162,4 +162,16 @@ ion-item-divider {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
+}
+
+.custom-picker-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.react-colorful {
+  width: 100%;
+  height: 200px;
 }

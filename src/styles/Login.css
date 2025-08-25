@@ -46,8 +46,8 @@ ion-footer::before {
    ========================= */
 
 .logo-aura {
-  width: 180px;
-  height: 180px;
+  width: 150px;
+  height: 150px;
 }
 .aura-title {
   color: #FFD600;
@@ -110,4 +110,24 @@ ion-footer::before {
 }
 .aura-link-clean:hover {
   color: #FFD600 !important;
+}
+
+.password-input-container {
+  position: relative;
+  width: 100%;
+}
+
+.password-toggle-icon {
+  position: absolute;
+  top: 50%;
+  right: 15px; /* Distância da borda direita */
+  transform: translateY(-50%);
+  cursor: pointer;
+  color: #888; /* Cor do ícone */
+  font-size: 1.2rem;
+}
+
+
+.aura-form-clean .password-input-container input.aura-input-clean {
+  padding-right: 45px;
 }

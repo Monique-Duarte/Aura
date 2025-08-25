@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { IonPage, IonContent, IonButton, IonText, IonSpinner, IonCheckbox, IonItem, IonLabel, IonNote, IonFooter } from '@ionic/react';
+import { IonPage, IonContent, IonButton, IonText, IonSpinner, IonCheckbox, IonItem, IonLabel, IonNote, IonFooter, IonIcon } from '@ionic/react';
+import { eye, eyeOff } from 'ionicons/icons';
 import { Link, useHistory } from 'react-router-dom';
 import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
 import { FirebaseError } from 'firebase/app';
@@ -13,11 +14,16 @@ import { APP_VERSION } from '../constants';
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
+  const [showPassword, setShowPassword] = useState(false); 
   const [rememberMe, setRememberMe] = useState(false);
   const [erro, setErro] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingGoogle, setLoadingGoogle] = useState(false);
   const history = useHistory();
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
 
   useEffect(() => {
     authService.initialize();
@@ -101,15 +107,22 @@ return (
             autoComplete="email"
             placeholder="E-mail"
           />
+        <div className="password-input-container">
           <input
             className="aura-input-clean"
-            type="password"
+            type={showPassword ? 'text' : 'password'}
             value={senha}
             onChange={e => setSenha(e.target.value)}
             required
             autoComplete="current-password"
             placeholder="Senha"
           />
+          <IonIcon
+            icon={showPassword ? eyeOff : eye}
+            onClick={togglePasswordVisibility}
+            className="password-toggle-icon"
+          />
+        </div>
 
           <IonItem lines="none" style={{ '--background': 'transparent', marginTop: '8px' }}>
             <IonLabel>Lembrar e-mail</IonLabel>

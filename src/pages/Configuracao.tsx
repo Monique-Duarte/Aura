@@ -1,20 +1,11 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import {
-  IonFab,
-  IonFabButton,
-  IonIcon,
-  IonInput,
-  IonItem,
-  IonLabel,
-  IonSpinner,
-  IonListHeader,
-  IonActionSheet,
-  IonNote,
-  IonList,
-  IonToast,
-  IonItemDivider,
+  IonFab, IonFabButton, IonIcon, IonInput, IonItem, IonLabel,
+  IonSpinner, IonListHeader, IonActionSheet, IonNote, IonList,
+  IonToast, IonItemDivider, IonSegment, IonSegmentButton
 } from '@ionic/react';
 import { add, pencil, trash, close, logoGoogle, eyedropOutline } from 'ionicons/icons';
+import { HexColorPicker } from 'react-colorful';
 import { useAuth } from '../hooks/AuthContext';
 import { authService } from '../service/auth.service';
 import PageLayout from '../components/PageLayout';
@@ -26,7 +17,6 @@ import ActionButton from '../components/ActionButton';
 import ActionAlert from '../components/ActionAlert';
 import '../styles/Configuracao.css';
 
-// Nossa paleta de cores customizada
 const PREDEFINED_COLORS = [
   '#FF6B6B', '#4ECDC4', '#45B7D1', '#FED766', '#F7B2AD', 
   '#8A63D2', '#2E933C', '#F4A261', '#E76F51', '#2A9D8F',
@@ -34,26 +24,29 @@ const PREDEFINED_COLORS = [
 ];
 
 const Configuracao: React.FC = () => {
-  const colorInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth(); 
   const [isLinking, setIsLinking] = useState(false);
   const [linkError, setLinkError] = useState('');
   const [showToast, setShowToast] = useState(false);
 
   const { 
-    userCategories: expenseCategories, 
+    visibleCategories: expenseCategories,
+    hiddenCategories: hiddenExpenseCategories,
     loading: expenseLoading, 
     addCategory: addExpenseCategory, 
     updateCategory: updateExpenseCategory, 
-    deleteCategory: deleteExpenseCategory 
+    hideOrDeleteCategory: deleteExpenseCategory,
+    reEnableCategory: reEnableExpenseCategory
   } = useCategories();
 
   const {
-    categories: incomeCategories,
+    visibleCategories: incomeCategories,
+    hiddenCategories: hiddenIncomeCategories,
     loading: incomeLoading,
     addCategory: addIncomeCategory,
     updateCategory: updateIncomeCategory,
-    deleteCategory: deleteIncomeCategory
+    hideOrDeleteCategory: deleteIncomeCategory,
+    reEnableCategory: reEnableIncomeCategory
   } = useIncomeCategories();
   
   const [showModal, setShowModal] = useState(false);
@@ -61,11 +54,13 @@ const Configuracao: React.FC = () => {
   const [categoryType, setCategoryType] = useState<'expense' | 'income' | null>(null);
   const [categoryName, setCategoryName] = useState('');
   const [categoryColor, setCategoryColor] = useState('#FF6B6B');
+  const [showCustomPicker, setShowCustomPicker] = useState(false);
   const [categoryToAction, setCategoryToAction] = useState<ExpenseCategory | IncomeCategory | null>(null);
   const [showDeleteAlert, setShowDeleteAlert] = useState(false);
   const [showDeleteAccountAlert, setShowDeleteAccountAlert] = useState(false);
   const [showCategoryActionSheet, setShowCategoryActionSheet] = useState(false);
   const [showAddActionSheet, setShowAddActionSheet] = useState(false);
+  const [categoryView, setCategoryView] = useState<'visible' | 'hidden'>('visible');
 
   const loading = expenseLoading || incomeLoading;
 
@@ -93,18 +88,15 @@ const Configuracao: React.FC = () => {
 
   const handleSaveCategory = async () => {
     if (!categoryName) return;
-    if (editingCategory) {
-      if (categoryType === 'expense') {
-        await updateExpenseCategory(editingCategory.id, categoryName, categoryColor);
-      } else {
-        await updateIncomeCategory(editingCategory.id, categoryName);
-      }
+    if (editingCategory && editingCategory.isDefault) {
+      if (categoryType === 'expense') { await addExpenseCategory(categoryName, categoryColor); } 
+      else if (categoryType === 'income') { await addIncomeCategory(categoryName); }
+    } else if (editingCategory) {
+      if (categoryType === 'expense') { await updateExpenseCategory(editingCategory.id, categoryName, categoryColor); } 
+      else if (categoryType === 'income') { await updateIncomeCategory(editingCategory.id, categoryName); }
     } else {
-      if (categoryType === 'expense') {
-        await addExpenseCategory(categoryName, categoryColor);
-      } else {
-        await addIncomeCategory(categoryName);
-      }
+      if (categoryType === 'expense') { await addExpenseCategory(categoryName, categoryColor); } 
+      else if (categoryType === 'income') { await addIncomeCategory(categoryName); }
     }
     setShowModal(false);
   };
@@ -117,13 +109,24 @@ const Configuracao: React.FC = () => {
   const confirmDeleteCategory = async () => {
     if (categoryToAction) {
       if ('color' in categoryToAction) {
-        await deleteExpenseCategory(categoryToAction.id);
+        await deleteExpenseCategory(categoryToAction as ExpenseCategory);
       } else {
-        await deleteIncomeCategory(categoryToAction.id);
+        await deleteIncomeCategory(categoryToAction as IncomeCategory);
       }
       setCategoryToAction(null);
     }
     setShowDeleteAlert(false);
+  };
+
+  const handleReEnableCategory = async () => {
+    if (categoryToAction) {
+      if ('color' in categoryToAction) {
+        await reEnableExpenseCategory(categoryToAction as ExpenseCategory);
+      } else {
+        await reEnableIncomeCategory(categoryToAction as IncomeCategory);
+      }
+    }
+    setShowCategoryActionSheet(false);
   };
 
   const confirmDeleteAccount = async () => {
@@ -166,15 +169,9 @@ const Configuracao: React.FC = () => {
   const isGoogleUser = user?.providerData.some(p => p.providerId === 'google.com');
   const showLinkButton = isEmailUser && !isGoogleUser;
 
-  const isCustomColorSelected = !PREDEFINED_COLORS.map(c => c.toUpperCase()).includes(categoryColor.toUpperCase());
-
   return (
-    // 2. Usamos o PageLayout, passando o título da página
     <PageLayout pageTitle="Configurações">
-      {/* 3. Todo o conteúdo que antes ficava dentro do <IonContent> agora fica aqui */}
-      {loading ? (
-        <div className="spinner-container"><IonSpinner /></div>
-      ) : (
+      {loading ? ( <div className="spinner-container"><IonSpinner /></div> ) : (
         <>
           <IonListHeader>Gerenciamento da Conta</IonListHeader>
           <IonList inset={true}>
@@ -192,7 +189,7 @@ const Configuracao: React.FC = () => {
             </IonItem>
             {linkError && (
               <IonItem lines="none">
-                 <IonLabel color="danger" className="ion-text-wrap ion-text-center">{linkError}</IonLabel>
+                  <IonLabel color="danger" className="ion-text-wrap ion-text-center">{linkError}</IonLabel>
               </IonItem>
             )}
             <IonItem button={true} detail={false} onClick={() => setShowDeleteAccountAlert(true)} lines="none" className="delete-account-item">
@@ -202,38 +199,77 @@ const Configuracao: React.FC = () => {
           </IonList>
 
           <IonListHeader>Personalização</IonListHeader>
+          
+          <div className="ion-padding-horizontal">
+            <IonSegment 
+              value={categoryView} 
+              onIonChange={e => setCategoryView(e.detail.value as 'visible' | 'hidden')}>
+              <IonSegmentButton value="visible">
+                <IonLabel>Visíveis</IonLabel>
+              </IonSegmentButton>
+              <IonSegmentButton value="hidden">
+                <IonLabel>Ocultadas</IonLabel>
+              </IonSegmentButton>
+            </IonSegment>
+          </div>
+
           <IonList inset={true}>
             <IonItemDivider>
               <IonLabel>Categorias de Despesa</IonLabel>
-              <IonNote slot="end">Toque para editar</IonNote>
+              <IonNote slot="end">Toque para opções</IonNote>
             </IonItemDivider>
             <div className="category-grid-wrapper">
-              {expenseCategories.length > 0 ? (
-                <div className="category-grid">
-                  {expenseCategories.map(cat => (
-                    <div key={cat.id} className="category-grid-item" onClick={() => handleCategoryClick(cat)}>
-                      <div className="category-color-dot" style={{ backgroundColor: cat.color }}></div>
-                      <IonLabel>{cat.name}</IonLabel>
-                    </div>
-                  ))}
-                </div>
-              ) : <IonNote className="empty-note">Nenhuma categoria de despesa adicionada.</IonNote>}
+              {categoryView === 'visible' ? (
+                expenseCategories.length > 0 ? (
+                  <div className="category-grid">
+                    {expenseCategories.map(cat => (
+                      <div key={cat.id} className="category-grid-item" onClick={() => handleCategoryClick(cat)}>
+                        <div className="category-color-dot" style={{ backgroundColor: cat.color }}></div>
+                        <IonLabel>{cat.name}</IonLabel>
+                      </div>
+                    ))}
+                  </div>
+                ) : <IonNote className="empty-note">Nenhuma categoria visível.</IonNote>
+              ) : (
+                hiddenExpenseCategories.length > 0 ? (
+                  <div className="category-grid">
+                    {hiddenExpenseCategories.map(cat => (
+                      <div key={cat.id} className="category-grid-item" onClick={() => handleCategoryClick(cat)}>
+                        <div className="category-color-dot" style={{ backgroundColor: cat.color }}></div>
+                        <IonLabel>{cat.name}</IonLabel>
+                      </div>
+                    ))}
+                  </div>
+                ) : <IonNote className="empty-note">Nenhuma categoria ocultada.</IonNote>
+              )}
             </div>
 
             <IonItemDivider>
               <IonLabel>Categorias de Renda</IonLabel>
-              <IonNote slot="end">Toque para editar</IonNote>
+              <IonNote slot="end">Toque para opções</IonNote>
             </IonItemDivider>
             <div className="category-grid-wrapper">
-              {incomeCategories.length > 0 ? (
-                <div className="category-grid">
-                  {incomeCategories.map(cat => (
-                    <div key={cat.id} className="category-grid-item" onClick={() => handleCategoryClick(cat)}>
-                      <IonLabel>{cat.name}</IonLabel>
-                    </div>
-                  ))}
-                </div>
-              ) : <IonNote className="empty-note">Nenhuma categoria de renda adicionada.</IonNote>}
+              {categoryView === 'visible' ? (
+                incomeCategories.length > 0 ? (
+                  <div className="category-grid">
+                    {incomeCategories.map(cat => (
+                      <div key={cat.id} className="category-grid-item" onClick={() => handleCategoryClick(cat)}>
+                        <IonLabel>{cat.name}</IonLabel>
+                      </div>
+                    ))}
+                  </div>
+                ) : <IonNote className="empty-note">Nenhuma categoria de renda visível.</IonNote>
+              ) : (
+                hiddenIncomeCategories.length > 0 ? (
+                  <div className="category-grid">
+                    {hiddenIncomeCategories.map(cat => (
+                      <div key={cat.id} className="category-grid-item" onClick={() => handleCategoryClick(cat)}>
+                        <IonLabel>{cat.name}</IonLabel>
+                      </div>
+                    ))}
+                  </div>
+                ) : <IonNote className="empty-note">Nenhuma categoria de renda ocultada.</IonNote>
+              )}
             </div>
           </IonList>
         </>
@@ -248,52 +284,47 @@ const Configuracao: React.FC = () => {
       <AppModal
         title={editingCategory ? 'Editar Categoria' : 'Nova Categoria'}
         isOpen={showModal}
-        onDidDismiss={() => setShowModal(false)}
+        onDidDismiss={() => {
+        setShowModal(false);
+        setShowCustomPicker(false); 
+      }}
       >
         <IonItem>
           <IonLabel position="floating">Nome da Categoria</IonLabel>
           <IonInput value={categoryName} onIonChange={e => setCategoryName(e.detail.value!)} />
         </IonItem>
         {categoryType === 'expense' && (
-          <div className="color-picker-container">
-            <IonLabel>Cor</IonLabel>
-            <input 
-              ref={colorInputRef}
-              type="color" 
-              value={categoryColor} 
-              onChange={e => setCategoryColor(e.target.value)}
-              style={{ display: 'none' }}
-            />
-            <div className="color-swatch-grid">
-              {PREDEFINED_COLORS.map(color => (
-                <button
-                  key={color}
-                  type="button"
-                  className={`color-swatch ${categoryColor.toUpperCase() === color.toUpperCase() ? 'selected' : ''}`}
-                  style={{ backgroundColor: color }}
-                  onClick={() => setCategoryColor(color)}
-                />
-              ))}
-              
-              {isCustomColorSelected && (
-                <button
-                  type="button"
-                  className="color-swatch selected"
-                  style={{ backgroundColor: categoryColor }}
-                  onClick={() => colorInputRef.current?.click()}
-                />
-              )}
-
-              <button
-                type="button"
-                className="color-swatch custom"
-                onClick={() => colorInputRef.current?.click()}
-              >
-                <IonIcon icon={eyedropOutline} />
-              </button>
-            </div>
+        <div className="color-picker-container">
+          <IonLabel>Cor</IonLabel>
+          {showCustomPicker ? (
+          <div className="custom-picker-wrapper">
+            <HexColorPicker color={categoryColor} onChange={setCategoryColor} />
+            <ActionButton fill="clear" onClick={() => setShowCustomPicker(false)}>
+              Voltar para a paleta
+            </ActionButton>
+          </div>
+        ) : (
+          <div className="color-swatch-grid">
+            {PREDEFINED_COLORS.map(color => (
+            <button
+              key={color}
+              type="button"
+              className={`color-swatch ${categoryColor.toUpperCase() === color.toUpperCase() ? 'selected' : ''}`}
+              style={{ backgroundColor: color }}
+              onClick={() => setCategoryColor(color)}
+              />
+            ))}
+            <button
+              type="button"
+              className="color-swatch custom"
+              onClick={() => setShowCustomPicker(true)} 
+            >
+              <IonIcon icon={eyedropOutline} />
+            </button>
           </div>
         )}
+        </div>
+      )}
         <ActionButton onClick={handleSaveCategory} expand="block" color="primary">
           {editingCategory ? 'Salvar Alterações' : 'Criar Categoria'}
         </ActionButton>
@@ -302,10 +333,10 @@ const Configuracao: React.FC = () => {
       <ActionAlert
         isOpen={showDeleteAlert}
         onDidDismiss={() => setCategoryToAction(null)}
-        header="Confirmar Exclusão"
-        message={`Tem a certeza que deseja excluir la categoria "${categoryToAction?.name}"?`}
+        header="Confirmar Ação"
+        message={`Tem certeza que deseja ${categoryToAction?.isDefault ? 'ocultar' : 'excluir'} a categoria "${categoryToAction?.name}"?`}
         onConfirm={confirmDeleteCategory}
-        confirmButtonText="Excluir"
+        confirmButtonText={categoryToAction?.isDefault ? 'Ocultar' : 'Excluir'}
       />
       <ActionAlert
         isOpen={showDeleteAccountAlert}
@@ -315,6 +346,7 @@ const Configuracao: React.FC = () => {
         onConfirm={confirmDeleteAccount}
         confirmButtonText="Sim, Excluir Tudo"
       />
+
       <IonActionSheet
         isOpen={showAddActionSheet}
         onDidDismiss={() => setShowAddActionSheet(false)}
@@ -330,11 +362,24 @@ const Configuracao: React.FC = () => {
         onDidDismiss={() => setShowCategoryActionSheet(false)}
         header={categoryToAction?.name}
         buttons={[
-          { text: 'Editar', icon: pencil, handler: openEditModal, cssClass: 'action-sheet-edit' },
-          { text: 'Excluir', role: 'destructive', icon: trash, handler: handleDeleteClick },
+          ...(categoryView === 'hidden' ? 
+            [{ text: 'Reabilitar Categoria', handler: handleReEnableCategory }] 
+            : []),
+          ...(categoryView === 'visible' ?
+            [
+              { text: 'Editar', icon: pencil, handler: openEditModal },
+              { 
+                text: categoryToAction?.isDefault ? 'Ocultar' : 'Excluir',
+                role: 'destructive',
+                icon: trash,
+                handler: handleDeleteClick
+              }
+            ]
+            : []),
           { text: 'Cancelar', icon: close, role: 'cancel' }
         ]}
       />
+      
       <IonToast
         isOpen={showToast}
         onDidDismiss={() => setShowToast(false)}

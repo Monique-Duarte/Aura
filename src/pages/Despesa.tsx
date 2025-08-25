@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   IonFab,
   IonFabButton,
@@ -86,6 +86,8 @@ const Despesas: React.FC = () => {
   const [showInstallmentDeleteAlert, setShowInstallmentDeleteAlert] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState<Period | null>(null);
   const [filterMode, setFilterMode] = useState<FilterMode>('all');
+
+  const modal = useRef<HTMLIonModalElement>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -462,8 +464,10 @@ const Despesas: React.FC = () => {
           }
         ]}
       />
-      <IonModal keepContentsMounted={true}>
-        <IonDatetime id="datetime-in-modal" value={date} onIonChange={e => { const value = e.detail.value; if (typeof value === 'string') { setDate(value); } }} presentation="date" />
+      <IonModal ref={modal} keepContentsMounted={true}>
+        <IonDatetime id="datetime-in-modal" value={date} onIonChange={e => { 
+          const value = e.detail.value; if (typeof value === 'string') { setDate(value); } 
+          modal.current?.dismiss() }} presentation="date" />
       </IonModal>
     </PageLayout>
   );

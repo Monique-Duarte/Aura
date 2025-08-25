@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   IonFab, IonFabButton, IonIcon, IonInput, IonItem, IonLabel, IonList, IonDatetime,
   IonToggle, IonText, IonSpinner, IonDatetimeButton, IonActionSheet, IonModal, IonButton,
@@ -39,7 +39,7 @@ const Renda: React.FC = () => {
   const [incomes, setIncomes] = useState<IncomeTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [showExportModal, setShowExportModal] = useState(false);
-  const { categories: incomeCategories, addCategory: addIncomeCategory } = useIncomeCategories();
+  const { visibleCategories: incomeCategories, addCategory: addIncomeCategory } = useIncomeCategories();
 
   // Estados do formulário
   const [description, setDescription] = useState('');
@@ -55,6 +55,8 @@ const Renda: React.FC = () => {
   const [showActionSheet, setShowActionSheet] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState<Period | null>(null);
   const [showAddCategoryAlert, setShowAddCategoryAlert] = useState(false);
+
+  const modal = useRef<HTMLIonModalElement>(null);
 
   useEffect(() => {
     if (!user || !selectedPeriod) {
@@ -263,8 +265,10 @@ const Renda: React.FC = () => {
         </ActionButton>
       </AppModal>
 
-      <IonModal keepContentsMounted={true}>
-        <IonDatetime id="datetime-in-modal" value={date} onIonChange={e => { const value = e.detail.value; if (typeof value === 'string') { setDate(value); } }} presentation="date" />
+      <IonModal ref={modal} keepContentsMounted={true}>
+        <IonDatetime id="datetime-in-modal" value={date} onIonChange={e => { 
+          const value = e.detail.value; if (typeof value === 'string') { setDate(value); }  
+          modal.current?.dismiss(); }} presentation="date" />
       </IonModal>
 
       <ActionAlert

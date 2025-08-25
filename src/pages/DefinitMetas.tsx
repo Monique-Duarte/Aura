@@ -34,7 +34,7 @@ const DefinirMetasPage: React.FC = () => {
 
   const { goals, loading: goalsLoading, setGoal } = useSpendingGoals(activePeriod?.value ?? null);
   const { summaryList, loading: summaryLoading } = useCategorySummary(activePeriod);
-  const { availableCategories: categories, loading: categoriesLoading } = useCategories();
+  const { visibleCategories: categories, loading: categoriesLoading } = useCategories();
 
   const loading = summaryLoading || goalsLoading || categoriesLoading;
 

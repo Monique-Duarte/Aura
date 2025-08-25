@@ -4,8 +4,8 @@ import { useDate } from '../hooks/DateContext';
 import { generateFinancialPeriods } from '../logic/dateLogic';
 
 export interface Period {
-  value: string; // Ex: "2025-08"
-  label: string; // Ex: "Agosto / 2025"
+  value: string;
+  label: string;
   startDate: Date;
   endDate: Date;
 }

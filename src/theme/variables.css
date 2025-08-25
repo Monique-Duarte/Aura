@@ -348,3 +348,52 @@ ion-footer {
   width: 100%;
   height: 100%;
 }
+
+/* Container principal para o seletor de data, para dar espaçamento e um visual de "bloco" */
+.date-selector-container {
+  border: 1px solid var(--ion-color-step-200);
+  border-radius: 12px;
+  margin-bottom: 16px;
+  overflow: hidden; /* Garante que os cantos arredondados sejam aplicados nos itens internos */
+}
+
+/* Remove o padding dos itens de data para que fiquem alinhados com o segmento */
+.date-item-selector {
+  --inner-padding-start: 16px;
+  --inner-padding-end: 16px;
+}
+
+/* Alinha o seletor de ano à direita */
+.year-selector {
+  justify-content: flex-end;
+}
+
+/*
+  CORREÇÃO DO VISUAL DO SELETOR DE MÊS/ANO
+  Deixa o popover do calendário com o tema escuro do seu app.
+*/
+.date-selector-popover {
+  --background: var(--ion-color-step-100);
+  --background-rgb: var(--ion-color-step-100-rgb);
+  --color: var(--ion-text-color);
+  
+  --ion-color-base: var(--ion-text-color);
+  --ion-color-contrast: var(--ion-background-color);
+
+  --ion-toolbar-background: var(--ion-color-step-150);
+}
+
+.date-selector-popover .month-year-picker-button {
+  --color: var(--ion-text-color);
+  --color-hover: var(--ion-color-primary);
+}
+
+/*
+  Ajuste para os labels de "Data de Início" e "Data de Fim"
+  não quebrarem a linha e terem um espaçamento melhor.
+*/
+.date-item-selector ion-label {
+  white-space: nowrap; /* Impede a quebra de linha do texto */
+  flex-shrink: 0;      /* Impede que o label encolha e se achate */
+  margin-right: 16px;  /* Adiciona um espaço entre o texto e a data */
+}

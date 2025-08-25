@@ -1,72 +1,135 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { IonItem, IonLabel, IonDatetimeButton, IonModal, IonDatetime } from '@ionic/react';
-import '../styles/DateSelector.css'; // Importa o CSS para estilização
+import React, { useState, useEffect } from 'react';
+import {
+  IonModal, IonHeader, IonToolbar, IonTitle, IonContent, IonButton,
+  IonButtons, IonDatetime, IonItem, IonLabel, IonInput,
+  IonSegment, IonSegmentButton, IonSelect, IonSelectOption
+} from '@ionic/react';
+import { DatetimeChangeEventDetail } from '@ionic/core';
 
-// Define a estrutura de um objeto de período que o componente vai comunicar
-interface Period {
+export interface Period {
   startDate: Date;
   endDate: Date;
 }
 
-// Define as propriedades que o componente espera receber
 interface DateSelectorProps {
   onPeriodChange: (period: Period | null) => void;
 }
 
 const DateSelector: React.FC<DateSelectorProps> = ({ onPeriodChange }) => {
-  // Define o período inicial como o mês atual
-  const today = new Date();
-  const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-
-  const [startDate, setStartDate] = useState<string>(firstDayOfMonth.toISOString());
-  const [endDate, setEndDate] = useState<string>(today.toISOString());
-
-  const notifyParent = useCallback(() => {
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-
-    if (start > end) {
-      onPeriodChange(null);
-      return;
-    }
-    
-    start.setHours(0, 0, 0, 0);
-    end.setHours(23, 59, 59, 999);
-
-    onPeriodChange({ startDate: start, endDate: end });
-  }, [startDate, endDate, onPeriodChange]);
+  // --- Estados do Componente ---
+  const [selectionMode, setSelectionMode] = useState<'period' | 'year'>('period');
+  const [startDate, setStartDate] = useState<string | null>(null);
+  const [endDate, setEndDate] = useState<string | null>(null);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [datePickerTarget, setDatePickerTarget] = useState<'start' | 'end' | null>(null);
+  const availableYears = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
 
   useEffect(() => {
-    notifyParent();
-  }, [notifyParent]);
+    if (selectionMode === 'period') {
+      if (startDate && endDate) {
+        const d1 = new Date(startDate);
+        const d2 = new Date(endDate);
+        onPeriodChange({
+          startDate: d1 < d2 ? d1 : d2,
+          endDate: d1 > d2 ? d1 : d2,
+        });
+      } else {
+        onPeriodChange(null);
+      }
+    } else { 
+      onPeriodChange({
+        startDate: new Date(selectedYear, 0, 1),
+        endDate: new Date(selectedYear, 11, 31),
+      });
+    }
+  }, [startDate, endDate, selectedYear, selectionMode, onPeriodChange]);
+
+  const openDatePicker = (target: 'start' | 'end') => {
+    setDatePickerTarget(target);
+    setShowDatePicker(true);
+  };
+
+  const handleDateChange = (e: CustomEvent<DatetimeChangeEventDetail>) => {
+    const value = e.detail.value as string | undefined;
+    if (!value) return;
+
+    if (datePickerTarget === 'start') {
+      setStartDate(value);
+    } else if (datePickerTarget === 'end') {
+      setEndDate(value);
+    }
+    setShowDatePicker(false);
+  };
 
   return (
     <div className="date-selector-container">
-      <IonItem lines="none" className="date-selector-item">
-        <IonLabel position="stacked">De</IonLabel>
-        <IonDatetimeButton datetime="start-date-picker"></IonDatetimeButton>
-      </IonItem>
-      <IonItem lines="none" className="date-selector-item">
-        <IonLabel position="stacked">Até</IonLabel>
-        <IonDatetimeButton datetime="end-date-picker"></IonDatetimeButton>
-      </IonItem>
+      <IonSegment
+        value={selectionMode}
+        onIonChange={e => setSelectionMode(e.detail.value as any)}
+      >
+        <IonSegmentButton value="period">
+          <IonLabel>Período</IonLabel>
+        </IonSegmentButton>
+        <IonSegmentButton value="year">
+          <IonLabel>Anual</IonLabel>
+        </IonSegmentButton>
+      </IonSegment>
 
-      <IonModal keepContentsMounted={true}>
-        <IonDatetime
-          id="start-date-picker"
-          presentation="date"
-          value={startDate}
-          onIonChange={e => setStartDate(e.detail.value! as string)}
-        />
-      </IonModal>
+      {selectionMode === 'period' ? (
+        <>
+          <IonItem button onClick={() => openDatePicker('start')} lines="none" className="date-item-selector">
+            <IonLabel>Data de Início</IonLabel>
+            <IonInput
+              readonly
+              className="ion-text-end"
+              value={startDate ? new Date(startDate).toLocaleDateString('pt-BR') : 'Selecione...'}
+            />
+          </IonItem>
+          <IonItem button onClick={() => openDatePicker('end')} lines="none" className="date-item-selector">
+            <IonLabel>Data de Fim</IonLabel>
+            <IonInput
+              readonly
+              className="ion-text-end"
+              value={endDate ? new Date(endDate).toLocaleDateString('pt-BR') : 'Selecione...'}
+            />
+          </IonItem>
+        </>
+      ) : (
+        <IonItem lines="none" className="date-item-selector">
+          <IonLabel>Ano</IonLabel>
+          <IonSelect
+            className="year-selector"
+            value={selectedYear}
+            onIonChange={e => setSelectedYear(e.detail.value)}
+            interface="popover"
+          >
+            {availableYears.map(year => (
+              <IonSelectOption key={year} value={year}>{year}</IonSelectOption>
+            ))}
+          </IonSelect>
+        </IonItem>
+      )}
 
-      <IonModal keepContentsMounted={true}>
-        <IonDatetime
-          id="end-date-picker"
-          presentation="date"
-          value={endDate}
-          onIonChange={e => setEndDate(e.detail.value! as string)}
-        />
+      <IonModal isOpen={showDatePicker} onDidDismiss={() => setShowDatePicker(false)}>
+        <IonHeader>
+          <IonToolbar color="primary">
+            <IonTitle>
+              {datePickerTarget === 'start' ? 'Selecione a Data de Início' : 'Selecione a Data de Fim'}
+            </IonTitle>
+            <IonButtons slot="end">
+              <IonButton onClick={() => setShowDatePicker(false)}>Cancelar</IonButton>
+            </IonButtons>
+          </IonToolbar>
+        </IonHeader>
+        <IonContent>
+          <IonDatetime
+            className="date-selector-popover"
+            presentation="date"
+            onIonChange={handleDateChange}
+            value={datePickerTarget === 'start' ? startDate ?? undefined : endDate ?? undefined}
+          />
+        </IonContent>
       </IonModal>
     </div>
   );

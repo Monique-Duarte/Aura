@@ -1,0 +1,15 @@
+{
+  "cookies": [
+    {
+      "name": "G_ENABLED_IDPS",
+      "value": "google",
+      "domain": "localhost",
+      "path": "/",
+      "expires": 1791039052.168951,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": []
+}

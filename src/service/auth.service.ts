@@ -9,7 +9,9 @@ import {
   linkWithPopup,
   linkWithCredential,
   AuthError,
+  signInWithPopup,
 } from 'firebase/auth';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import { 
   doc, 
   getDoc, 
@@ -17,7 +19,6 @@ import {
   Timestamp, 
   getFirestore 
 } from 'firebase/firestore';
-import { getFunctions, httpsCallable } from 'firebase/functions';
 import { auth, app } from '../firebaseConfig';
 import { Capacitor } from '@capacitor/core';
 import { FirebaseError } from 'firebase/app';
@@ -45,39 +46,28 @@ export class AuthService {
     try {
       const functions = getFunctions(app);
       const checkEmail = httpsCallable(functions, 'checkIfEmailExists');
-
       const result = await checkEmail({ email });
       const data = result.data as { exists: boolean };
 
       if (!data.exists) {
-        // Este é o nosso erro "amigável" e customizado
         throw new Error('E-mail não vinculado.');
       }
-
+      
       await sendPasswordResetEmail(auth, email);
-
     } catch (error: unknown) {
       console.error("Erro no processo de recuperação de senha:", error);
-
-      // 1. Primeiro, verificamos se o erro é a nossa mensagem customizada.
-      //    Se for, nós a repassamos para a tela.
       if (error instanceof Error && error.message === 'E-mail não vinculado.') {
         throw error;
       }
-
-      // 2. Para QUALQUER OUTRO TIPO de erro (seja o "internal" do backend,
-      //    um erro de rede, etc.), nós lançamos uma nova mensagem genérica e amigável.
       throw new Error('Ocorreu um erro de comunicação. Tente novamente mais tarde.');
     }
   }
-
+  
   async registerWithEmailAndPassword(name: string, email: string, pass: string): Promise<User> {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
       const user = userCredential.user;
-
       await updateProfile(user, { displayName: name });
-
       const db = getFirestore(app);
       const userDocRef = doc(db, 'users', user.uid);
       await setDoc(userDocRef, {
@@ -86,17 +76,12 @@ export class AuthService {
         photoURL: user.photoURL,
         createdAt: Timestamp.fromDate(new Date()),
       });
-
       const settingsDocRef = doc(db, 'users', user.uid, 'settings', 'preferences');
       await setDoc(settingsDocRef, {
         financialStartDay: 1,
       });
-      
-      console.log('Usuário registrado e documentos criados com sucesso.');
       return user;
-
     } catch (error) {
-      console.error("Falha no registro (serviço):", error);
       if (error instanceof FirebaseError) {
         switch (error.code) {
           case 'auth/email-already-in-use':
@@ -115,16 +100,25 @@ export class AuthService {
 
   async signInWithGoogle(): Promise<User | null> {
     try {
-      await this.initialize();
-      const googleUser = await GoogleAuth.signIn();
+      let result;
 
-      if (!googleUser?.authentication?.idToken) {
-        throw new Error('Não foi possível obter o token de autenticação do Google.');
+      // Verifica em qual plataforma o app está rodando
+      if (Capacitor.isNativePlatform()) {
+        // --- LÓGICA PARA ANDROID/IOS (NATIVO) ---
+        await this.initialize();
+        const googleUser = await GoogleAuth.signIn();
+        if (!googleUser?.authentication?.idToken) {
+          throw new Error('Não foi possível obter o token de autenticação do Google.');
+        }
+        const credential = GoogleAuthProvider.credential(googleUser.authentication.idToken);
+        result = await signInWithCredential(auth, credential);
+      } else {
+        // --- LÓGICA PARA NAVEGADOR (WEB) ---
+        const provider = new GoogleAuthProvider();
+        result = await signInWithPopup(auth, provider);
       }
-      const credential = GoogleAuthProvider.credential(googleUser.authentication.idToken);
-      const result = await signInWithCredential(auth, credential);
-      const user = result.user;
 
+      const user = result.user;
       const db = getFirestore(app);
       const userDocRef = doc(db, 'users', user.uid);
       const docSnap = await getDoc(userDocRef);
@@ -138,37 +132,32 @@ export class AuthService {
           createdAt: Timestamp.fromDate(new Date()),
         });
         const settingsDocRef = doc(db, 'users', user.uid, 'settings', 'preferences');
-        await setDoc(settingsDocRef, {
-          financialStartDay: 1,
-        });
+        await setDoc(settingsDocRef, { financialStartDay: 1 });
         console.log('Documentos do novo usuário criados com sucesso.');
       }
       
-      return result.user;
-    } catch (error) {
+      return user;
+    } catch (error: unknown) {
       console.error('Erro completo durante o processo de login:', error);
-      if (error instanceof Error) {
-        if (error.message.includes('12501')) {
+
+      const isPopupClosedError = error && typeof error === 'object' && 'code' in error && (error as {code: string}).code === 'auth/popup-closed-by-user';
+      
+      if (error instanceof Error && (error.message.includes('12501') || isPopupClosedError)) {
           throw new Error('Login cancelado pelo usuário.');
-        }
-        if (error.message.includes('DEVELOPER_ERROR')) {
-            throw new Error('Erro de configuração. Verifique o clientId, SHA-1 e o nome do pacote.');
-        }
       }
+      if (error instanceof Error && error.message.includes('DEVELOPER_ERROR')) {
+          throw new Error('Erro de configuração do Google Sign-In.');
+      }
+      
       throw new Error('Ocorreu um erro inesperado durante o login.');
     }
   }
 
-  /**
-   * Vincula a conta do Google ao usuário logado, usando o fluxo nativo no mobile
-   * e o popup na web.
-   */
   async linkGoogleAccount(): Promise<{ success: boolean; error?: string }> {
     const user = auth.currentUser;
     if (!user) {
       return { success: false, error: 'Nenhum usuário logado para vincular.' };
     }
-
     try {
       if (Capacitor.isNativePlatform()) {
         await this.initialize();
@@ -182,20 +171,15 @@ export class AuthService {
         const provider = new GoogleAuthProvider();
         await linkWithPopup(user, provider);
       }
-      
       return { success: true };
-
     } catch (error) {
       const authError = error as AuthError;
-      console.error("Erro ao vincular a conta do Google:", authError.code, authError.message);
-      
       if (authError.code === 'auth/credential-already-in-use') {
         return { success: false, error: 'Esta conta do Google já está associada a outro usuário.' };
       }
       if (authError.message.includes('12501')) {
         return { success: false, error: 'Vinculação cancelada pelo usuário.' };
       }
-      
       return { success: false, error: 'Ocorreu um erro ao tentar vincular a conta.' };
     }
   }

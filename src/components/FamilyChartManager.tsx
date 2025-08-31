@@ -86,6 +86,17 @@ const FamilyChartManager: React.FC<FamilyChartManagerProps> = ({ period }) => {
   // --- Cenário 1: Vínculo Ativo ---
   // Se existe uma parceria aceita, mostra os gráficos combinados.
   if (activePartnership) {
+
+// console.log('DEBUG - activePartnership:', activePartnership);
+// console.log('DEBUG - memberIds:', memberIds);
+// console.log('DEBUG - user.uid:', user?.uid);
+
+// Se houver parceria ativa, vamos ver como está o ID
+if (activePartnership) {
+//   console.log('DEBUG - Partnership ID:', activePartnership.id);
+//   console.log('DEBUG - Partnership members:', activePartnership.members);
+//   console.log('DEBUG - Partnership status:', activePartnership.status);
+// }
     return (
       <div key="linked">
         <IonText className="ion-text-center">
@@ -190,5 +201,5 @@ const FamilyChartManager: React.FC<FamilyChartManagerProps> = ({ period }) => {
     </div>
   );
 };
-
+}
 export default FamilyChartManager;

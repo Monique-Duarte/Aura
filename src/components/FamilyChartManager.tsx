@@ -112,7 +112,7 @@ if (activePartnership) {
           />
         )}
 
-        <div style={{ marginTop: '32px' }}>
+        <div style={{ marginTop: '60px' }}>
           {categoryLoading || !familyCategoryChartData ? <IonSpinner /> : (
             <>
               <FamilyCategoryChart

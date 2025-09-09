@@ -38,7 +38,6 @@ const FamilyBalanceChart: React.FC<FamilyBalanceChartProps> = ({ summary, user1N
       legend: { position: 'top' as const, labels: { color: '#ffffff' } },
       tooltip: {
         callbacks: {
-          // CORREÇÃO: Usa o tipo 'TooltipItem' em vez de 'any'
           label: (context: TooltipItem<'bar'>) => {
             const label = context.dataset.label || '';
             const value = context.parsed.y;

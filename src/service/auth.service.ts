@@ -42,6 +42,21 @@ export class AuthService {
     }
   }
 
+  /**
+   * Detecção mais robusta da plataforma
+   * Android Studio às vezes é detectado incorretamente como web
+   */
+  private isNativePlatform(): boolean {
+    const platform = Capacitor.getPlatform();
+    console.log('Plataforma detectada:', platform);
+    
+    // Considera nativo se for android, ios, ou se estiver no contexto do Capacitor
+    // mesmo que seja detectado como web (caso do Android Studio)
+    return platform === 'android' || 
+           platform === 'ios' || 
+           (platform === 'web' && (window as any).Capacitor);
+  }
+
   async sendPasswordReset(email: string): Promise<void> {
     try {
       const functions = getFunctions(app);
@@ -101,19 +116,22 @@ export class AuthService {
   async signInWithGoogle(): Promise<User | null> {
     try {
       let result;
+      const isNative = this.isNativePlatform();
+      console.log('Usando fluxo:', isNative ? 'Nativo (Capacitor)' : 'Web (Popup)');
 
-      // Verifica em qual plataforma o app está rodando
-      if (Capacitor.isNativePlatform()) {
-        // --- LÓGICA PARA ANDROID/IOS (NATIVO) ---
+      if (isNative) {
+        // --- LÓGICA PARA ANDROID/IOS/ANDROID STUDIO (NATIVO) ---
         await this.initialize();
         const googleUser = await GoogleAuth.signIn();
+        
         if (!googleUser?.authentication?.idToken) {
           throw new Error('Não foi possível obter o token de autenticação do Google.');
         }
+        
         const credential = GoogleAuthProvider.credential(googleUser.authentication.idToken);
         result = await signInWithCredential(auth, credential);
       } else {
-        // --- LÓGICA PARA NAVEGADOR (WEB) ---
+        // --- LÓGICA PARA NAVEGADOR PURO (WEB) ---
         const provider = new GoogleAuthProvider();
         result = await signInWithPopup(auth, provider);
       }
@@ -159,7 +177,7 @@ export class AuthService {
       return { success: false, error: 'Nenhum usuário logado para vincular.' };
     }
     try {
-      if (Capacitor.isNativePlatform()) {
+      if (this.isNativePlatform()) {
         await this.initialize();
         const googleUser = await GoogleAuth.signIn();
         if (!googleUser?.authentication?.idToken) {
@@ -187,7 +205,7 @@ export class AuthService {
   async signOut() {
     try {
       await auth.signOut();
-      if (Capacitor.isNativePlatform()) {
+      if (this.isNativePlatform()) {
         await GoogleAuth.signOut();
       }
     } catch (error) {

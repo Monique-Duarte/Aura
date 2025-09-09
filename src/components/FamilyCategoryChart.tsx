@@ -12,17 +12,16 @@ interface FamilyCategoryChartProps {
 }
 
 const FamilyCategoryChart: React.FC<FamilyCategoryChartProps> = ({ data, user1Name, user2Name }) => {
-  // Gera cores dinâmicas para cada categoria
   const generateCategoryColors = (categories: string[]) => {
     const baseColors = [
-      { base: 'rgba(255, 99, 132, 0.8)', light: 'rgba(255, 99, 132, 0.5)' }, // Vermelho
-      { base: 'rgba(54, 162, 235, 0.8)', light: 'rgba(54, 162, 235, 0.5)' }, // Azul
-      { base: 'rgba(255, 206, 86, 0.8)', light: 'rgba(255, 206, 86, 0.5)' }, // Amarelo
-      { base: 'rgba(75, 192, 192, 0.8)', light: 'rgba(75, 192, 192, 0.5)' }, // Verde água
-      { base: 'rgba(153, 102, 255, 0.8)', light: 'rgba(153, 102, 255, 0.5)' }, // Roxo
-      { base: 'rgba(255, 159, 64, 0.8)', light: 'rgba(255, 159, 64, 0.5)' }, // Laranja
-      { base: 'rgba(199, 199, 199, 0.8)', light: 'rgba(199, 199, 199, 0.5)' }, // Cinza
-      { base: 'rgba(83, 102, 255, 0.8)', light: 'rgba(83, 102, 255, 0.5)' }, // Azul escuro
+      { base: 'rgba(255, 99, 132, 0.8)', light: 'rgba(255, 99, 132, 0.5)' },
+      { base: 'rgba(54, 162, 235, 0.8)', light: 'rgba(54, 162, 235, 0.5)' },
+      { base: 'rgba(255, 206, 86, 0.8)', light: 'rgba(255, 206, 86, 0.5)' },
+      { base: 'rgba(75, 192, 192, 0.8)', light: 'rgba(75, 192, 192, 0.5)' },
+      { base: 'rgba(153, 102, 255, 0.8)', light: 'rgba(153, 102, 255, 0.5)' },
+      { base: 'rgba(255, 159, 64, 0.8)', light: 'rgba(255, 159, 64, 0.5)' },
+      { base: 'rgba(199, 199, 199, 0.8)', light: 'rgba(199, 199, 199, 0.5)' },
+      { base: 'rgba(83, 102, 255, 0.8)', light: 'rgba(83, 102, 255, 0.5)' },
     ];
     
     return categories.map((_, index) => baseColors[index % baseColors.length]);

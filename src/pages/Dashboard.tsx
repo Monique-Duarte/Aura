@@ -33,10 +33,8 @@ const Dashboard: React.FC = () => {
   const { balance: currentBalance, loading: accountBalanceLoading } = useAccountBalance();
 
   return (
-    // 2. Substituímos toda a estrutura de Page, Header e Content pelo nosso PageLayout
     <PageLayout pageTitle="Dashboard">
       
-      {/* 3. Todo o conteúdo que antes estava dentro do <IonContent> agora fica aqui */}
       <div className="summary-card">
         {accountBalanceLoading ? (
           <IonSpinner name="crescent" />

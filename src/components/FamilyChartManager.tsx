@@ -18,10 +18,10 @@ import { useTransactionSummary } from '../hooks/useTransactionSummary';
 import { useCategorySummary } from '../hooks/useCategorySummary';
 import FamilyBalanceChart from './FamilyBalanceChart';
 import FamilyCategoryChart from './FamilyCategoryChart';
-import CategorySummaryList from './CategorySummaryList';
+import FamilyCategorySummaryList from './FamilyCategorySummaryList';
 import { useAuth } from '../hooks/AuthContext';
 import ActionButton from './ActionButton';
-import '../styles/Dashboard.css'
+import '../styles/Dashboard.css';
 
 interface Period {
   startDate: Date;
@@ -35,7 +35,7 @@ interface FamilyChartManagerProps {
 const FamilyChartManager: React.FC<FamilyChartManagerProps> = ({ period }) => {
   const { user } = useAuth();
   const {
-    loading,
+    loading: partnershipLoading,
     activePartnership,
     pendingInvitations,
     sentInvitation,
@@ -48,81 +48,110 @@ const FamilyChartManager: React.FC<FamilyChartManagerProps> = ({ period }) => {
   const [error, setError] = useState('');
   const [isSending, setIsSending] = useState(false);
 
-  // Define os IDs dos membros apenas se houver um vínculo ativo.
-  const memberIds = useMemo(() => {
-    if (activePartnership && user) {
-      return activePartnership.members;
-    }
-    // Se não houver vínculo, os hooks de resumo usarão apenas o ID do usuário atual.
-    return user ? [user.uid] : [];
-  }, [activePartnership, user]);
+  // Deriva o UID do parceiro a partir da parceria ativa
+  const partnerUid = useMemo(() => {
+    if (!user || !activePartnership?.members) return null;
+    return activePartnership.members.find((uid) => uid !== user.uid) || null;
+  }, [user, activePartnership]);
 
-  // Hooks para buscar os dados dos gráficos.
-  const { summary: familyBalance, loading: balanceLoading } = useTransactionSummary(period, memberIds);
-  const { chartData: familyCategoryChartData, summaryList: familyCategorySummaryList, loading: categoryLoading } = useCategorySummary(period, memberIds);
+  // CORREÇÃO PRINCIPAL: Busca os dados de cada usuário SEPARADAMENTE
+  const { summary: userBalance, loading: userBalanceLoading } = useTransactionSummary(period, user ? [user.uid] : []);
+  const { summary: partnerBalance, loading: partnerBalanceLoading } = useTransactionSummary(period, partnerUid ? [partnerUid] : []);
+  
+  const { summaryList: userCategoryList, loading: userCategoryLoading } = useCategorySummary(period, user ? [user.uid] : []);
+  const { summaryList: partnerCategoryList, loading: partnerCategoryLoading } = useCategorySummary(period, partnerUid ? [partnerUid] : []);
+
+  const loading = partnershipLoading || userBalanceLoading || partnerBalanceLoading || userCategoryLoading || partnerCategoryLoading;
+
+  // Combina os dados de categoria dos dois usuários em uma única estrutura
+  const combinedCategoryData = useMemo(() => {
+    const categoryMap = new Map<string, { userAmount: number; partnerAmount: number; color: string }>();
+
+    userCategoryList.forEach(item => {
+      categoryMap.set(item.name, {
+        userAmount: item.total,
+        partnerAmount: 0,
+        color: item.color,
+      });
+    });
+
+    partnerCategoryList.forEach(item => {
+      const existing = categoryMap.get(item.name) || { userAmount: 0, partnerAmount: 0, color: item.color };
+      existing.partnerAmount = item.total;
+      categoryMap.set(item.name, existing);
+    });
+
+    return Array.from(categoryMap.entries()).map(([name, data]) => ({
+      name,
+      ...data,
+      total: data.userAmount + data.partnerAmount,
+    })).sort((a, b) => b.total - a.total);
+  }, [userCategoryList, partnerCategoryList]);
 
   const handleSendInvite = async () => {
     setError('');
     setIsSending(true);
     try {
       await sendInvitation(inviteEmail);
-      setInviteEmail(''); // Limpa o campo após o envio
+      setInviteEmail('');
     } catch (e: unknown) {
-      if (e instanceof Error) {
-        setError(e.message);
-      } else {
-        setError("Ocorreu um erro desconhecido.");
-      }
+      if (e instanceof Error) { setError(e.message); }
+      else { setError("Ocorreu um erro desconhecido."); }
     } finally {
       setIsSending(false);
     }
   };
 
-  // Renderiza um spinner enquanto o estado da parceria está sendo carregado.
   if (loading) {
-    return <div style={{ display: 'flex', justifyContent: 'center', padding: '20px' }}><IonSpinner /></div>;
+    return <div className="spinner-container"><IonSpinner /></div>;
   }
 
   // --- Cenário 1: Vínculo Ativo ---
-  // Se existe uma parceria aceita, mostra os gráficos combinados.
   if (activePartnership) {
+    const partnerName = activePartnership.partnerDisplayName || 'Parceiro(a)';
 
-// console.log('DEBUG - activePartnership:', activePartnership);
-// console.log('DEBUG - memberIds:', memberIds);
-// console.log('DEBUG - user.uid:', user?.uid);
+    const combinedBalanceSummary = {
+      user1Income: userBalance.totalIncome,
+      user1Expense: userBalance.totalExpense,
+      user2Income: partnerBalance.totalIncome,
+      user2Expense: partnerBalance.totalExpense,
+    };
+    
+    const categoryChartData = {
+      labels: combinedCategoryData.map(d => d.name),
+      datasets: [{
+        label: 'Gasto Total',
+        data: combinedCategoryData.map(d => d.total),
+        backgroundColor: combinedCategoryData.map(d => d.color),
+      }],
+      detailedData: combinedCategoryData,
+    };
 
-// Se houver parceria ativa, vamos ver como está o ID
-if (activePartnership) {
-//   console.log('DEBUG - Partnership ID:', activePartnership.id);
-//   console.log('DEBUG - Partnership members:', activePartnership.members);
-//   console.log('DEBUG - Partnership status:', activePartnership.status);
-// }
     return (
       <div key="linked">
-        <IonText className="ion-text-center">
-          <p>Exibindo dados combinados com <strong>{activePartnership.partnerDisplayName}</strong>.</p>
-        </IonText>
+        <div className="partnership-info-banner">
+          <IonText><p>Exibindo dados combinados com <strong>{partnerName}</strong>.</p></IonText>
+        </div>
 
         <h3 className="summary-list-title">Balanço Conjunto</h3>
-        {balanceLoading ? <IonSpinner /> : (
-          <FamilyBalanceChart
-            summary={familyBalance}
-            user1Name={user?.displayName || 'Você'}
-            user2Name={activePartnership.partnerDisplayName || 'Parceiro(a)'}
-          />
-        )}
+        <FamilyBalanceChart
+          summary={combinedBalanceSummary}
+          user1Name={user?.displayName || 'Você'}
+          user2Name={partnerName}
+        />
 
-        <div style={{ marginTop: '60px' }}>
-          {categoryLoading || !familyCategoryChartData ? <IonSpinner /> : (
-            <>
-              <FamilyCategoryChart
-                data={familyCategoryChartData}
-                user1Name={user?.displayName || 'Você'}
-                user2Name={activePartnership.partnerDisplayName || 'Parceiro(a)'}
-              />
-              <CategorySummaryList summary={familyCategorySummaryList} />
-            </>
-          )}
+        <div style={{ marginTop: '32px' }}>
+          <h3 className="summary-list-title">Gastos por Categoria</h3>
+          <FamilyCategoryChart
+            data={categoryChartData}
+            user1Name={user?.displayName || 'Você'}
+            user2Name={partnerName}
+          />
+          <FamilyCategorySummaryList 
+            summary={combinedCategoryData} 
+            user1Name={user?.displayName || 'Você'}
+            user2Name={partnerName}
+          />
         </div>
 
         <ActionButton fill="clear" expand="block" color="danger" onClick={() => cancelOrDecline(activePartnership.id)} className="ion-margin-top">
@@ -133,10 +162,9 @@ if (activePartnership) {
   }
 
   // --- Cenário 2: Convites Recebidos Pendentes ---
-  // Se o usuário recebeu convites, mostra a lista para aceitar ou recusar.
   if (pendingInvitations.length > 0) {
     return (
-      <div key="invitations" className="ion-text-center">
+     <div key="invitations" className="ion-text-center">
         <IonList>
           <IonListHeader>Convites Pendentes</IonListHeader>
           {pendingInvitations.map(inv => (
@@ -164,7 +192,6 @@ if (activePartnership) {
   }
 
   // --- Cenário 3: Convite Enviado Pendente ---
-  // Se o usuário enviou um convite, mostra um status de "aguardando".
   if (sentInvitation) {
     return (
       <div key="sent" className="ion-text-center">
@@ -186,7 +213,6 @@ if (activePartnership) {
   }
 
   // --- Cenário 4: Sem Vínculo ---
-  // Se nenhum dos cenários acima for verdadeiro, mostra o formulário para convidar.
   return (
     <div key="unlinked" className="form-field-group">
       <IonText><p className='text-family'>Compartilhe suas finanças com outro usuário para ver um resumo conjunto.</p></IonText>
@@ -201,5 +227,5 @@ if (activePartnership) {
     </div>
   );
 };
-}
+
 export default FamilyChartManager;

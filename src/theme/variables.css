@@ -1,17 +1,10 @@
-/*
-  Correção para a Sobreposição da Barra de Estado (Safe Area)
-*/
+/* Correção para a Sobreposição da Barra de Estado (Safe Area) */
 
 ion-header ion-toolbar {
   padding-top: calc(var(--ion-safe-area-top) + 20px);
   --padding-start: 16px;
   --padding-end: 16px;
 }
-
-/*
-  Ajuste para o botão FAB (o '+') não ficar colado
-  na barra de navegação inferior do celular.
-*/
 
 ion-fab[slot="fixed"] {
   bottom: calc(env(safe-area-inset-bottom, 16px) + 60px);
@@ -25,108 +18,103 @@ ion-fab[slot="fixed"] {
   --ion-color-primary-contrast: #202023;
   --aura-accent: #FFD600;
   --aura-bg: #202023;
-  --ion-color-danger: #FF6347;
-  --ion-color-danger-rgb: 255, 99, 71;
+
+  /* === HIERARQUIA DE TEXTO === */
+  --text-primary: #FFD600;
+  --text-secondary: #E6C200;
+  --text-muted: #B8B8B8; 
+  --text-disabled: #808080;
+
+  /* === TONS DE AMARELO === */
+  --yellow-50: #FFFDE7;
+  --yellow-100: #FFF9C4;
+  --yellow-200: #FFF176;
+  --yellow-300: #FFD600;
+  --yellow-400: #E6C200;
+  --yellow-500: #CCA000;
+  --yellow-600: #B8900A;
+
+  /* === BACKGROUNDS E SUPERFÍCIES === */
+  --surface-primary: #2A2A2D;
+  --surface-secondary: #353538;
+  --surface-tertiary: #404043;
+  --border-color: #404043;
+  --divider-color: #353538;
+
+  /* === CORES FUNCIONAIS === */
+  --success-color: #4CAF50;
+  --success-light: #66BB6A;
+  --success-dark: #388E3C;
+  
+  --error-color: #F44336;
+  --error-light: #EF5350;
+  --error-dark: #D32F2F;
+  
+  --warning-color: #FF9800;
+  --warning-light: #FFB74D;
+  --warning-dark: #F57C00;
+  
+  --info-color: #2196F3;
+  --info-light: #42A5F5;
+  --info-dark: #1976D2;
+
+  /* === SOMBRAS === */
+  --shadow-light: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+  --shadow-medium: 0 3px 6px rgba(0, 0, 0, 0.16), 0 3px 6px rgba(0, 0, 0, 0.23);
+  --shadow-strong: 0 10px 20px rgba(0, 0, 0, 0.19), 0 6px 6px rgba(0, 0, 0, 0.23);
+
+  /* === BORDER RADIUS (NOVO) === */
+  --border-radius-md: 12px;
+  --border-radius-sm: 8px;
+
+  /* === GRADIENTES === */
+  --gradient-yellow: linear-gradient(135deg, #FFD600 0%, #E6C200 100%);
+  --gradient-success: linear-gradient(135deg, #4CAF50 0%, #388E3C 100%);
+  --gradient-error: linear-gradient(135deg, #F44336 0%, #D32F2F 100%);
+  --gradient-warning: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+
+  /* === IONIC OVERRIDES === */
+  --ion-color-danger: var(--error-color);
+  --ion-color-danger-rgb: 244, 67, 54;
   --ion-color-danger-contrast: #ffffff;
   --ion-color-danger-contrast-rgb: 255, 255, 255;
-  --ion-color-danger-shade: #e05740;
-  --ion-color-danger-tint: #ff735a;
+  --ion-color-danger-shade: var(--error-dark);
+  --ion-color-danger-tint: var(--error-light);
+
+  --ion-color-success: var(--success-color);
+  --ion-color-success-rgb: 76, 175, 80;
+  --ion-color-success-contrast: #ffffff;
+  --ion-color-success-shade: var(--success-dark);
+  --ion-color-success-tint: var(--success-light);
+
+  --ion-color-warning: var(--warning-color);
+  --ion-color-warning-rgb: 255, 152, 0;
+  --ion-color-warning-contrast: #ffffff;
+  --ion-color-warning-shade: var(--warning-dark);
+  --ion-color-warning-tint: var(--warning-light);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --ion-color-primary: #FFD600;
+    --ion-color-primary: var(--yellow-300);
     --ion-background-color: #202023;
   }
 }
 
-body {
-  background: var(--aura-bg);
-  color: var(--ion-text-color);
-  font-family: 'Inter', 'Roboto', Arial, sans-serif;
-}
+/* === CLASSES UTILITÁRIAS === */
+.text-primary { color: var(--text-primary); }
+.text-secondary { color: var(--text-secondary); }
+.text-muted { color: var(--text-muted); }
+.text-success { color: var(--success-color); }
+.text-error { color: var(--error-color); }
+.text-warning { color: var(--warning-color); }
 
-.aura-login-content {
-  --background: #202023;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-}
-.aura-login-center {
-  width: 100%;
-  max-width: 350px;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-.logo-aura {
-  margin-top: 20px;
-  width: 64px;
-  height: 64px;
-}
-.aura-title {
-  color: #FFD600;
-  font-size: 2.2rem;
-  font-weight: 800;
-  margin-bottom: 8px;
-  text-align: center;
-}
-.aura-subtitle {
-  color: #fff;
-  font-size: 1.1rem;
-  margin-bottom: 32px;
-  text-align: center;
-}
-.aura-form-clean {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-bottom: 18px;
-}
-.aura-separator {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  margin: 18px 0 16px 0;
-  color: #888;
-  font-size: 0.98rem;
-  font-weight: 500;
-}
-.aura-separator span {
-  margin: 0 12px;
-  white-space: nowrap;
-}
-.aura-separator:before, .aura-separator:after {
-  content: '';
-  flex: 1;
-  border-bottom: 1.5px solid #eee;
-  margin: 0 4px;
-}
-.aura-links-clean {
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  gap: 16px;
-  margin-top: 0;
-  width: 100%;
-}
-.aura-link-clean {
-  color: #888 !important;
-  font-size: 0.98rem;
-  margin: 0 8px;
-  text-align: center;
-  text-decoration: none !important;
-  font-weight: 500;
-  transition: color 0.2s;
-}
-.aura-link-clean:hover {
-  color: #FFD600 !important;
-  text-decoration: underline !important;
-}
+.bg-surface-primary { background-color: var(--surface-primary); }
+.bg-surface-secondary { background-color: var(--surface-secondary); }
 
+.shadow-light { box-shadow: var(--shadow-light); }
+.shadow-medium { box-shadow: var(--shadow-medium); }
+.shadow-strong { box-shadow: var(--shadow-strong); }
 
 /* =========================
    INPUTS
@@ -190,6 +178,7 @@ body {
 .aura-btn-main-clean:hover {
   filter: brightness(1.05);
 }
+
 ion-button.aura-btn-main-clean {
   --background: #FFD600;
   --color: #202023;
@@ -201,6 +190,7 @@ ion-button.aura-btn-main-clean {
   font-weight: 700;
   font-size: 1.12rem;
 }
+
 ion-button.aura-btn-main-clean::part(native) {
   background: transparent !important;
   border: none !important;
@@ -218,36 +208,6 @@ ion-button.aura-btn-main-clean::part(native) {
   justify-content: center !important;
 }
 
-/* =========================
-   BTN GOOGLE
-   ========================= */
-.aura-btn-google-clean {
-  background: #fff;
-  color: #202023;
-  border: 1.5px solid #eee;
-  border-radius: 12px;
-  font-size: 1.08rem;
-  font-weight: 600;
-  height: 44px;
-  width: 100%;
-  box-shadow: none;
-  text-transform: none;
-  letter-spacing: 0.01em;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 18px;
-  cursor: pointer;
-  transition: background 0.2s, border 0.2s;
-}
-.aura-btn-google-clean:hover {
-  background: #f7f7f7;
-  border-color: #FFD600;
-}
-.aura-btn-google-clean img {
-  margin-right: 8px;
-  vertical-align: middle;
-}
 
 /* =========================
    Menu
@@ -284,6 +244,25 @@ ion-menu::part(container) {
 .user-profile ion-note {
   font-size: 0.8rem;
   color: var(--ion-color-medium-shade);
+}
+
+.user-avatar {
+  cursor: pointer;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.generic-avatar-icon {
+  width: 100%;
+  height: 100%;
 }
 
 ion-header {
@@ -323,25 +302,6 @@ ion-footer {
   background-color: transparent;
 }
 
-.user-avatar {
-  cursor: pointer;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.user-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.generic-avatar-icon {
-  width: 100%;
-  height: 100%;
-}
-
 /* Container principal para o seletor de data, para dar espaçamento e um visual de "bloco" */
 .date-selector-container {
   border: 1px solid var(--ion-color-step-200);
@@ -369,10 +329,8 @@ ion-footer {
   --background: var(--ion-color-step-100);
   --background-rgb: var(--ion-color-step-100-rgb);
   --color: var(--ion-text-color);
-  
   --ion-color-base: var(--ion-text-color);
   --ion-color-contrast: var(--ion-background-color);
-
   --ion-toolbar-background: var(--ion-color-step-150);
 }
 
@@ -386,7 +344,7 @@ ion-footer {
   não quebrarem a linha e terem um espaçamento melhor.
 */
 .date-item-selector ion-label {
-  white-space: nowrap; /* Impede a quebra de linha do texto */
-  flex-shrink: 0;      /* Impede que o label encolha e se achate */
-  margin-right: 16px;  /* Adiciona um espaço entre o texto e a data */
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-right: 16px;
 }

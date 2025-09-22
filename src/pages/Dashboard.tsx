@@ -49,53 +49,56 @@ const Dashboard: React.FC = () => {
       </div>
 
       <div className="dashboard-header-row">
-        <h2 className="dashboard-title">Resumo Mensal</h2>
-        <PeriodSelector onPeriodChange={setActivePeriodObject} />
-      </div>
+    <h2 className="dashboard-title">Resumo Mensal</h2>
+    <PeriodSelector onPeriodChange={setActivePeriodObject} />
+   </div>
 
-      <div className="dashboard-chart-legend">
-        {chartOptions.map(opt => (
-          <button
-            key={opt.key}
-            className={`dashboard-legend-btn${activeChart === opt.key ? ' active' : ''}`}
-            onClick={() => setActiveChart(opt.key)}
-            type="button"
-          >
-            {opt.label}
-          </button>
-        ))}
-      </div>
+   <div className="dashboard-chart-legend">
+    {chartOptions.map(opt => (
+     <button
+      key={opt.key}
+      className={`dashboard-legend-btn${activeChart === opt.key ? ' active' : ''}`}
+      onClick={() => setActiveChart(opt.key)}
+      type="button"
+     >
+      {opt.label}
+     </button>
+    ))}
+   </div>
 
-      <div className="dashboard-chart-area chart-wrapper">
-        <div className={`chart-container ${activeChart === 'balance' ? 'active' : ''}`}>
-          {balanceLoading ? (
-            <div className="spinner-container"><IonSpinner /></div>
-          ) : (
-            <BalanceChart 
-              totalIncome={balanceSummary.totalIncome} 
-              totalExpense={balanceSummary.totalExpense} 
-              totalReserved={balanceSummary.totalReserved} 
-            />
-          )}
-        </div>
-        <div className={`chart-container ${activeChart === 'category' ? 'active' : ''}`}>
-          {categoryLoading || !categoryChartData ? (
-            <div className="spinner-container"><IonSpinner /></div>
-          ) : (
-            <CategoryChart data={categoryChartData} totalAmount={totalExpense} />
-          )}
-        </div>
-        <div className={`chart-container ${activeChart === 'family' ? 'active' : ''}`}>
-          <FamilyChartManager period={activePeriodObject} />
-        </div>
-      </div>
+   <div className="dashboard-chart-area">
+    {activeChart !== 'family' && (
+          <div className="chart-wrapper">
+            <div className={`chart-container ${activeChart === 'balance' ? 'active' : ''}`}>
+              {balanceLoading ? <IonSpinner /> : (
+                <BalanceChart 
+                  totalIncome={balanceSummary.totalIncome} 
+                  totalExpense={balanceSummary.totalExpense} 
+                  totalReserved={balanceSummary.totalReserved} 
+                />
+              )}
+            </div>
+            <div className={`chart-container ${activeChart === 'category' ? 'active' : ''}`}>
+              {categoryLoading || !categoryChartData ? <IonSpinner /> : (
+                <CategoryChart data={categoryChartData} totalAmount={totalExpense} />
+              )}
+            </div>
+          </div>
+        )}
+        {activeChart === 'family' && (
+          <div className="family-chart-container">
+            <FamilyChartManager period={activePeriodObject} />
+          </div>
+        )}
+   </div>
 
-      {activeChart === 'category' && !categoryLoading && categorySummaryList.length > 0 && (
-        <CategorySummaryList summary={categorySummaryList} />
-      )}
+   {activeChart === 'category' && !categoryLoading && categorySummaryList.length > 0 && (
+    <CategorySummaryList summary={categorySummaryList} />
+   )}
 
-    </PageLayout>
-  );
+  </PageLayout>
+    
+ );
 };
 
 export default Dashboard;

@@ -16,15 +16,15 @@ import '@ionic/react/css/text-alignment.css';
 import '@ionic/react/css/text-transformation.css';
 import '@ionic/react/css/flex-utils.css';
 import '@ionic/react/css/display.css';
-import './theme/variables.css';
+import '../src/app/styles/variables.css';
 
 /* Páginas e Layouts */
-import Login from './pages/Login';
-import Register from './pages/Register';
-import ResetPassword from './pages/ResetPassword';
-import MainLayout from './layouts/MainLayout';
-import { DateProvider } from './hooks/DateContext';
-import { AuthProvider } from './hooks/AuthContext';
+import Login from './features/auth/pages/Login';
+import ResetPassword from './features/auth/pages/ResetPassword';
+import { AuthProvider } from './app/providers/AuthContext';
+import { DateProvider } from './app/providers/DateContext';
+import Register from './features/auth/pages/Register';
+import MainLayout from './app/layouts/MainLayout';
 
 setupIonicReact({
   mode: 'md'

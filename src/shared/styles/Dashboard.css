@@ -1,0 +1,240 @@
+/* === DASHBOARD HEADER === */
+.dashboard-header-row {
+ display: flex;
+ align-items: center;
+ justify-content: space-between;
+ flex-wrap: wrap;
+ margin-bottom: 20px;
+ gap: 12px;
+}
+
+.dashboard-title {
+ font-size: 1.6rem;
+ font-weight: 700;
+ color: var(--ion-color-primary);
+ margin: 0;
+ flex-shrink: 0;
+}
+
+/* === CARD DE SALDO ATUAL === */
+.summary-card {
+ background: var(--surface-primary, #2A2A2D);
+ border: 1px solid var(--border-color, #404043);
+ border-radius: 16px;
+ padding: 24px;
+ margin-bottom: 24px;
+ text-align: center;
+ box-shadow: var(--shadow-medium, 0 3px 6px rgba(0, 0, 0, 0.16));
+ transition: transform 0.2s ease;
+}
+
+.summary-card:hover {
+ transform: translateY(-2px);
+ box-shadow: var(--shadow-strong, 0 6px 12px rgba(0, 0, 0, 0.2));
+}
+
+.summary-card p {
+ margin: 0 0 8px 0;
+ font-size: 1rem;
+ font-weight: 500;
+ color: var(--text-muted, #B8B8B8);
+ text-transform: uppercase;
+ letter-spacing: 0.5px;
+}
+
+.summary-card h2 {
+ margin: 0;
+ font-size: 2.4rem;
+ font-weight: 700;
+ line-height: 1.2;
+}
+
+/* === NAVEGAÇÃO DOS GRÁFICOS === */
+.dashboard-chart-legend {
+ display: flex;
+ gap: 12px; /* Aumentado o espaço entre os botões */
+  margin-bottom: 24px; /* Aumentado o espaço abaixo dos botões */
+}
+
+.dashboard-legend-btn {
+ flex: 1;
+ background: var(--surface-secondary, #353538);
+ color: var(--text-secondary, #E6C200);
+ border: 1.5px solid var(--border-color, #404043);
+ border-radius: 8px;
+ padding: 10px 8px;
+ font-size: 1.2rem;
+ font-weight: 600;
+ cursor: pointer;
+ transition: all 0.2s ease;
+ text-align: center;
+ white-space: normal;
+ line-height: 1.3;
+ min-height: 50px;
+}
+
+.dashboard-legend-btn:hover {
+ background: var(--surface-tertiary, #404043);
+ transform: translateY(-1px);
+ box-shadow: var(--shadow-light, 0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+.dashboard-legend-btn.active {
+ background: var(--gradient-yellow, linear-gradient(135deg, #FFD600 0%, #E6C200 100%));
+ color: var(--ion-color-primary-contrast, #202023);
+ border-color: var(--ion-color-primary, #FFD600);
+ box-shadow: 0 0 0 2px rgba(255, 214, 0, 0.3);
+}
+
+.dashboard-legend-btn:active {
+ transform: translateY(0);
+}
+
+/* === ÁREA DOS GRÁFICOS === */
+.dashboard-chart-area {
+ width: 100%;
+ background: var(--surface-primary, #2A2A2D);
+ border: 1px solid var(--border-color, #404043);
+ border-radius: 16px;
+ box-shadow: var(--shadow-medium, 0 3px 6px rgba(0, 0, 0, 0.16));
+ margin-bottom: 24px;
+ overflow: hidden;
+}
+
+.chart-wrapper {
+ position: relative;
+ min-height: 400px;
+ width: 100%;
+}
+
+.chart-container {
+ position: absolute;
+ top: 0;
+ left: 0;
+ width: 100%;
+ height: 100%;
+ padding: 16px;
+ visibility: hidden;
+ opacity: 0;
+ transition: opacity 0.3s ease-in-out;
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ overflow: visible;
+}
+
+.chart-container.active {
+ visibility: visible;
+ opacity: 1;
+}
+
+.spinner-container {
+ display: flex;
+ justify-content: center;
+ align-items: center;
+ height: 100%;
+ min-height: 350px;
+}
+
+.dashboard-chart-placeholder {
+ color: var(--text-muted, #B8B8B8);
+ font-size: 1.2rem;
+ opacity: 0.7;
+ text-align: center;
+}
+
+/* === RESPONSIVIDADE === */
+@media (max-width: 768px) {
+ .dashboard-header-row {
+   flex-direction: column;
+   align-items: flex-start;
+   gap: 16px;
+ }
+ 
+ .dashboard-title {
+   font-size: 1.4rem;
+ }
+ 
+ .dashboard-chart-legend {
+   gap: 8px;
+ }
+ 
+ .dashboard-legend-btn {
+   flex: 1;
+   font-size: 1rem;
+   padding: 12px 8px;
+ }
+ 
+ .summary-card h2 {
+   font-size: 2rem;
+ }
+ 
+ .chart-wrapper {
+   min-height: 380px;
+ }
+}
+
+@media (max-width: 480px) {
+ .summary-card {
+   padding: 20px;
+   margin-bottom: 20px;
+ }
+ 
+ .summary-card h2 {
+   font-size: 1.8rem;
+ }
+ 
+ .dashboard-chart-area {
+   margin-bottom: 20px;
+ }
+ 
+ .chart-container {
+   padding: 16px;
+ }
+ 
+ .chart-wrapper {
+   min-height: 350px;
+ }
+}
+
+/* === MELHORIAS DE ACESSIBILIDADE === */
+.dashboard-legend-btn:focus {
+ outline: 2px solid var(--ion-color-primary, #FFD600);
+ outline-offset: 2px;
+}
+
+.dashboard-legend-btn:focus:not(:focus-visible) {
+ outline: none;
+}
+
+/* === ANIMAÇÕES SUAVES === */
+@keyframes fadeIn {
+ from {
+   opacity: 0;
+   transform: translateY(10px);
+ }
+ to {
+   opacity: 1;
+   transform: translateY(0);
+ }
+}
+
+.summary-card,
+.dashboard-chart-area {
+ animation: fadeIn 0.3s ease-out;
+}
+
+/* === ESTADOS DE LOADING === */
+.loading-state {
+ display: flex;
+ flex-direction: column;
+ align-items: center;
+ justify-content: center;
+ gap: 12px;
+ min-height: 200px;
+ color: var(--text-muted, #B8B8B8);
+}
+
+.loading-state ion-spinner {
+ --color: var(--ion-color-primary, #FFD600);
+}

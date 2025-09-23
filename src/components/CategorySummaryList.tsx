@@ -1,6 +1,6 @@
 import React from 'react';
 import { IonList, IonItem, IonLabel, IonText } from '@ionic/react';
-import '../styles/CategorySummaryList.css';
+import '../shared/styles/CategorySummaryList.css';
 
 // 1. A interface agora inclui a meta (opcional)
 export interface CategorySummaryItem {

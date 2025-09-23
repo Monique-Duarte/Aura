@@ -10,7 +10,7 @@ import {
 import { useHistory } from 'react-router-dom';
 import { getAuth, signOut, onAuthStateChanged, User, updateProfile } from 'firebase/auth';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import '../theme/variables.css';
+import '../app/styles/variables.css';
 
 const menuGroups = [
   {

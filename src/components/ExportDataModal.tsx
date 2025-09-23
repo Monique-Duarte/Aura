@@ -5,12 +5,12 @@ import {
   IonSpinner, IonInput, useIonToast, IonText
 } from '@ionic/react';
 import { getFirestore, collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
-import { useAuth } from '../hooks/AuthContext';
-import { exportToCsv } from '../logic/exportLogic';
+import { useAuth } from '../app/providers/AuthContext';
+import { exportToCsv } from '../features/transactions/logic/exportRendaLogic';
 import { app } from '../firebaseConfig';
 import Papa from 'papaparse';
 import { Capacitor } from '@capacitor/core';
-import '../styles/ExportDataModal.css';
+import '../shared/styles/ExportDataModal.css';
 
 interface ExportDataModalProps {
   isOpen: boolean;

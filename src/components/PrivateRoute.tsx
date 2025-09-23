@@ -1,6 +1,6 @@
 import React from 'react';
 import { Redirect, Route, RouteProps, RouteComponentProps } from 'react-router-dom';
-import { useAuth } from '../hooks/AuthContext';
+import { useAuth } from '../app/providers/AuthContext';
 import { IonSpinner, IonPage, IonContent } from '@ionic/react';
 
 interface PrivateRouteProps extends RouteProps {

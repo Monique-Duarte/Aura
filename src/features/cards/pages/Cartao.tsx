@@ -180,7 +180,7 @@ const Cartao: React.FC = () => {
       <AppModal
         title={editingCard ? 'Editar Cartão' : 'Novo Cartão'}
         isOpen={showModal}
-        onDidDismiss={closeModalAndReset}
+        onClose={closeModalAndReset}
       >
         <div className="form-field-group">
           <IonItem>
@@ -217,7 +217,7 @@ const Cartao: React.FC = () => {
 
       <ActionAlert
         isOpen={showDeleteAlert}
-        onDidDismiss={() => setShowDeleteAlert(false)}
+        onClose={() => setShowDeleteAlert(false)}
         header={'Confirmar Exclusão'}
         message={`Tem a certeza que deseja excluir o cartão "${cardToAction?.name}"?`}
         onConfirm={confirmDelete}
@@ -226,7 +226,7 @@ const Cartao: React.FC = () => {
       
       <IonActionSheet
         isOpen={showActionSheet}
-        onDidDismiss={() => setShowActionSheet(false)}
+        onClose={() => setShowActionSheet(false)}
         header={cardToAction?.name}
         buttons={[
           {

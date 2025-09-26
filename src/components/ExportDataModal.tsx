@@ -14,10 +14,10 @@ import '../shared/styles/ExportDataModal.css';
 
 interface ExportDataModalProps {
   isOpen: boolean;
-  onDidDismiss: () => void;
+  onClose: () => void;
 }
 
-const ExportDataModal: React.FC<ExportDataModalProps> = ({ isOpen, onDidDismiss }) => {
+const ExportDataModal: React.FC<ExportDataModalProps> = ({ isOpen, onClose }) => {
   const { user } = useAuth();
   const [exportType, setExportType] = useState<'year' | 'period'>('year');
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -32,7 +32,6 @@ const ExportDataModal: React.FC<ExportDataModalProps> = ({ isOpen, onDidDismiss 
   const availableYears = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
 
   useEffect(() => {
-    // Limpa o link de download sempre que as opções mudam ou o modal é reaberto
     if (isOpen) {
       setDownloadLink(null);
     }
@@ -135,12 +134,12 @@ const ExportDataModal: React.FC<ExportDataModalProps> = ({ isOpen, onDidDismiss 
   };
 
   return (
-    <IonModal isOpen={isOpen} onDidDismiss={onDidDismiss}>
+    <IonModal isOpen={isOpen} onDidDismiss={onClose}>
       <IonHeader>
         <IonToolbar color="primary">
           <IonTitle>Exportar Rendimentos</IonTitle>
           <IonButtons slot="end">
-            <IonButton onClick={onDidDismiss}>Fechar</IonButton>
+            <IonButton onClick={onClose}>Fechar</IonButton>
           </IonButtons>
         </IonToolbar>
       </IonHeader>

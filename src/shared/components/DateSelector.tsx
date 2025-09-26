@@ -111,7 +111,7 @@ const DateSelector: React.FC<DateSelectorProps> = ({ onPeriodChange }) => {
         </IonItem>
       )}
 
-      <IonModal isOpen={showDatePicker} onDidDismiss={() => setShowDatePicker(false)}>
+      <IonModal isOpen={showDatePicker} onClose={() => setShowDatePicker(false)}>
         <IonHeader>
           <IonToolbar color="primary">
             <IonTitle>

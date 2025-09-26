@@ -284,7 +284,7 @@ const Configuracao: React.FC = () => {
       <AppModal
         title={editingCategory ? 'Editar Categoria' : 'Nova Categoria'}
         isOpen={showModal}
-        onDidDismiss={() => {
+        onClose={() => {
         setShowModal(false);
         setShowCustomPicker(false); 
       }}
@@ -332,7 +332,7 @@ const Configuracao: React.FC = () => {
 
       <ActionAlert
         isOpen={showDeleteAlert}
-        onDidDismiss={() => setCategoryToAction(null)}
+        onClose={() => setCategoryToAction(null)}
         header="Confirmar Ação"
         message={`Tem certeza que deseja ${categoryToAction?.isDefault ? 'ocultar' : 'excluir'} a categoria "${categoryToAction?.name}"?`}
         onConfirm={confirmDeleteCategory}
@@ -340,7 +340,7 @@ const Configuracao: React.FC = () => {
       />
       <ActionAlert
         isOpen={showDeleteAccountAlert}
-        onDidDismiss={() => setShowDeleteAccountAlert(false)}
+        onClose={() => setShowDeleteAccountAlert(false)}
         header="Excluir Conta Permanentemente"
         message="Tem a certeza ABSOLUTA? Esta ação não pode ser desfeita."
         onConfirm={confirmDeleteAccount}
@@ -349,7 +349,7 @@ const Configuracao: React.FC = () => {
 
       <IonActionSheet
         isOpen={showAddActionSheet}
-        onDidDismiss={() => setShowAddActionSheet(false)}
+        onClose={() => setShowAddActionSheet(false)}
         header="Adicionar Nova Categoria"
         buttons={[
           { text: 'Categoria de Renda', handler: () => openAddModal('income') },
@@ -359,7 +359,7 @@ const Configuracao: React.FC = () => {
       />
       <IonActionSheet
         isOpen={showCategoryActionSheet}
-        onDidDismiss={() => setShowCategoryActionSheet(false)}
+        onClose={() => setShowCategoryActionSheet(false)}
         header={categoryToAction?.name}
         buttons={[
           ...(categoryView === 'hidden' ? 
@@ -382,7 +382,7 @@ const Configuracao: React.FC = () => {
       
       <IonToast
         isOpen={showToast}
-        onDidDismiss={() => setShowToast(false)}
+        onClose={() => setShowToast(false)}
         message="Conta do Google vinculada com sucesso!"
         duration={3000}
         color="success"

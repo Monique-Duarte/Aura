@@ -232,7 +232,7 @@ const Faturas: React.FC = () => {
       <AppModal
         title={`Fatura ${selectedInvoice?.cardName}`}
         isOpen={showDetailsModal}
-        onDidDismiss={() => setShowDetailsModal(false)}
+        onClose={() => setShowDetailsModal(false)}
       >
         {selectedInvoice && (
           <>

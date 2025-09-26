@@ -12,32 +12,20 @@ import {
 import { close } from 'ionicons/icons';
 
 interface AppModalProps {
-  /**
-   * O título que aparecerá no cabeçalho do modal.
-   */
   title: string;
-  /**
-   * Controla se o modal está visível ou não.
-   */
   isOpen: boolean;
-  /**
-   * Função a ser chamada quando o modal for fechado (pelo botão 'X' ou pelo gesto de arrastar).
-   */
-  onDidDismiss: () => void;
-  /**
-   * O conteúdo JSX a ser renderizado dentro do modal.
-   */
+  onClose: () => void;
   children: React.ReactNode;
 }
 
-const AppModal: React.FC<AppModalProps> = ({ title, isOpen, onDidDismiss, children }) => {
+const AppModal: React.FC<AppModalProps> = ({ title, isOpen, onClose, children }) => {
   return (
-    <IonModal isOpen={isOpen} onDidDismiss={onDidDismiss}>
+    <IonModal isOpen={isOpen} onDidDismiss={onClose}>
       <IonHeader>
         <IonToolbar>
           <IonTitle>{title}</IonTitle>
           <IonButtons slot="end">
-            <IonButton onClick={onDidDismiss}>
+            <IonButton onClick={onClose}>
               <IonIcon icon={close} />
             </IonButton>
           </IonButtons>

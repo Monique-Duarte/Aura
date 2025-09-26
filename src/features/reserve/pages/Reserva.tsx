@@ -348,7 +348,7 @@ const Reserva: React.FC = () => {
       <AppModal
         title={editingGoal ? 'Editar Objetivo' : 'Novo Objetivo'}
         isOpen={showGoalModal}
-        onDidDismiss={closeGoalModal}
+        onClose={closeGoalModal}
       >
         <div className="form-field-group">
           <IonItem>
@@ -394,7 +394,7 @@ const Reserva: React.FC = () => {
       <AppModal
         title={transactionMode === 'add' ? 'Adicionar Valor' : 'Resgatar Valor'}
         isOpen={showTransactionModal}
-        onDidDismiss={closeTransactionModal}
+        onClose={closeTransactionModal}
       >
         <div className="ion-padding">
           <p className="ion-text-center">Movimentar para <strong>{goalToAction?.name}</strong></p>
@@ -453,7 +453,7 @@ const Reserva: React.FC = () => {
 
       <ActionAlert
           isOpen={showDeleteAlert}
-          onDidDismiss={() => setShowDeleteAlert(false)}
+          onClose={() => setShowDeleteAlert(false)}
           header={'Confirmar Exclusão'}
           message={'Tem certeza? Este objetivo e todas as suas transações serão apagados permanentemente.'}
           onConfirm={confirmDeleteGoal}
@@ -462,7 +462,7 @@ const Reserva: React.FC = () => {
       
       <InputAlert
           isOpen={showAdjustBalanceAlert}
-          onDidDismiss={() => setShowAdjustBalanceAlert(false)}
+          onClose={() => setShowAdjustBalanceAlert(false)}
           header={'Ajustar Saldo'}
           message={`Qual o valor correto para "${goalToAction?.name}"?`}
           inputs={[{ name: 'newBalance', type: 'number', placeholder: 'Ex: 1550,75', value: goalToAction?.balance }]}
@@ -471,7 +471,7 @@ const Reserva: React.FC = () => {
       
       <IonActionSheet
           isOpen={showActionSheet}
-          onDidDismiss={() => setShowActionSheet(false)}
+          onClose={() => setShowActionSheet(false)}
           header={goalToAction?.name}
           buttons={[
               { text: 'Adicionar Valor', cssClass: 'action-sheet-edit', icon: checkmarkCircleOutline, handler: () => openTransactionModal('add') },

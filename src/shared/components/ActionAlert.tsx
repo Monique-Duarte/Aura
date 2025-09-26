@@ -5,7 +5,7 @@ interface ActionAlertProps {
   isOpen: boolean;
   header: string;
   message: string;
-  onDidDismiss: () => void;
+  onClose: () => void;
   onConfirm: () => void;
   confirmButtonText?: string;
   cancelButtonText?: string;
@@ -15,7 +15,7 @@ const ActionAlert: React.FC<ActionAlertProps> = ({
   isOpen,
   header,
   message,
-  onDidDismiss,
+  onClose,
   onConfirm,
   confirmButtonText = 'Confirmar',
   cancelButtonText = 'Cancelar',
@@ -23,11 +23,11 @@ const ActionAlert: React.FC<ActionAlertProps> = ({
   return (
     <IonAlert
       isOpen={isOpen}
-      onDidDismiss={onDidDismiss}
+      onDidDismiss={onClose}
       header={header}
       message={message}
       buttons={[
-        { text: cancelButtonText, role: 'cancel', handler: onDidDismiss },
+        { text: cancelButtonText, role: 'cancel', handler: onClose },
         { text: confirmButtonText, cssClass: 'alert-button-danger', handler: onConfirm }
       ]}
     />

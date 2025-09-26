@@ -225,7 +225,7 @@ const Renda: React.FC = () => {
       <AppModal
         title={editingIncome ? 'Editar Renda' : 'Nova Renda'}
         isOpen={showModal}
-        onDidDismiss={closeModalAndReset}
+        onClose={closeModalAndReset}
       >
         <div className="form-field-group">
           <IonItem>
@@ -278,7 +278,7 @@ const Renda: React.FC = () => {
 
       <ActionAlert
         isOpen={showDeleteAlert}
-        onDidDismiss={() => setShowDeleteAlert(false)}
+        onClose={() => setShowDeleteAlert(false)}
         header={'Confirmar Exclusão'}
         message={'Tem certeza que deseja excluir este lançamento? Esta ação não pode ser desfeita.'}
         onConfirm={confirmDelete}
@@ -287,7 +287,7 @@ const Renda: React.FC = () => {
 
       <IonActionSheet
         isOpen={showActionSheet}
-        onDidDismiss={() => setShowActionSheet(false)}
+        onClose={() => setShowActionSheet(false)}
         header={incomeToAction?.description}
         buttons={[
           { text: 'Editar', icon: pencil, handler: handleEditClick, cssClass: 'action-sheet-edit' },
@@ -298,12 +298,12 @@ const Renda: React.FC = () => {
 
       <ExportDataModal
         isOpen={showExportModal}
-        onDidDismiss={() => setShowExportModal(false)}
+        onClose={() => setShowExportModal(false)}
       />
 
       <IonAlert
         isOpen={showAddCategoryAlert}
-        onDidDismiss={() => setShowAddCategoryAlert(false)}
+        onClose={() => setShowAddCategoryAlert(false)}
         header={'Nova Categoria de Renda'}
         message={'Digite o nome da nova categoria.'}
         inputs={[{ name: 'categoryName', type: 'text', placeholder: 'Ex: Freelance' }]}

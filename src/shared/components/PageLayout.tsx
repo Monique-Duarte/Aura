@@ -67,7 +67,7 @@ const PageLayout: React.FC<PageLayoutProps> = ({ pageTitle, children, headerActi
       <IonPopover
         isOpen={popoverState.show}
         event={popoverState.event}
-        onDidDismiss={() => setPopoverState({ show: false, event: undefined })}
+        onClose={() => setPopoverState({ show: false, event: undefined })}
         translucent={true}
         className="notification-popover"
       >

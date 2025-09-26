@@ -19,6 +19,7 @@ import '@ionic/react/css/display.css';
 import '../src/app/styles/variables.css';
 
 /* Páginas e Layouts */
+import { NotificationProvider } from './app/providers/NotificationContext';
 import Login from './features/auth/pages/Login';
 import ResetPassword from './features/auth/pages/ResetPassword';
 import { AuthProvider } from './app/providers/AuthContext';
@@ -33,20 +34,12 @@ setupIonicReact({
 const App: React.FC = () => {
 
   useEffect(() => {
-    // Esta função será chamada uma única vez quando o app iniciar.
     const initializeApp = async () => {
-      // Só executa em dispositivos móveis.
       if (Capacitor.isNativePlatform()) {
         try {
-          // 1. Sobrepõe o app: Essencial para o nosso layout de tela cheia.
           await StatusBar.setOverlaysWebView({ overlay: true });
-
-          // 2. Deixa o fundo da barra transparente para mostrar a cor do nosso header.
-          await StatusBar.setBackgroundColor({ color: '#00000000' }); // Transparente
-
-          // 3. Define os ícones (hora, bateria) para um tom escuro, que contrasta bem com seu header amarelo.
+          await StatusBar.setBackgroundColor({ color: '#00000000' });
           await StatusBar.setStyle({ style: Style.Dark });
-
           console.log('Barra de Status configurada para o App.');
         } catch (error) {
           console.error('Erro ao configurar a Barra de Status:', error);
@@ -60,17 +53,19 @@ const App: React.FC = () => {
   return (
     <IonApp>
       <IonReactRouter>
-        <AuthProvider>
-          <DateProvider>
-            <Switch>
-              <Route path="/login" component={Login} exact />
-              <Route path="/register" component={Register} exact />
-              <Route path="/reset-password" component={ResetPassword} exact />
-              <Route path="/app" component={MainLayout} />
-              <Redirect exact from="/" to="/login" />
-            </Switch>
-          </DateProvider>
-        </AuthProvider>
+        <NotificationProvider>
+          <AuthProvider>
+            <DateProvider>
+              <Switch>
+                <Route path="/login" component={Login} exact />
+                <Route path="/register" component={Register} exact />
+                <Route path="/reset-password" component={ResetPassword} exact />
+                <Route path="/app" component={MainLayout} />
+                <Redirect exact from="/" to="/login" />
+              </Switch>
+            </DateProvider>
+          </AuthProvider>
+        </NotificationProvider>
       </IonReactRouter>
     </IonApp>
   );

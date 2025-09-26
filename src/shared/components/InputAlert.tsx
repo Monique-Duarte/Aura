@@ -7,7 +7,7 @@ interface InputAlertProps {
   header: string;
   message: string;
   inputs: AlertInput[];
-  onDidDismiss: () => void;
+  onClose: () => void;
   onConfirm: (data: any) => void;
   confirmButtonText?: string;
   cancelButtonText?: string;
@@ -18,7 +18,7 @@ const InputAlert: React.FC<InputAlertProps> = ({
   header,
   message,
   inputs,
-  onDidDismiss,
+  onClose,
   onConfirm,
   confirmButtonText = 'Ajustar',
   cancelButtonText = 'Cancelar',
@@ -26,7 +26,7 @@ const InputAlert: React.FC<InputAlertProps> = ({
   return (
     <IonAlert
       isOpen={isOpen}
-      onDidDismiss={onDidDismiss}
+      onClose={onDidDismiss}
       header={header}
       message={message}
       inputs={inputs}

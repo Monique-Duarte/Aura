@@ -10,17 +10,17 @@ import logo from '/logo.png';
 import '../../../app/styles/variables.css';
 import '../../../shared/styles/Login.css';
 import { APP_VERSION } from '../../../constants';
+import { useNotifier } from '../../../app/providers/NotificationContext';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [showPassword, setShowPassword] = useState(false); 
   const [rememberMe, setRememberMe] = useState(false);
-  const [erro, setErro] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingGoogle, setLoadingGoogle] = useState(false);
   const history = useHistory();
-
+  const { showNotification } = useNotifier();
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
   };
@@ -37,7 +37,6 @@ const Login: React.FC = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErro('');
     setLoading(true);
     const auth = getAuth(app);
     try {
@@ -51,24 +50,22 @@ const Login: React.FC = () => {
 
       history.push('/app/dashboard');
     } catch (error) {
-      if (error instanceof FirebaseError) {
-        if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
-          setErro('E-mail ou senha inválidos.');
-        } else {
-          setErro('Ocorreu um erro ao tentar fazer login.');
+        let errorMessage = 'Ocorreu um erro inesperado.';
+        if (error instanceof FirebaseError) {
+            if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+            errorMessage = 'E-mail ou senha inválidos.';
+            } else {
+            errorMessage = 'Ocorreu um erro ao tentar fazer login.';
+            }
         }
-      } else {
-        setErro('Ocorreu um erro inesperado.');
-      }
-      console.error("Erro no login:", error);
+        showNotification({ message: errorMessage, color: 'danger' });
+        console.error("Erro no login:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  // Função de login com Google com tratamento de erro type-safe
   const handleGoogleLogin = async () => {
-    setErro('');
     setLoadingGoogle(true);
     try {
       const user = await authService.signInWithGoogle();
@@ -78,12 +75,9 @@ const Login: React.FC = () => {
         throw new Error('Usuário não foi retornado pelo serviço de login.');
       }
     } catch (error) {
-      if (error instanceof Error) {
-        setErro(error.message);
-      } else {
-        setErro('Ocorreu um erro desconhecido ao entrar com o Google.');
-      }
-      console.error("Erro no login com Google:", error);
+        const errorMessage = error instanceof Error ? error.message : 'Ocorreu um erro desconhecido ao entrar com o Google.';
+        showNotification({ message: errorMessage, color: 'danger' });
+        console.error("Erro no login com Google:", error);
     } finally {
       setLoadingGoogle(false);
     }
@@ -131,9 +125,7 @@ return (
               checked={rememberMe}
               onIonChange={e => setRememberMe(e.detail.checked)}
             />
-          </IonItem>
-
-          {erro && <IonText color="danger" style={{ display: 'block', marginTop: 8, textAlign: 'center' }}>{erro}</IonText>}
+          </IonItem> 
           <IonButton expand="block" type="submit" className="aura-btn-main-clean" disabled={loading}>
             {loading ? <IonSpinner name="crescent" /> : 'Entrar'}
           </IonButton>

@@ -167,7 +167,7 @@ const DefinirMetasPage: React.FC = () => {
       <AppModal
         title={`Meta para ${selectedCategory?.name || ''}`}
         isOpen={isModalOpen}
-        onDidDismiss={closeModal}
+        onClose={closeModal}
       >
         <IonItem>
           <IonLabel position="stacked">Valor da Meta (R$)</IonLabel>

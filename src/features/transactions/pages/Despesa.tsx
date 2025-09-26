@@ -1,3 +1,5 @@
+// src/features/transactions/pages/Despesa.tsx
+
 import React, { useState, useEffect, useMemo } from "react";
 import {
   IonFab,
@@ -27,7 +29,7 @@ import { useNotifier } from "../../../app/providers/NotificationContext";
 // --- ARQUITETURA APLICADA ---
 import { Transaction, ExpenseFormData } from "../../../shared/types/types";
 import { transactionsService } from "../api/transactions.service";
-import { useCreditCards, CreditCard } from "../../cards/hooks/useCreditCards";
+import { useCreditCards } from "../../cards/hooks/useCreditCards";
 import { useExpenseForm } from "../hooks/useExpenseForm";
 
 // --- COMPONENTES COMPARTILHADOS ---
@@ -53,11 +55,13 @@ const Despesas: React.FC = () => {
   const { user } = useAuth();
   const { showNotification } = useNotifier();
 
+  // --- LÓGICA DE DADOS E FORMULÁRIO CENTRALIZADA EM HOOKS ---
   const [allFetchedExpenses, setAllFetchedExpenses] = useState<Transaction[]>(
     []
   );
   const { cards } = useCreditCards();
-  const { formState, handleInputChange, setFormForEditing, resetForm } =
+  // 2. Toda a complexidade do formulário por esta única linha
+  const { formState, setFormState, setFormForEditing, resetForm } =
     useExpenseForm();
 
   // Estados de controle da UI
@@ -112,7 +116,6 @@ const Despesas: React.FC = () => {
       return;
     }
     try {
-      // O objeto do formulário é usado diretamente
       const formData: ExpenseFormData = {
         amount: formState.amount,
         description: formState.description,
@@ -199,7 +202,6 @@ const Despesas: React.FC = () => {
   const closeModalAndReset = () => {
     setShowModal(false);
     setEditingExpense(null);
-    // 4. A lógica de resetar o formulário agora é uma única chamada
     resetForm();
   };
 
@@ -217,9 +219,12 @@ const Despesas: React.FC = () => {
     0
   );
 
+  const handleFormChange = (field: keyof typeof formState, value: any) => {
+    setFormState((prev) => ({ ...prev, [field]: value }));
+  };
+
   return (
     <PageLayout pageTitle="Lançamentos de Despesas">
-      {/* ... Seu JSX da parte superior (filtros, etc.) permanece igual ... */}
       <div className="summary-card">
         <IonText>
           <p>Total gasto no período</p>
@@ -305,7 +310,6 @@ const Despesas: React.FC = () => {
         </IonFabButton>
       </IonFab>
 
-      {/* O modal agora usa o 'formState' e 'handleInputChange' do hook */}
       <AppModal
         title={editingExpense ? "Editar Gasto" : "Novo Gasto"}
         isOpen={showModal}
@@ -316,14 +320,14 @@ const Despesas: React.FC = () => {
           <IonInput
             value={formState.description}
             onIonChange={(e) =>
-              handleInputChange("description", e.detail.value!)
+              handleFormChange("description", e.detail.value!)
             }
           />
         </IonItem>
         <CategorySelector
           selectedCategories={formState.selectedCategories}
           onCategoryChange={(cats) =>
-            handleInputChange("selectedCategories", cats)
+            handleFormChange("selectedCategories", cats)
           }
         />
         <CurrencyInput
@@ -333,7 +337,7 @@ const Despesas: React.FC = () => {
               : "Valor (R$)"
           }
           value={formState.amount}
-          onValueChange={(val) => handleInputChange("amount", val)}
+          onValueChange={(val) => handleFormChange("amount", val)}
         />
         <IonItem lines="none" className="date-item">
           <IonLabel>
@@ -344,7 +348,7 @@ const Despesas: React.FC = () => {
         <IonSegment
           value={formState.paymentMethod}
           onIonChange={(e) =>
-            handleInputChange("paymentMethod", e.detail.value as any)
+            handleFormChange("paymentMethod", e.detail.value as any)
           }
         >
           <IonSegmentButton value="debit">
@@ -361,7 +365,7 @@ const Despesas: React.FC = () => {
               value={formState.selectedCardId}
               placeholder="Selecione (Opcional)"
               onIonChange={(e) =>
-                handleInputChange("selectedCardId", e.detail.value)
+                handleFormChange("selectedCardId", e.detail.value)
               }
             >
               {cards.map((card) => (
@@ -381,7 +385,7 @@ const Despesas: React.FC = () => {
                 type="number"
                 value={formState.installments}
                 onIonChange={(e) =>
-                  handleInputChange(
+                  handleFormChange(
                     "installments",
                     parseInt(e.detail.value!, 10) || 1
                   )
@@ -409,7 +413,7 @@ const Despesas: React.FC = () => {
             <IonToggle
               checked={formState.isRecurring}
               onIonChange={(e) =>
-                handleInputChange("isRecurring", e.detail.checked)
+                handleFormChange("isRecurring", e.detail.checked)
               }
             />
           </IonItem>
@@ -468,12 +472,13 @@ const Despesas: React.FC = () => {
           { text: "Cancelar", icon: close, role: "cancel" },
         ]}
       />
+
       <IonModal keepContentsMounted={true}>
         <IonDatetime
           id="datetime-in-modal"
           value={formState.date}
           onIonChange={(e) =>
-            handleInputChange("date", e.detail.value as string)
+            handleFormChange("date", e.detail.value as string)
           }
           presentation="date"
         />

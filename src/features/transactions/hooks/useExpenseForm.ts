@@ -1,7 +1,5 @@
-// src/features/transactions/hooks/useExpenseForm.ts
-
 import { useState, useCallback } from 'react';
-import { Transaction } from '../../../shared/types/types'; 
+import { Transaction } from '../../../shared/types/types';
 
 // 1. A interface que define o estado do nosso formulário
 export interface ExpenseFormState {
@@ -31,14 +29,8 @@ export const useExpenseForm = () => {
   const [formState, setFormState] = useState<ExpenseFormState>(initialState);
 
   /**
-   * Atualiza um campo específico do formulário de forma genérica.
-   */
-  const handleInputChange = useCallback((field: keyof ExpenseFormState, value: any) => {
-    setFormState(prev => ({ ...prev, [field]: value }));
-  }, []);
-
-  /**
    * Preenche o formulário com os dados de uma despesa existente para edição.
+   * Encapsula a lógica que estava dentro de `handleEditClick`.
    */
   const setFormForEditing = useCallback((expense: Transaction) => {
     setFormState({
@@ -55,15 +47,16 @@ export const useExpenseForm = () => {
 
   /**
    * Reseta o formulário para o seu estado inicial.
+   * Encapsula a lógica que estava dentro de `closeModalAndReset`.
    */
   const resetForm = useCallback(() => {
     setFormState(initialState);
   }, []);
 
-  // 3. O hook expõe o estado e as funções para serem usados pelo componente
+  // 3. O hook expõe o estado e as funções para a página utilizar
   return {
     formState,
-    handleInputChange,
+    setFormState, // Expondo o setFormState para flexibilidade
     setFormForEditing,
     resetForm,
   };

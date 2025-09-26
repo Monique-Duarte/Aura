@@ -1,5 +1,3 @@
-// src/features/transactions/pages/Despesa.tsx
-
 import React, { useState, useEffect, useMemo } from "react";
 import {
   IonFab,
@@ -23,16 +21,20 @@ import {
   IonAlert,
 } from "@ionic/react";
 import { add, close, pencil, trash } from "ionicons/icons";
-import { Timestamp } from "firebase/firestore";
 import { useAuth } from "../../../app/providers/AuthContext";
 import { useNotifier } from "../../../app/providers/NotificationContext";
-import { Transaction, ExpenseFormData } from '../../../shared/types/types';
 
-// ARQUITETURA APLICADA
+// --- ARQUITETURA APLICADA ---
+import { Transaction, ExpenseFormData } from "../../../shared/types/types";
 import { transactionsService } from "../api/transactions.service";
-import { useCreditCards } from "../../cards/hooks/useCreditCards";
+import { useCreditCards, CreditCard } from "../../cards/hooks/useCreditCards";
+import { useExpenseForm } from "../hooks/useExpenseForm";
+
+// --- COMPONENTES COMPARTILHADOS ---
 import CategorySelector from "../../categories/components/CategorySelector";
-import PeriodSelector, { Period } from "../../../shared/components/PeriodSelector";
+import PeriodSelector, {
+  Period,
+} from "../../../shared/components/PeriodSelector";
 import ActionButton from "../../../shared/components/ActionButton";
 import ActionAlert from "../../../shared/components/ActionAlert";
 import CurrencyInput from "../../../shared/components/CurrencyInput";
@@ -51,39 +53,28 @@ const Despesas: React.FC = () => {
   const { user } = useAuth();
   const { showNotification } = useNotifier();
 
-  // Estados da UI
-  const [showModal, setShowModal] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [showDeleteAlert, setShowDeleteAlert] = useState(false);
-  const [expenseToAction, setExpenseToAction] = useState<Transaction | null>(
-    null
-  );
-  const [showActionSheet, setShowActionSheet] = useState(false);
-  const [showInstallmentDeleteAlert, setShowInstallmentDeleteAlert] =
-    useState(false);
-  const [selectedPeriod, setSelectedPeriod] = useState<Period | null>(null);
-  const [filterMode, setFilterMode] = useState<FilterMode>("all");
-
-  // Estados de Dados
   const [allFetchedExpenses, setAllFetchedExpenses] = useState<Transaction[]>(
     []
   );
   const { cards } = useCreditCards();
+  const { formState, handleInputChange, setFormForEditing, resetForm } =
+    useExpenseForm();
 
-  // Estados do Formulário
+  // Estados de controle da UI
+  const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Transaction | null>(
     null
   );
-  const [description, setDescription] = useState("");
-  const [amount, setAmount] = useState<number | undefined>();
-  const [date, setDate] = useState(new Date().toISOString());
-  const [isRecurring, setIsRecurring] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<"credit" | "debit">(
-    "debit"
+  const [expenseToAction, setExpenseToAction] = useState<Transaction | null>(
+    null
   );
-  const [installments, setInstallments] = useState(1);
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [selectedCardId, setSelectedCardId] = useState<string | undefined>();
+  const [showActionSheet, setShowActionSheet] = useState(false);
+  const [showDeleteAlert, setShowDeleteAlert] = useState(false);
+  const [showInstallmentDeleteAlert, setShowInstallmentDeleteAlert] =
+    useState(false);
+  const [selectedPeriod, setSelectedPeriod] = useState<Period | null>(null);
+  const [filterMode, setFilterMode] = useState<FilterMode>("all");
 
   useEffect(() => {
     if (!user) {
@@ -113,7 +104,7 @@ const Despesas: React.FC = () => {
   }, [allFetchedExpenses, selectedPeriod]);
 
   const handleSaveExpense = async () => {
-    if (!user || !amount || !description) {
+    if (!user || !formState.amount || !formState.description) {
       showNotification({
         message: "Descrição e valor são obrigatórios.",
         color: "warning",
@@ -121,18 +112,17 @@ const Despesas: React.FC = () => {
       return;
     }
     try {
-      // O objeto agora corresponde à interface ExpenseFormData
+      // O objeto do formulário é usado diretamente
       const formData: ExpenseFormData = {
-        amount,
-        description,
-        date,
-        isRecurring,
-        paymentMethod,
-        installments,
-        categories: selectedCategories,
-        cardId: selectedCardId,
+        amount: formState.amount,
+        description: formState.description,
+        date: formState.date,
+        isRecurring: formState.isRecurring,
+        paymentMethod: formState.paymentMethod,
+        installments: formState.installments,
+        categories: formState.selectedCategories,
+        cardId: formState.selectedCardId,
       };
-
       await transactionsService.saveExpense(
         user.uid,
         formData,
@@ -144,7 +134,6 @@ const Despesas: React.FC = () => {
       });
       closeModalAndReset();
     } catch (error) {
-      console.error("Erro ao salvar gasto:", error);
       showNotification({ message: "Erro ao salvar despesa.", color: "danger" });
     }
   };
@@ -155,10 +144,7 @@ const Despesas: React.FC = () => {
       await transactionsService.deleteExpense(user.uid, expenseToAction.id);
       showNotification({ message: "Despesa excluída!", color: "success" });
     } catch (error) {
-      showNotification({
-        message: "Erro ao excluir despesa.",
-        color: "danger",
-      });
+      showNotification({ message: "Erro ao excluir.", color: "danger" });
     }
     setShowDeleteAlert(false);
     setExpenseToAction(null);
@@ -202,30 +188,19 @@ const Despesas: React.FC = () => {
       setShowDeleteAlert(true);
     }
   };
+
   const handleEditClick = () => {
     if (!expenseToAction) return;
     setEditingExpense(expenseToAction);
-    setDescription(expenseToAction.description);
-    setAmount(expenseToAction.amount);
-    setDate(expenseToAction.date.toDate().toISOString());
-    setIsRecurring(expenseToAction.isRecurring);
-    setPaymentMethod(expenseToAction.paymentMethod || "debit");
-    setSelectedCategories(expenseToAction.categories || []);
-    setSelectedCardId(expenseToAction.cardId);
-    setInstallments(1);
+    setFormForEditing(expenseToAction);
     setShowModal(true);
   };
+
   const closeModalAndReset = () => {
     setShowModal(false);
     setEditingExpense(null);
-    setDescription("");
-    setAmount(undefined);
-    setDate(new Date().toISOString());
-    setIsRecurring(false);
-    setPaymentMethod("debit");
-    setInstallments(1);
-    setSelectedCategories([]);
-    setSelectedCardId(undefined);
+    // 4. A lógica de resetar o formulário agora é uma única chamada
+    resetForm();
   };
 
   const displayedExpenses = useMemo(() => {
@@ -244,6 +219,7 @@ const Despesas: React.FC = () => {
 
   return (
     <PageLayout pageTitle="Lançamentos de Despesas">
+      {/* ... Seu JSX da parte superior (filtros, etc.) permanece igual ... */}
       <div className="summary-card">
         <IonText>
           <p>Total gasto no período</p>
@@ -329,6 +305,7 @@ const Despesas: React.FC = () => {
         </IonFabButton>
       </IonFab>
 
+      {/* O modal agora usa o 'formState' e 'handleInputChange' do hook */}
       <AppModal
         title={editingExpense ? "Editar Gasto" : "Novo Gasto"}
         isOpen={showModal}
@@ -337,33 +314,38 @@ const Despesas: React.FC = () => {
         <IonItem>
           <IonLabel position="floating">Descrição</IonLabel>
           <IonInput
-            value={description}
-            onIonChange={(e) => setDescription(e.detail.value!)}
-            placeholder="Ex: Tênis, Supermercado"
+            value={formState.description}
+            onIonChange={(e) =>
+              handleInputChange("description", e.detail.value!)
+            }
           />
         </IonItem>
         <CategorySelector
-          selectedCategories={selectedCategories}
-          onCategoryChange={setSelectedCategories}
+          selectedCategories={formState.selectedCategories}
+          onCategoryChange={(cats) =>
+            handleInputChange("selectedCategories", cats)
+          }
         />
         <CurrencyInput
           label={
-            installments > 1 || editingExpense?.isInstallment
+            formState.installments > 1 || editingExpense?.isInstallment
               ? "Valor Total (R$)"
               : "Valor (R$)"
           }
-          value={amount}
-          onValueChange={setAmount}
+          value={formState.amount}
+          onValueChange={(val) => handleInputChange("amount", val)}
         />
         <IonItem lines="none" className="date-item">
           <IonLabel>
-            {installments > 1 ? "Data da Primeira Parcela" : "Data"}
+            {formState.installments > 1 ? "Data da Primeira Parcela" : "Data"}
           </IonLabel>
           <IonDatetimeButton datetime="datetime-in-modal"></IonDatetimeButton>
         </IonItem>
         <IonSegment
-          value={paymentMethod}
-          onIonChange={(e) => setPaymentMethod(e.detail.value as any)}
+          value={formState.paymentMethod}
+          onIonChange={(e) =>
+            handleInputChange("paymentMethod", e.detail.value as any)
+          }
         >
           <IonSegmentButton value="debit">
             <IonLabel>Débito</IonLabel>
@@ -372,13 +354,15 @@ const Despesas: React.FC = () => {
             <IonLabel>Crédito</IonLabel>
           </IonSegmentButton>
         </IonSegment>
-        {paymentMethod === "credit" && (
+        {formState.paymentMethod === "credit" && (
           <IonItem>
             <IonLabel>Cartão de Crédito</IonLabel>
             <IonSelect
-              value={selectedCardId}
+              value={formState.selectedCardId}
               placeholder="Selecione (Opcional)"
-              onIonChange={(e) => setSelectedCardId(e.detail.value)}
+              onIonChange={(e) =>
+                handleInputChange("selectedCardId", e.detail.value)
+              }
             >
               {cards.map((card) => (
                 <IonSelectOption key={card.id} value={card.id}>
@@ -388,38 +372,45 @@ const Despesas: React.FC = () => {
             </IonSelect>
           </IonItem>
         )}
-        {paymentMethod === "credit" && !editingExpense && !isRecurring && (
-          <IonItem>
-            <IonLabel position="floating">Nº de Parcelas</IonLabel>
-            <IonInput
-              type="number"
-              value={installments}
-              onIonChange={(e) =>
-                setInstallments(parseInt(e.detail.value!, 10) || 1)
-              }
-            />
-          </IonItem>
-        )}
-        {installments > 1 && amount && (
+        {formState.paymentMethod === "credit" &&
+          !editingExpense &&
+          !formState.isRecurring && (
+            <IonItem>
+              <IonLabel position="floating">Nº de Parcelas</IonLabel>
+              <IonInput
+                type="number"
+                value={formState.installments}
+                onIonChange={(e) =>
+                  handleInputChange(
+                    "installments",
+                    parseInt(e.detail.value!, 10) || 1
+                  )
+                }
+              />
+            </IonItem>
+          )}
+        {formState.installments > 1 && formState.amount && (
           <IonText
             color="medium"
             style={{ paddingLeft: "16px", fontSize: "0.8rem" }}
           >
             <p>
-              {installments}x de{" "}
-              {(amount / installments).toLocaleString("pt-BR", {
-                style: "currency",
-                currency: "BRL",
-              })}
+              {formState.installments}x de{" "}
+              {(formState.amount / formState.installments).toLocaleString(
+                "pt-BR",
+                { style: "currency", currency: "BRL" }
+              )}
             </p>
           </IonText>
         )}
-        {installments <= 1 && (
+        {formState.installments <= 1 && (
           <IonItem lines="none" className="toggle-item">
             <IonLabel>Gasto Fixo Mensal?</IonLabel>
             <IonToggle
-              checked={isRecurring}
-              onIonChange={(e) => setIsRecurring(e.detail.checked)}
+              checked={formState.isRecurring}
+              onIonChange={(e) =>
+                handleInputChange("isRecurring", e.detail.checked)
+              }
             />
           </IonItem>
         )}
@@ -480,13 +471,10 @@ const Despesas: React.FC = () => {
       <IonModal keepContentsMounted={true}>
         <IonDatetime
           id="datetime-in-modal"
-          value={date}
-          onIonChange={(e) => {
-            const value = e.detail.value;
-            if (typeof value === "string") {
-              setDate(value);
-            }
-          }}
+          value={formState.date}
+          onIonChange={(e) =>
+            handleInputChange("date", e.detail.value as string)
+          }
           presentation="date"
         />
       </IonModal>

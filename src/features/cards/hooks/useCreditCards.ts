@@ -1,9 +1,17 @@
+// src/features/cards/hooks/useCreditCards.ts
+
 import { useState, useEffect } from 'react';
-import { collection, onSnapshot, query } from 'firebase/firestore';
-import { getFirestore } from 'firebase/firestore';
+import { collection, onSnapshot, query, getFirestore } from 'firebase/firestore';
 import { useAuth } from '../../../app/providers/AuthContext';
 import { app } from '../../../firebaseConfig';
-import { CreditCard } from '../../../shared/types/types';
+
+export interface CreditCard {
+  id: string;
+  name: string;
+  closingDay: number;
+  dueDay: number;
+  limit: number;
+}
 
 export const useCreditCards = () => {
   const { user } = useAuth();
@@ -18,7 +26,8 @@ export const useCreditCards = () => {
     }
 
     const db = getFirestore(app);
-    const cardsQuery = query(collection(db, `users/${user.uid}/cards`));
+    const cardsRef = collection(db, 'users', user.uid, 'cards');
+    const cardsQuery = query(cardsRef);
 
     const unsubscribe = onSnapshot(cardsQuery, (snapshot) => {
       const fetchedCards = snapshot.docs.map(doc => ({

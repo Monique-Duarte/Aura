@@ -15,7 +15,8 @@ export const transactionsService = {
 
     return onSnapshot(q, (snapshot) => {
       const expenses = snapshot.docs.map(doc => ({
-        id: doc.id, ...doc.data(),
+        id: doc.id,
+        ...doc.data(),
       } as Transaction));
       callback(expenses);
     }, (error) => {
@@ -25,9 +26,6 @@ export const transactionsService = {
   },
 
   saveExpense: async (userId: string, formData: ExpenseFormData, editingId: string | null = null) => {
-    // A conversão da data acontece aqui dentro, onde deveria.
-    const formDateAsTimestamp = Timestamp.fromDate(new Date(formData.date));
-
     if (formData.paymentMethod === 'credit' && formData.installments > 1 && !editingId) {
       const batch = writeBatch(db);
       const groupId = uuidv4();
@@ -57,11 +55,12 @@ export const transactionsService = {
       }
       await batch.commit();
     } else {
+
       const dataToSave = {
         type: 'expense',
         amount: Math.abs(formData.amount),
         description: formData.description,
-        date: formDateAsTimestamp, // <-- Usando a data convertida
+        date: Timestamp.fromDate(new Date(formData.date)),
         isRecurring: formData.isRecurring,
         paymentMethod: formData.paymentMethod,
         categories: formData.categories,

@@ -287,7 +287,7 @@ const Renda: React.FC = () => {
 
       <IonActionSheet
         isOpen={showActionSheet}
-        onClose={() => setShowActionSheet(false)}
+        onDidDismiss={() => setShowActionSheet(false)}
         header={incomeToAction?.description}
         buttons={[
           { text: 'Editar', icon: pencil, handler: handleEditClick, cssClass: 'action-sheet-edit' },
@@ -303,7 +303,7 @@ const Renda: React.FC = () => {
 
       <IonAlert
         isOpen={showAddCategoryAlert}
-        onClose={() => setShowAddCategoryAlert(false)}
+        onDidDismiss={() => setShowAddCategoryAlert(false)}
         header={'Nova Categoria de Renda'}
         message={'Digite o nome da nova categoria.'}
         inputs={[{ name: 'categoryName', type: 'text', placeholder: 'Ex: Freelance' }]}

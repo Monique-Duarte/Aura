@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { Transaction } from '../../../shared/types/types';
 
-// 1. A interface que define o estado do nosso formulário
+// 1. A interface que define o estado completo do nosso formulário
 export interface ExpenseFormState {
   description: string;
   amount: number | undefined;
@@ -13,7 +13,6 @@ export interface ExpenseFormState {
   selectedCardId: string | undefined;
 }
 
-// 2. O estado inicial, idêntico ao que estava na sua página original
 const initialState: ExpenseFormState = {
   description: '',
   amount: undefined,
@@ -29,8 +28,15 @@ export const useExpenseForm = () => {
   const [formState, setFormState] = useState<ExpenseFormState>(initialState);
 
   /**
+   * Atualiza um campo específico do formulário.
+   * Substitui a necessidade de ter múltiplos `set...` na página.
+   */
+  const handleInputChange = useCallback((field: keyof ExpenseFormState, value: any) => {
+    setFormState(prev => ({ ...prev, [field]: value }));
+  }, []);
+
+  /**
    * Preenche o formulário com os dados de uma despesa existente para edição.
-   * Encapsula a lógica que estava dentro de `handleEditClick`.
    */
   const setFormForEditing = useCallback((expense: Transaction) => {
     setFormState({
@@ -39,7 +45,7 @@ export const useExpenseForm = () => {
       date: expense.date.toDate().toISOString(),
       isRecurring: expense.isRecurring,
       paymentMethod: expense.paymentMethod || 'debit',
-      installments: 1, // Resetamos para 1 ao editar, como na sua lógica original
+      installments: 1,
       selectedCategories: expense.categories || [],
       selectedCardId: expense.cardId,
     });
@@ -47,16 +53,15 @@ export const useExpenseForm = () => {
 
   /**
    * Reseta o formulário para o seu estado inicial.
-   * Encapsula a lógica que estava dentro de `closeModalAndReset`.
    */
   const resetForm = useCallback(() => {
     setFormState(initialState);
   }, []);
 
-  // 3. O hook expõe o estado e as funções para a página utilizar
+  // 3. O hook retorna o estado e as funções para a página utilizar
   return {
     formState,
-    setFormState, // Expondo o setFormState para flexibilidade
+    handleInputChange,
     setFormForEditing,
     resetForm,
   };

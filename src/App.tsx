@@ -18,7 +18,7 @@ import '@ionic/react/css/flex-utils.css';
 import '@ionic/react/css/display.css';
 import '../src/app/styles/variables.css';
 
-/* Páginas e Layouts */
+/* Páginas e Layouts */ 
 import { NotificationProvider } from './app/providers/NotificationContext';
 import Login from './features/auth/pages/Login';
 import ResetPassword from './features/auth/pages/ResetPassword';
